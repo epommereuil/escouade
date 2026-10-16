@@ -999,8 +999,32 @@ pub fn rebase_message(lang: Lang, target: &str) -> String {
     )
 }
 
-/// "Préparer le lancement": the agent is asked how to launch its worktree, with its ports.
-pub fn prepare_message(lang: Lang, base: u16) -> String {
+/// "Préparer le lancement": the agent is asked how to launch its worktree, with its ports, and
+/// from the project's launch commands when it has some (those the user runs in the project or in
+/// a worktree), so that the recipe does not invent another way of launching it.
+pub fn prepare_message(lang: Lang, base: u16, commands: &[RunCommand]) -> String {
+    let mut m = prepare_request(lang, base);
+    if !commands.is_empty() {
+        m.push_str(&tr_in!(
+            lang,
+            "\n\nLes commandes de lancement du projet, à reprendre si elles conviennent, en adaptant leurs ports au bloc réservé (dossier relatif au projet, le même dans le worktree) :",
+            "\n\nThe project’s launch commands, to start from if they fit, with their ports moved to the reserved block (folder relative to the project, the same in the worktree):"
+        ));
+        for c in commands {
+            let dir = c.cwd.trim();
+            let dir = if dir.is_empty() { "." } else { dir };
+            let (name, command) = (&c.name, &c.command);
+            m.push_str(&tr_in!(
+                lang,
+                "\n- {name} : `{command}` (dossier {dir})",
+                "\n- {name}: `{command}` (folder {dir})"
+            ));
+        }
+    }
+    m
+}
+
+fn prepare_request(lang: Lang, base: u16) -> String {
     let (end, web) = (base.saturating_add(PORT_BLOCK - 1), base.saturating_add(1));
     tr_in!(
         lang,
@@ -3033,13 +3057,13 @@ mod tests {
                 && ports.contains("http://localhost:4121"),
             "{ports}"
         );
-        let m = prepare_message(En, 4120);
+        let m = prepare_message(En, 4120, &[]);
         assert_eq!(french_in(&m), None, "{m}");
         assert!(
             m.starts_with("Prepare the test launch of this worktree. Ports reserved: 4120 to 4129"),
             "{m}"
         );
-        assert_eq!(json_keys(&m), json_keys(&prepare_message(Fr, 4120)));
+        assert_eq!(json_keys(&m), json_keys(&prepare_message(Fr, 4120, &[])));
         // Its example is a recipe the app keeps, as the French one.
         let recipe = parse_report(&m).and_then(|r| r.recipe).expect("{m}");
         assert_eq!(
@@ -3074,8 +3098,49 @@ mod tests {
     }
 
     #[test]
+    fn the_launch_request_lists_the_projects_launch_commands_in_either_language() {
+        use crate::i18n::check::french_in;
+        let commands = vec![
+            RunCommand {
+                id: "c1".into(),
+                name: "Front".into(),
+                command: "npm run dev".into(),
+                shell: "pwsh".into(),
+                cwd: "web".into(),
+            },
+            RunCommand {
+                id: "c2".into(),
+                name: "API".into(),
+                command: "cargo run".into(),
+                shell: "pwsh".into(),
+                cwd: String::new(),
+            },
+        ];
+        let en = prepare_message(Lang::En, 4120, &commands);
+        assert_eq!(french_in(&en), None, "{en}");
+        assert!(
+            en.ends_with("\n- Front: `npm run dev` (folder web)\n- API: `cargo run` (folder .)"),
+            "{en}"
+        );
+        let fr = prepare_message(Lang::Fr, 4120, &commands);
+        assert!(
+            fr.contains("Les commandes de lancement du projet")
+                && fr.ends_with(
+                    "\n- Front : `npm run dev` (dossier web)\n- API : `cargo run` (dossier .)"
+                ),
+            "{fr}"
+        );
+        // Its recipe example is still read as one, the list after it.
+        assert!(parse_report(&fr).and_then(|r| r.recipe).is_some());
+        // None: the request as it was.
+        assert_eq!(
+            prepare_message(Lang::Fr, 4120, &[]),
+            prepare_request(Lang::Fr, 4120)
+        );
+    }
+    #[test]
     fn the_launch_request_gives_the_ports_and_the_form_of_the_recipe() {
-        let m = prepare_message(Lang::Fr, 4120);
+        let m = prepare_message(Lang::Fr, 4120, &[]);
         assert!(
             m.starts_with(
                 "Prépare le lancement de test de ce worktree. Ports réservés : 4120 à 4129"
@@ -3097,7 +3162,7 @@ mod tests {
             ("http://localhost:4121", 1)
         );
         // A block read back from a damaged file must not panic on its last port.
-        assert!(prepare_message(Lang::Fr, u16::MAX).contains("65535 à 65535"));
+        assert!(prepare_message(Lang::Fr, u16::MAX, &[]).contains("65535 à 65535"));
     }
 
     #[test]

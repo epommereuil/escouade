@@ -1,6 +1,6 @@
 ---
 name: Escouade, site de présentation
-description: Le site d'une app qui pilote une escouade d'agents Claude Code dans une seule fenêtre.
+description: Le site d'Escouade, l'environnement de développement agentique (ADE) : planifier, coder, relire et tester, livrer, piloter.
 colors:
   brand: "#35c1bd"
   bg: "#1b1917"

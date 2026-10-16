@@ -16,7 +16,7 @@
 
 - Mode économe : implémenteurs et relecteurs Sonnet, une relecture par paire de tâches, revue finale Opus ; pas de re-relecture pour les petites corrections.
 - TDD : test rouge vérifié avant le code, pour chaque correction de cause.
-- Tests Rust en local : `env -u CLAUDE_CODE_ENABLE_TODO_TOOLS cargo test` (la variable héritée de la session fait échouer deux tests de `core_tests`) ; `cargo fmt --check` ; `cargo clippy --all-targets -- -D warnings`. Front : `npm test`, `npm run check`, `npm run format:check`.
+- Tests Rust en local : `cargo test` (le `env -u CLAUDE_CODE_ENABLE_TODO_TOOLS` d’alors n’est plus nécessaire depuis ESC-111 : le harness retire la variable héritée) ; `cargo fmt --check` ; `cargo clippy --all-targets -- -D warnings`. Front : `npm test`, `npm run check`, `npm run format:check`.
 - Commits atomiques sur main, messages en français au format du dépôt (`type(portée): ce qui change — pourquoi`), terminés par `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Pas de push avant la fin du lot 1 (la CI est le banc d'essai du lot 1).
 - Rien ne change dans ce que l'app fait pour l'utilisateur, sauf les défauts corrigés (port MCP stable, terminaux qui meurent avec leur arbre, erreurs de git dites comme telles).
 - Les messages d'erreur de l'app restent bilingues (`tr!`).
@@ -46,7 +46,7 @@
 - Groupes de tests à un seul fil pour ce que des verrous statiques sérialisaient : `pty::windows_powershell_tests::*` et les tests qui prennent `SHELLS` (`pty.rs:575`), ceux qui écrivent `isola::TEST_CLI` (`isola.rs:37`). Auditer `grep -rn "static .*Mutex" src` et `set_var` (`shellenv.rs:22`) : tout état de processus partagé que des tests supposaient sérialisé.
 - CI : installer nextest avec `taiki-e/install-action@v2` (`tool: cargo-nextest`) ; remplacer `cargo test` par `cargo nextest run --profile ci` dans les trois jobs. Garder l'extraction des échecs en annotation (`::error`), et ajouter une annotation `::warning title=Tests instables::` qui liste les tests passés au second ou troisième essai (lignes `FLAKY` de la sortie de nextest, ou `flakyFailure` du JUnit).
 - macOS (3 vCPU) : `--test-threads 3`, le reste par défaut.
-- Vérifier en local sous Windows : installer nextest (binaire précompilé : `curl -LsSf https://get.nexte.st/latest/windows-tar | tar zxf - -C ~/.cargo/bin`, ou `cargo install cargo-nextest --locked`), lancer `env -u CLAUDE_CODE_ENABLE_TODO_TOOLS cargo nextest run --profile ci` dans `src-tauri` : tout passe, et la durée totale est notée.
+- Vérifier en local sous Windows : installer nextest (binaire précompilé : `curl -LsSf https://get.nexte.st/latest/windows-tar | tar zxf - -C ~/.cargo/bin`, ou `cargo install cargo-nextest --locked`), lancer `cargo nextest run --profile ci` (sans `env -u CLAUDE_CODE_ENABLE_TODO_TOOLS` depuis ESC-111) dans `src-tauri` : tout passe, et la durée totale est notée.
 
 **Cas de test :** la suite entière sous nextest en local ; un test volontairement bloqué (`#[test] fn _probe() { loop {} }`, non commité) est tué et nommé au bout du délai.
 

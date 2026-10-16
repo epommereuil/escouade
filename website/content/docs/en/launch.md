@@ -23,7 +23,7 @@ Commands are set per project, in Settings › Projects, “Launch” group. The 
 
 “+ Add a command” adds one, and the command’s cross deletes it. Nothing takes effect before “Save”, which stays greyed out as long as a command has no name or no command line (“Every launch command in “demo-api” needs a name and a command line.”). A command removed from the settings and saved stops, and its log disappears. The full list of project settings is in [the project settings](settings-projects).
 
-Commands receive no `ESCOUADE_…` variable. To give an environment variable to a process that doesn’t read it from a `.env` file, write it in front of the command, in the syntax of its shell: `$env:PORT = '3000'; npm run dev` in PowerShell, `PORT=3000 npm run dev` in bash and zsh. When “Also apply the proxy to the built-in terminals” is on (see [the network settings](settings-network)), commands receive the proxy variables.
+Commands run in the project receive no `ESCOUADE_…` variable (in an agent’s worktree, they receive its ports: see below). To give an environment variable to a process that doesn’t read it from a `.env` file, write it in front of the command, in the syntax of its shell: `$env:PORT = '3000'; npm run dev` in PowerShell, `PORT=3000 npm run dev` in bash and zsh. When “Also apply the proxy to the built-in terminals” is on (see [the network settings](settings-network)), commands receive the proxy variables.
 
 ## Running, restarting, stopping
 
@@ -58,6 +58,19 @@ A command’s log fills the main area when you click its row. The header gives i
 - The magnifier, or `Ctrl+Shift+F` (`⇧⌘F` on macOS) in the log, opens a search field: `Enter` goes to the next match, `Shift+Enter` to the previous one, `Esc` closes the field. “Clear” empties the log’s screen.
 
 Agents’ test launches (the “▶ Test” button, see [testing](testing)) appear in the same section, under the agent’s name, once launched. They are followed the same way.
+
+## In an agent’s worktree
+
+A command also runs in an agent’s worktree, to see its work running without merging it.
+
+- As soon as an agent of the project has a worktree, “Run” (▶) opens a menu: “In the project”, then “In the worktree of <agent>” for each agent that has one (not the archived ones). Without a worktree, ▶ runs in the project, as before. “Run all” always runs in the project, and first says which commands already run in a worktree.
+- On a right-click on the card of an agent with a worktree, “Run…” lists the project’s commands; each one runs in its worktree.
+- The command runs in the same subfolder, taken in the worktree. When it isn’t there (the agent’s branch doesn’t have it, or not yet), it doesn’t start and the message says why: “The folder “web” of “Front” doesn’t exist in the worktree of “refacto-auth” (its branch doesn’t have it, or not yet).”
+- It shows under the agent’s name, with its own status and its own log; its terminal is named “Front · refacto-auth”. The project’s row keeps its own.
+- It receives `ESCOUADE_PORT_BASE` and `ESCOUADE_PORT_END`, the agent’s block of 10 ports (reserved then if it has none), the same as its test launches. For two instances not to fight over a port, make the command read it, for example `npm run dev -- --port $env:ESCOUADE_PORT_BASE` in PowerShell or `npm run dev -- --port ${ESCOUADE_PORT_BASE:-5173}` in bash.
+- When the same command already runs elsewhere (in the project or in another worktree), a dialog says so before running: “Stop the other and run”, or “Run anyway”.
+- It stops with the agent: when it’s archived, deleted, when its ticket is approved (which removes its worktree), and when the project closes.
+- A new worktree doesn’t have the project’s dependencies (`node_modules`, Python environment…): that’s the job of the worktree setup steps (Settings › Projects, “Worktrees” group), which run when it’s made.
 
 ## Fill in automatically
 

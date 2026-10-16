@@ -2682,38 +2682,95 @@ impl<R: Runtime> Core<R> {
         if archived {
             bail!(Refusal::Archived);
         }
-        let base = match base {
-            Some(b) => b,
-            None => {
-                // Reserved, then written on the agent with no wait in between: no other start
-                // or preparation gets this block meanwhile.
-                let reserved = self.reserve_ports().ok_or_else(|| {
-                    anyhow!(tr!(
-                        "Aucun bloc de ports libre à partir de 4100.",
-                        "No free block of ports from 4100 on."
-                    ))
-                })?;
-                let held = {
-                    let mut rt = h.lock();
-                    // Archived meanwhile, it holds no block; given one meanwhile (another
-                    // preparation at once), it keeps that one.
-                    (!rt.meta.archived).then(|| *rt.meta.port_base.get_or_insert(reserved))
-                };
-                // The agent holds its block from now on (or the one reserved is free again).
-                self.unreserve_ports(Some(reserved));
-                let base = held.ok_or_else(|| anyhow!(Refusal::Archived))?;
-                self.emit_agent(&h);
-                self.request_save();
-                base
-            }
-        };
+        let base = self.ensure_ports(&h, base)?;
         // Archived meanwhile, whichever way it got its block: it is not woken up for nothing.
         if h.lock().meta.archived {
             bail!(Refusal::Archived);
         }
-        // The app's own text, not a task of the user's: it never names the agent.
-        self.send_by_app(id, board::prepare_message(self.lang().claude, base))
-            .await
+        // The app's own text, not a task of the user's: it never names the agent. The project's
+        // launch commands are where its recipe starts from.
+        let pid = h.lock().meta.project_id.clone();
+        let commands = self
+            .project(&pid)
+            .map(|p| p.run_commands)
+            .unwrap_or_default();
+        self.send_by_app(
+            id,
+            board::prepare_message(self.lang().claude, base, &commands),
+        )
+        .await
+    }
+
+    /// The agent's block of ports (`base`, as it was read), reserved now if it has none.
+    fn ensure_ports(&self, h: &crate::agent::AgentHandle, base: Option<u16>) -> Result<u16> {
+        if let Some(b) = base {
+            return Ok(b);
+        }
+        // Reserved, then written on the agent with no wait in between: no other start
+        // or preparation gets this block meanwhile.
+        let reserved = self.reserve_ports().ok_or_else(|| {
+            anyhow!(tr!(
+                "Aucun bloc de ports libre à partir de 4100.",
+                "No free block of ports from 4100 on."
+            ))
+        })?;
+        let held = {
+            let mut rt = h.lock();
+            // Archived meanwhile, it holds no block; given one meanwhile (another
+            // preparation at once), it keeps that one.
+            (!rt.meta.archived).then(|| *rt.meta.port_base.get_or_insert(reserved))
+        };
+        // The agent holds its block from now on (or the one reserved is free again).
+        self.unreserve_ports(Some(reserved));
+        let base = held.ok_or_else(|| anyhow!(Refusal::Archived))?;
+        self.emit_agent(h);
+        self.request_save();
+        Ok(base)
+    }
+
+    /// What the project's launch command `command_id` runs in the worktree of its agent
+    /// `agent_id` (`testlaunch::worktree_run_spec`), with the agent's block of ports, reserved now
+    /// if it has none. Refused while its ticket is validated, whose tests would find its ports
+    /// taken. Once started, it is kept with its test launches (`track_test_run`), to stop with them.
+    pub fn worktree_run(
+        &self,
+        project_id: &str,
+        agent_id: &str,
+        command_id: &str,
+    ) -> Result<testlaunch::RunSpec> {
+        let lang = i18n::ui();
+        let project = self.project(project_id)?;
+        let run = project
+            .run_commands
+            .iter()
+            .find(|c| c.id == command_id)
+            .ok_or_else(|| {
+                anyhow!(tr!(
+                    "commande de lancement introuvable",
+                    "launch command not found"
+                ))
+            })?;
+        let h = self.agent(agent_id)?;
+        let meta = h.lock().meta.clone();
+        if meta.project_id != project_id {
+            bail!(tr!(
+                "Cet agent n'est pas de ce projet.",
+                "This agent isn't in this project."
+            ));
+        }
+        // Its own reasons first (archived, no worktree, folder missing), then the validation's.
+        testlaunch::worktree_run_spec(&meta, run, lang)?;
+        if self.tickets.read().iter().any(|t| validating(t, agent_id)) {
+            bail!(tr_in!(
+                lang,
+                "Le ticket de « {name} » est en validation : rien ne se lance dans son worktree avant sa fin.",
+                "The ticket of “{name}” is being approved: nothing runs in its worktree before it’s over.",
+                name = meta.name
+            ));
+        }
+        self.ensure_ports(&h, meta.port_base)?;
+        let meta = h.lock().meta.clone();
+        testlaunch::worktree_run_spec(&meta, run, lang)
     }
 
     /// Why the agent may run no test launch now: archived (its launches stopped with it), without

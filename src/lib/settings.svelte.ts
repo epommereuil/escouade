@@ -3,7 +3,7 @@
 
 import { t } from './i18n';
 import { api } from './ipc';
-import { forgetLaunches } from './launch-actions';
+import { forgetLaunches, runsOfCommand } from './launch-actions';
 import { app } from './state.svelte';
 import type {
   BoardSettings,
@@ -466,7 +466,9 @@ class SettingsForm {
       p = current();
       if (saved && p) {
         if (fields.runCommands)
-          forgetLaunches(p.runCommands.filter((c) => !fields.runCommands!.some((x) => x.id === c.id)).map((c) => c.id));
+          forgetLaunches(
+            p.runCommands.filter((c) => !fields.runCommands!.some((x) => x.id === c.id)).flatMap((c) => [c.id, ...runsOfCommand(c.id)]),
+          );
         // What was saved, and nothing else of the project.
         Object.assign(p, fields, links ? { integrations: links } : {});
         this.#rebase(id, (b) => ({ ...b, ...sent }));

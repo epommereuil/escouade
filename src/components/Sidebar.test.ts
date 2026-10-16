@@ -15,6 +15,11 @@ import { getByTip } from '../test/tip';
 vi.mock('../lib/terminals', async (original) => ({
   ...(await original<typeof import('../lib/terminals')>()),
   openTerminal: vi.fn((projectId: string, shell: string, name: string) => Promise.resolve({ id: 't1', projectId, name, shell })),
+  // A launch's log, without the canvas jsdom lacks.
+  launchLog: () => ({
+    term: { cols: 80, rows: 24, buffer: { active: { cursorY: 0 } }, write: (_: unknown, done?: () => void) => done?.() },
+    fit: { fit() {} },
+  }),
 }));
 
 describe('Sidebar', () => {
@@ -921,6 +926,48 @@ describe('Sidebar terminal entry', () => {
     expect(labels.indexOf('Ouvrir un terminal')).toBe(labels.indexOf('Ouvrir dans l’éditeur') + 1);
     await userEvent.click(screen.getByText(/Archivés/));
     expect(await menuOf(/vieux/)).not.toContain('Ouvrir un terminal');
+  });
+});
+
+describe('Sidebar, a launch command in the worktree of an agent (ESC-19)', () => {
+  const WT = { path: 'C:\\code\\demo-api\\.claude\\worktrees\\a2', branch: 'escouade/a2', baseBranch: 'main' };
+  const FRONT = { id: 'c1', name: 'Front', command: 'npm run dev', shell: 'pwsh', cwd: 'web' };
+  const P = project({ runCommands: [FRONT] });
+
+  beforeEach(() => {
+    resetApp({ projects: [P], agents: [agent(), agent({ id: 'a2', name: 'wt-agent', worktree: WT })] });
+    app.shells = [{ id: 'pwsh', label: 'PowerShell 7', path: 'pwsh.exe' }];
+  });
+
+  const menuOf = async (name: RegExp) => {
+    await fireEvent.contextMenu(screen.getByRole('button', { name }));
+    return menu.open!.items.map((i) => i.label);
+  };
+
+  it('offers « Lancer… » for an agent with a worktree, then the commands, run in its worktree', async () => {
+    const backend = fakeBackend({ run_start: () => ({ id: 't9', projectId: 'p1', name: 'Front · wt-agent', shell: 'pwsh' }) });
+    render(Sidebar, { project: P });
+    expect(await menuOf(/refacto-auth/)).not.toContain('Lancer…');
+    expect(await menuOf(/wt-agent/)).toContain('Lancer…');
+    menu.open!.items.find((i) => i.label === 'Lancer…')!.onClick!();
+    await vi.waitFor(() => expect(menu.open?.items.map((i) => i.label)).toEqual(['Front']));
+    menu.open!.items[0].onClick!();
+    await vi.waitFor(() => expect(backend.called('run_start')).toHaveLength(1));
+    expect(backend.called('run_start')[0].args).toMatchObject({ projectId: 'p1', commandId: 'c1', agentId: 'a2' });
+  });
+
+  it('offers nothing to run for a project without launch commands', async () => {
+    resetApp({ projects: [project()], agents: [agent({ id: 'a2', name: 'wt-agent', worktree: WT })] });
+    fakeBackend();
+    render(Sidebar, { project: project() });
+    expect(await menuOf(/wt-agent/)).not.toContain('Lancer…');
+  });
+
+  it('says it in English', async () => {
+    setLang('en');
+    fakeBackend();
+    render(Sidebar, { project: P });
+    expect(await menuOf(/wt-agent/)).toContain('Run…');
   });
 });
 

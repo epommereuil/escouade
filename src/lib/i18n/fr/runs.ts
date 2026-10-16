@@ -23,6 +23,25 @@ export default {
     couldNotStart: "« {name} » n'a pas pu démarrer : {why}",
     crashed: "« {name} » s'est arrêté en erreur (code {code})",
   },
+  /** Where a launch command runs: the menu of its ▶, and the confirmation when it already runs elsewhere. */
+  where: {
+    project: 'Dans le projet',
+    worktree: 'Dans le worktree de {name}',
+    inProject: 'dans le projet',
+    inWorktree: 'dans le worktree de {name}',
+  },
+  /** The same command, started where it already runs elsewhere: the two would fight over its port. `{where}`: where it runs. */
+  conflict: {
+    title: '« {name} » tourne déjà',
+    body: "Elle tourne déjà {where}. Les deux risquent de se disputer le même port ; dans un worktree, elle reçoit ESCOUADE_PORT_BASE et ESCOUADE_PORT_END, les ports réservés à son agent, si elle s'en sert.",
+    stopOther: "Arrêter l'autre et lancer",
+    anyway: 'Lancer quand même',
+    /** « Tout lancer » while some of them run in a worktree: `{list}`, their terminals' names, each as `item`. */
+    titleSome: 'Des commandes tournent déjà ailleurs',
+    bodySome: 'Déjà en cours : {list}. Lancées aussi dans le projet, elles risquent de se disputer les mêmes ports.',
+    item: '« {name} »',
+    stopOthers: 'Les arrêter et tout lancer',
+  },
   /** A shell is needed to open a terminal; `{expected}` lists the ones the system is expected to have. */
   term: { noShell: 'Aucun shell détecté ({expected}). Vérifie les réglages.' },
   /** The launch section of the sidebar. */

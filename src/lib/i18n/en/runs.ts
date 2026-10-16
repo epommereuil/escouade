@@ -23,6 +23,25 @@ export default defineZone('runs', {
     couldNotStart: '“{name}” couldn’t start: {why}',
     crashed: '“{name}” stopped with an error (code {code})',
   },
+  /** Where a launch command runs: the menu of its ▶, and the confirmation when it already runs elsewhere. */
+  where: {
+    project: 'In the project',
+    worktree: 'In the worktree of {name}',
+    inProject: 'in the project',
+    inWorktree: 'in the worktree of {name}',
+  },
+  /** The same command, started where it already runs elsewhere: the two would fight over its port. `{where}`: where it runs. */
+  conflict: {
+    title: '“{name}” is already running',
+    body: 'It’s already running {where}. Both may fight over the same port; in a worktree, it gets ESCOUADE_PORT_BASE and ESCOUADE_PORT_END, the ports reserved for its agent, if it uses them.',
+    stopOther: 'Stop the other and run',
+    anyway: 'Run anyway',
+    /** “Run all” while some of them run in a worktree: `{list}`, their terminals’ names, each as `item`. */
+    titleSome: 'Some commands are already running elsewhere',
+    bodySome: 'Already running: {list}. Run in the project as well, they may fight over the same ports.',
+    item: '“{name}”',
+    stopOthers: 'Stop them and run all',
+  },
   /** A shell is needed to open a terminal; `{expected}` lists the ones the system is expected to have. */
   term: { noShell: 'No shell detected ({expected}). Check the settings.' },
   /** The launch section of the sidebar. */

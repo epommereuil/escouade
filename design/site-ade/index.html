@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>ESC-86 · trois récits</title>
+<style>
+@font-face { font-family: 'Inter Variable'; src: url('../../website/node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2') format('woff2'); font-weight: 100 900; }
+:root { --bg:#08090a; --surface:#0f1012; --line:rgba(255,255,255,.08); --line-strong:rgba(255,255,255,.14); --text:#f7f8f8; --muted:#8a8f98; --brand:#35c1bd; --ink:#041413; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font-family:'Inter Variable',system-ui,sans-serif; font-size:17px; line-height:1.6; font-feature-settings:'cv11','ss03'; -webkit-font-smoothing:antialiased; }
+h1,h2,h3,p { margin:0; }
+.tag { position:fixed; top:14px; left:14px; z-index:9; padding:4px 10px; border-radius:6px; background:#ffd34d; color:#000; font:600 13px system-ui; }
+header { display:flex; align-items:center; justify-content:space-between; height:64px; padding:0 40px 0 150px; border-bottom:1px solid var(--line); }
+.logo { display:flex; gap:10px; align-items:center; font-weight:600; letter-spacing:-.02em; }
+.logo i { width:22px; height:22px; border-radius:6px; background:var(--brand); }
+nav { display:flex; gap:26px; color:var(--muted); font-size:14.5px; }
+.btn { display:inline-flex; align-items:center; height:46px; padding:0 20px; border:1px solid var(--line-strong); border-radius:10px; background:rgba(255,255,255,.04); color:var(--text); font-size:15.5px; font-weight:600; }
+.btn.primary { border-color:transparent; background:var(--brand); color:var(--ink); }
+.btn.small { height:34px; padding:0 14px; font-size:14px; }
+.hero { padding:64px 40px 0; text-align:center; display:flex; flex-direction:column; align-items:center; overflow:hidden; }
+.pill { display:inline-flex; gap:10px; align-items:center; padding:6px 14px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:13.5px; font-weight:500; }
+.pill i { width:7px; height:7px; border-radius:50%; background:var(--brand); }
+h1 { margin-top:24px; font-size:72px; font-weight:700; line-height:1.02; letter-spacing:-.045em; text-wrap:balance; }
+h1 span { display:block; } h1 .second { color:var(--muted); }
+.lede { max-width:680px; margin-top:24px; color:var(--muted); font-size:19px; line-height:1.55; text-wrap:pretty; }
+.cta { display:flex; gap:12px; margin-top:32px; }
+.rail { display:flex; margin-top:36px; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--surface); }
+.rail div { padding:10px 22px; font-size:14px; font-weight:600; border-right:1px solid var(--line); text-align:left; }
+.rail div:last-child { border-right:0; }
+.rail b { color:var(--brand); margin-right:6px; font-weight:600; }
+.rail small { display:block; color:var(--muted); font-weight:400; font-size:12.5px; }
+.product { width:min(1180px,100%); margin:44px auto 0; border-radius:14px 14px 0 0; overflow:hidden; box-shadow:0 0 0 1px rgba(255,255,255,.1),0 40px 120px -20px rgba(53,193,189,.24); }
+.product img { display:block; width:100%; }
+.plan { width:1180px; margin:60px auto 80px; }
+.plan h2 { font-size:15px; color:#ffd34d; font-weight:600; letter-spacing:.02em; text-transform:uppercase; margin-bottom:16px; }
+.plan ol { margin:0; padding:0; list-style:none; display:grid; gap:10px; }
+.plan li { display:grid; grid-template-columns:44px 260px 1fr; gap:16px; align-items:baseline; padding:14px 18px; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
+.plan li b { color:var(--brand); font-variant-numeric:tabular-nums; }
+.plan li strong { font-weight:600; }
+.plan li span { color:var(--muted); font-size:15px; }
+.plan li.new { border-color:rgba(53,193,189,.45); }
+section.d { display:none; } section.d.on { display:block; }
+</style>
+</head>
+<body>
+<div class="tag" id="tag"></div>
+
+<!-- A : le cycle -->
+<section class="d" id="a">
+  <header><div class="logo"><i></i>Escouade</div><nav><span>Fonctionnalités</span><span>Installer</span><span>Feuille de route</span><span>FAQ</span><span>Documentation</span></nav><a class="btn primary small">Télécharger</a></header>
+  <div class="hero">
+    <span class="pill"><i></i>Version 1.7.10 · Windows 10 et 11, macOS 11 et plus, Linux · Gratuit et open source (GPL-3.0)</span>
+    <h1><span>Du ticket au merge,</span><span class="second">avec une escouade d’agents.</span></h1>
+    <p class="lede">Un environnement de développement agentique complet&nbsp;: tu planifies dans le Kanban, des agents codent en parallèle, chacun dans son worktree, et tu relis, testes et livres sans quitter la fenêtre.</p>
+    <div class="cta"><a class="btn primary">Télécharger pour Windows, macOS et Linux</a><a class="btn">Voir sur GitHub</a></div>
+    <div class="rail"><div><b>1</b>Planifier<small>Kanban, tickets, imports</small></div><div><b>2</b>Coder<small>agents, éditeur, terminaux</small></div><div><b>3</b>Relire et tester<small>Git, ▶ Tester</small></div><div><b>4</b>Livrer<small>commit, merge, PR</small></div><div><b>5</b>Piloter<small>quotas, coût, MCP</small></div></div>
+    <div class="product"><img src="../../website/public/images/agents.jpg" alt="" /></div>
+  </div>
+  <div class="plan"><h2>Direction A · le cycle · ordre des sections</h2><ol>
+    <li><b>1</b><strong>Hero + frise du cycle</strong><span>« Du ticket au merge » : la frise des cinq étapes sous les boutons, la fenêtre de l’app dessous</span></li>
+    <li><b>2</b><strong>Démonstration</strong><span>l’escouade qui travaille, celui qui attend passe devant (inchangée)</span></li>
+    <li><b>3</b><strong>Vidéo</strong><span>inchangée</span></li>
+    <li class="new"><b>4</b><strong>Cinq chapitres</strong><span>Planifier (Kanban, imports, pilote auto) · Coder (agents en parallèle, conversation ou interface du moteur, éditeur, terminaux) · Relire et tester (Git, ▶ Tester, lancement) · Livrer (commit, merge, pull request) · Piloter (quotas, coût, notifications, MCP, téléphone)</span></li>
+    <li><b>5</b><strong>Installer</strong><span>trois étapes</span></li>
+    <li><b>6</b><strong>Feuille de route</strong><span>1.8 : d’autres moteurs, présentés comme un ajout à l’ADE</span></li>
+    <li class="new"><b>7</b><strong>FAQ</strong><span>+ « Qu’est-ce qu’un ADE ? » et « Ça remplace mon éditeur ? » en tête</span></li>
+    <li><b>8</b><strong>Appel final</strong><span>« Développe avec ton escouade. »</span></li>
+  </ol></div>
+</section>
+
+<!-- B : la catégorie -->
+<section class="d" id="b">
+  <header><div class="logo"><i></i>Escouade</div><nav><span>Fonctionnalités</span><span>Installer</span><span>Feuille de route</span><span>FAQ</span><span>Documentation</span></nav><a class="btn primary small">Télécharger</a></header>
+  <div class="hero">
+    <span class="pill"><i></i>Version 1.7.10 · Windows 10 et 11, macOS 11 et plus, Linux · Gratuit et open source (GPL-3.0)</span>
+    <h1><span>L’environnement de développement</span><span class="second">pensé pour les agents.</span></h1>
+    <p class="lede">Planifier, coder, relire, tester, livrer&nbsp;: tout le cycle se fait avec des agents qui travaillent en parallèle, dans un ADE gratuit, open source, qui tourne sur ta machine.</p>
+    <div class="cta"><a class="btn primary">Télécharger pour Windows, macOS et Linux</a><a class="btn">Voir sur GitHub</a></div>
+    <div class="product"><img src="../../website/public/images/git.jpg" alt="" /></div>
+  </div>
+  <div class="plan"><h2>Direction B · la catégorie · ordre des sections</h2><ol>
+    <li><b>1</b><strong>Hero</strong><span>« L’environnement de développement pensé pour les agents » : la catégorie posée d’emblée, la fenêtre sur Git (le code, pas seulement la conversation)</span></li>
+    <li><b>2</b><strong>Vidéo</strong><span>montée juste sous le hero</span></li>
+    <li class="new"><b>3</b><strong>Cinq chapitres</strong><span>Planifier · Coder · Relire et tester · Livrer · Piloter, chacun ouvert par une phrase et sa grille de captures</span></li>
+    <li><b>4</b><strong>Démonstration</strong><span>déplacée dans « Piloter » : celui qui attend passe devant</span></li>
+    <li><b>5</b><strong>Installer</strong><span>trois étapes</span></li>
+    <li><b>6</b><strong>Feuille de route</strong><span>1.8 : d’autres moteurs</span></li>
+    <li class="new"><b>7</b><strong>FAQ</strong><span>« Qu’est-ce qu’un ADE ? » en première question, puis « Ça remplace mon éditeur ? »</span></li>
+    <li><b>8</b><strong>Appel final</strong><span>« Ton prochain environnement de développement. »</span></li>
+  </ol></div>
+</section>
+
+<!-- C : le rôle -->
+<section class="d" id="c">
+  <header><div class="logo"><i></i>Escouade</div><nav><span>Fonctionnalités</span><span>Installer</span><span>Feuille de route</span><span>FAQ</span><span>Documentation</span></nav><a class="btn primary small">Télécharger</a></header>
+  <div class="hero">
+    <span class="pill"><i></i>Version 1.7.10 · Windows 10 et 11, macOS 11 et plus, Linux · Gratuit et open source (GPL-3.0)</span>
+    <h1><span>Tu donnes le cap.</span><span class="second">L’escouade livre.</span></h1>
+    <p class="lede">Écris tes tickets et leurs critères d’acceptation&nbsp;: des agents les codent en parallèle et bouclent jusqu’au but. Toi, tu relis, tu testes et tu merges. Un environnement de développement agentique complet, dans une seule fenêtre.</p>
+    <div class="cta"><a class="btn primary">Télécharger pour Windows, macOS et Linux</a><a class="btn">Voir sur GitHub</a></div>
+    <div class="product"><img src="../../website/public/images/board.jpg" alt="" /></div>
+  </div>
+  <div class="plan"><h2>Direction C · le rôle · ordre des sections</h2><ol>
+    <li><b>1</b><strong>Hero</strong><span>« Tu donnes le cap. L’escouade livre. » : toi en chef d’équipe, la fenêtre sur le Kanban</span></li>
+    <li><b>2</b><strong>Démonstration</strong><span>l’escouade qui travaille, un ticket qui boucle jusqu’à « À tester »</span></li>
+    <li class="new"><b>3</b><strong>Cinq chapitres</strong><span>Planifier · Coder · Relire et tester · Livrer · Piloter, racontés du point de vue de celui qui mène</span></li>
+    <li><b>4</b><strong>Vidéo</strong><span>inchangée</span></li>
+    <li><b>5</b><strong>Installer</strong><span>trois étapes</span></li>
+    <li><b>6</b><strong>Feuille de route</strong><span>1.8 : d’autres moteurs</span></li>
+    <li class="new"><b>7</b><strong>FAQ</strong><span>+ « Qu’est-ce qu’un ADE ? » et « Ça remplace mon éditeur ? »</span></li>
+    <li><b>8</b><strong>Appel final</strong><span>« Lance ton escouade. » (gardé)</span></li>
+  </ol></div>
+</section>
+
+<script>
+const d = location.hash.slice(1) || 'a';
+document.getElementById(d).classList.add('on');
+document.getElementById('tag').textContent = 'Direction ' + d.toUpperCase();
+</script>
+</body>
+</html>

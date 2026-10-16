@@ -2,7 +2,7 @@
 // sentence in one language; tests/i18n.test.ts also checks the lists' lengths and the {parameters}.
 import type { DocGroupId, DocSlug } from './docs';
 import type { Lang } from './language';
-import type { FeatureId } from './site';
+import type { FeatureId, StageId } from './site';
 import type { Status } from './squad';
 
 /** A sentence in its singular and its plural form. Both take `{count}`, and may take other parameters. */
@@ -21,6 +21,13 @@ export interface FeatureText {
 export interface Card {
   title: string;
   text: string;
+}
+
+/** A step of the cycle: its name, what it is about, and its features that have no screenshot of their own. */
+export interface Stage {
+  title: string;
+  text: string;
+  points: Card[];
 }
 
 export interface Step {
@@ -81,8 +88,14 @@ export interface Catalog {
   /** The demonstration of the queue, staged as a product screen: what it proves, in a title, a sentence and three facts. */
   spotlight: { title: string; text: string; points: string[] };
   video: { title: string };
-  features: { title: string; lead: string; items: Record<FeatureId, FeatureText> };
-  /** What else the app does, one line each. */
+  features: {
+    title: string;
+    lead: string;
+    /** The chapters: what each step of the cycle is about, and what else it holds, one line each. */
+    stages: Record<StageId, Stage>;
+    items: Record<FeatureId, FeatureText>;
+  };
+  /** What else the app does, whatever the step, one line each. */
   cards: Card[];
   install: { title: string; steps: Step[] };
   /** What comes next: the next version and what it brings, with links to its detailed plan and to what is out. */

@@ -6,7 +6,7 @@ import { fmt } from '../app/data/catalog';
 import { DOC_GROUPS, DOC_SLUGS, docPath, docSource, type DocSlug } from '../app/data/docs';
 import { LANG_KEY, type Lang } from '../app/data/language';
 import { renderDoc } from '../app/data/render';
-import { FEATURE_SHOTS, NEXT, REPO, SITE, VIDEO, imageOf } from '../app/data/site';
+import { FEATURE_SHOTS, HERO_SHOT, NEXT, REPO, SITE, STAGES, VIDEO, imageOf } from '../app/data/site';
 import { SNAPSHOT, squadAt } from '../app/data/squad';
 import { escapeText, headOf, leaves, tags } from './helpers';
 
@@ -245,11 +245,12 @@ describe.each(PAGES)('generated site ($lang)', ({ lang, file, url, other }) => {
   it('presents every feature, the install steps and the questions', () => {
     const texts = [
       ...features.map((f) => f.title),
+      ...STAGES.flatMap((id) => text.features.stages[id].points.map((p) => p.title)),
       ...text.cards.map((c) => c.title),
       ...text.install.steps.map((s) => s.title),
       ...text.faq.items.map((f) => f.q),
     ];
-    expect(texts.length).toBe(11 + 6 + 3 + 9);
+    expect(texts.length).toBe(11 + 16 + 6 + 3 + 12);
     for (const t of texts) expect(html, t).toContain(escapeText(t));
     expect(html).toContain(says.affiliation);
   });
@@ -298,7 +299,42 @@ describe.each(PAGES)('generated site ($lang)', ({ lang, file, url, other }) => {
     expect(html).toContain(escapeText(text.hero.lede));
     const start = html.indexOf('id="top"');
     const hero = html.slice(start, html.indexOf('</section>', start));
-    expect(hero).toContain(`src="${BASE}${imageOf(lang, 'agents.jpg')}"`);
+    expect(hero).toContain(`src="${BASE}${imageOf(lang, FEATURE_SHOTS.find((s) => s.id === HERO_SHOT)!.file)}"`);
+  });
+
+  it('tells the whole development cycle, step by step, from planning to steering', () => {
+    const at = (s: string) => html.indexOf(escapeText(s));
+    const cycle = html.match(/<ol class="cycle"[^>]*>([\s\S]*?)<\/ol>/)?.[1] ?? '';
+    for (const id of STAGES) expect(cycle, id).toContain(escapeText(text.features.stages[id].title));
+    for (const [i, id] of STAGES.entries()) {
+      const stage = text.features.stages[id];
+      expect(at(stage.text), id).toBeGreaterThan(0);
+      expect(html).toContain(`${escapeText(stage.title)}</h3>`);
+      if (i) expect(at(stage.text), `${id} after ${STAGES[i - 1]}`).toBeGreaterThan(at(text.features.stages[STAGES[i - 1]].text));
+    }
+    // Every step has something to show: its screenshots, or its points alone.
+    for (const id of STAGES) expect(features.some((f) => f.stage === id) || text.features.stages[id].points.length >= 4, id).toBe(true);
+    // The demonstration proves the last step, steering: it comes after it, before the install steps.
+    const demo = html.indexOf('section signal');
+    expect(demo).toBeGreaterThan(at(text.features.stages.steer.text));
+    expect(demo).toBeLessThan(at(text.install.title));
+  });
+
+  it('says what Escouade is without leaning on the name of the engine it runs today', () => {
+    const story = [
+      text.meta.title,
+      text.meta.description,
+      text.hero.line1,
+      text.hero.line2,
+      text.hero.lede,
+      text.features.title,
+      text.features.lead,
+      ...STAGES.flatMap((id) => [text.features.stages[id].title, text.features.stages[id].text]),
+      text.close.title,
+      text.docs.meta.description,
+    ];
+    for (const s of story) expect(s).not.toMatch(/Claude/);
+    expect(text.meta.description).toContain('ADE');
   });
 
   it('shows the squad at work before any script runs, and says its data is made up', () => {

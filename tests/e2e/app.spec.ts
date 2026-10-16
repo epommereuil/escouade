@@ -617,6 +617,77 @@ test('launch commands run in their own terminals, with their status live', async
   await expect(view).toHaveCount(0);
 });
 
+test('a launch command runs in the worktree of an agent, with its ports, and stops with it (ESC-19)', async ({ app }) => {
+  const { page } = app;
+  await addProject(page, app.repo, { worktrees: true });
+  const worktrees = path.join(app.repo, '.claude', 'worktrees');
+  await expect.poll(() => (fs.existsSync(worktrees) ? fs.readdirSync(worktrees).length : 0)).toBe(1);
+  const wt = path.join(worktrees, fs.readdirSync(worktrees)[0]);
+  const agentName = (await page.locator('.card .name').first().textContent())!.trim();
+  // A folder of the project only, not of the agent's branch.
+  fs.mkdirSync(path.join(app.repo, 'docs'));
+
+  await page.getByRole('button', { name: 'Configurer', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Réglages' });
+  await dialog.getByRole('button', { name: '+ Ajouter une commande' }).click();
+  const serveurCfg = dialog.getByRole('group', { name: 'Commande 1' });
+  await serveurCfg.getByLabel('Nom').fill('Serveur');
+  await serveurCfg.getByLabel('Commande').fill('Set-Content serveur.txt "port=$env:ESCOUADE_PORT_BASE"; Start-Sleep 600');
+  await serveurCfg.getByLabel(/Sous-dossier/).fill('src');
+  await dialog.getByRole('button', { name: '+ Ajouter une commande' }).click();
+  const docsCfg = dialog.getByRole('group', { name: 'Commande 2' });
+  await docsCfg.getByLabel('Nom').fill('Docs');
+  await docsCfg.getByLabel('Commande').fill('Start-Sleep 600');
+  await docsCfg.getByLabel(/Sous-dossier/).fill('docs');
+  await dialog.getByRole('button', { name: 'Enregistrer' }).click();
+  await expect(dialog).toBeHidden();
+
+  // ▶ asks where.
+  const serveur = page.locator('.run').filter({ has: page.locator('.name', { hasText: /^Serveur$/ }) });
+  await serveur.getByRole('button', { name: 'Lancer' }).click();
+  await expect(page.getByRole('menuitem', { name: 'Dans le projet' })).toBeVisible();
+  await page.getByRole('menuitem', { name: `Dans le worktree de ${agentName}` }).click();
+  // In the same folder of the worktree, with the agent's block of ports, under its name.
+  const inWt = page.locator('.run', { hasText: `Serveur · ${agentName}` });
+  await expect(inWt).toContainText('en cours');
+  const marker = path.join(wt, 'src', 'serveur.txt');
+  await expect.poll(() => (fs.existsSync(marker) ? fs.readFileSync(marker, 'utf8') : ''), { timeout: 30_000 }).toMatch(/port=41\d0/);
+  expect(fs.existsSync(path.join(app.repo, 'src', 'serveur.txt'))).toBe(false);
+  await expect(serveur).toContainText('prêt');
+  // Its log says where it runs.
+  await inWt.click();
+  await expect(page.locator('main.rv')).toContainText(`Serveur · ${agentName}`);
+
+  // The same command in the project: the user is told first, and runs both.
+  await serveur.getByRole('button', { name: 'Lancer' }).click();
+  await page.getByRole('menuitem', { name: 'Dans le projet' }).click();
+  const confirm = page.getByRole('dialog', { name: '« Serveur » tourne déjà' });
+  await expect(confirm).toContainText(`dans le worktree de ${agentName}`);
+  await confirm.getByRole('button', { name: 'Lancer quand même' }).click();
+  await expect(serveur).toContainText('en cours');
+  await expect(inWt).toContainText('en cours');
+  await expect.poll(() => fs.existsSync(path.join(app.repo, 'src', 'serveur.txt')), { timeout: 30_000 }).toBe(true);
+
+  // A folder the worktree lacks: refused, with why.
+  await page
+    .locator('.run')
+    .filter({ has: page.locator('.name', { hasText: /^Docs$/ }) })
+    .getByRole('button', { name: 'Lancer' })
+    .click();
+  await page.getByRole('menuitem', { name: `Dans le worktree de ${agentName}` }).click();
+  await expect(page.getByText(`Le dossier « docs » de « Docs » n'existe pas dans le worktree de « ${agentName} »`)).toBeVisible();
+  await expect(page.locator('.run', { hasText: `Docs · ${agentName}` })).toHaveCount(0);
+
+  // Archived, its agent takes it along; the project's run goes on.
+  await page.locator('.card').first().click({ button: 'right' });
+  await page.getByRole('menuitem', { name: /^Archiver/ }).click();
+  await expect(inWt).toContainText('arrêté', { timeout: 15_000 });
+  await expect(page.getByText(/s'est arrêté en erreur/)).toHaveCount(0);
+  await expect(serveur).toContainText('en cours');
+  await page.getByRole('button', { name: 'Tout arrêter', exact: true }).click();
+  await expect(serveur).toContainText('arrêté', { timeout: 15_000 });
+});
+
 test('stats record the turns of the app’s agents', async ({ app }) => {
   const { page } = app;
   await addProject(page, app.repo);

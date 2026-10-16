@@ -49,6 +49,8 @@ export default defineZone('nav', {
       archive: 'Archive',
       archiveHint: 'keeps the conversation',
       prepareLaunch: 'Prepare launch',
+      // The project's launch commands, to run in its worktree.
+      launch: 'Run…',
       openTerminal: 'Open a terminal',
       toTerminal: 'Claude Code view',
       toRich: 'Escouade view',

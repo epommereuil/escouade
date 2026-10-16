@@ -23,7 +23,7 @@ Les commandes se règlent par projet, dans Réglages › Projets, groupe « Lan
 
 « + Ajouter une commande » en ajoute une, et la croix de la commande la supprime. Rien n’est pris en compte avant « Enregistrer », qui reste grisé tant qu’une commande n’a pas de nom ou de ligne de commande (« Chaque commande de lancement de « demo-api » demande un nom et une ligne de commande. »). Une commande retirée des réglages et enregistrée s’arrête et son log disparaît. La liste complète des réglages du projet est dans [les réglages des projets](settings-projects).
 
-Les commandes ne reçoivent aucune variable `ESCOUADE_…`. Pour donner une variable d’environnement à un processus qui ne la lit pas dans un fichier `.env`, écris-la devant la commande, avec la syntaxe de son shell : `$env:PORT = '3000'; npm run dev` sous PowerShell, `PORT=3000 npm run dev` sous bash et zsh. Quand « Appliquer aussi le proxy aux terminaux intégrés » est activé (voir [les réglages du réseau](settings-network)), les commandes reçoivent les variables du proxy.
+Les commandes lancées dans le projet ne reçoivent aucune variable `ESCOUADE_…` (dans le worktree d’un agent, elles reçoivent ses ports : voir plus bas). Pour donner une variable d’environnement à un processus qui ne la lit pas dans un fichier `.env`, écris-la devant la commande, avec la syntaxe de son shell : `$env:PORT = '3000'; npm run dev` sous PowerShell, `PORT=3000 npm run dev` sous bash et zsh. Quand « Appliquer aussi le proxy aux terminaux intégrés » est activé (voir [les réglages du réseau](settings-network)), les commandes reçoivent les variables du proxy.
 
 ## Lancer, relancer, stopper
 
@@ -58,6 +58,19 @@ Le log d’une commande occupe la zone principale quand tu cliques sa ligne. L�
 - La loupe, ou `Ctrl+Maj+F` (`⇧⌘F` sous macOS) dans le log, ouvre un champ de recherche : `Entrée` va à l’occurrence suivante, `Maj+Entrée` à la précédente, `Échap` ferme le champ. « Effacer » vide l’écran du log.
 
 Les lancements de test des agents (le bouton « ▶ Tester », voir [les tests](testing)) apparaissent dans la même section, sous le nom de l’agent, une fois lancés. Ils se suivent de la même façon.
+
+## Dans le worktree d’un agent
+
+Une commande se lance aussi dans le worktree d’un agent, pour voir son travail tourner sans le fusionner.
+
+- Dès qu’un agent du projet a un worktree, « Lancer » (▶) ouvre un menu : « Dans le projet », puis « Dans le worktree de <agent> » pour chaque agent qui en a un (pas les archivés). Sans worktree, ▶ lance dans le projet, comme avant. « Tout lancer » lance toujours dans le projet, et dit d’abord quelles commandes tournent déjà dans un worktree.
+- Au clic droit sur la carte d’un agent qui a un worktree, « Lancer… » liste les commandes du projet ; chacune se lance dans son worktree.
+- La commande tourne dans le même sous-dossier, pris dans le worktree. S’il n’y existe pas (la branche de l’agent ne l’a pas, ou pas encore), elle ne démarre pas et le message dit pourquoi : « Le dossier « web » de « Front » n’existe pas dans le worktree de « refacto-auth » (sa branche ne l’a pas, ou pas encore). »
+- Elle apparaît sous le nom de l’agent, avec son propre état et son propre log ; son terminal s’appelle « Front · refacto-auth ». La ligne du projet garde le sien.
+- Elle reçoit `ESCOUADE_PORT_BASE` et `ESCOUADE_PORT_END`, le bloc de 10 ports de l’agent (réservé à ce moment s’il n’en a pas), le même que ses lancements de test. Pour que deux instances ne se disputent pas un port, fais lire ce port à la commande, par exemple `npm run dev -- --port $env:ESCOUADE_PORT_BASE` sous PowerShell ou `npm run dev -- --port ${ESCOUADE_PORT_BASE:-5173}` sous bash.
+- Si la même commande tourne déjà ailleurs (dans le projet ou dans un autre worktree), une fenêtre le dit avant de lancer : « Arrêter l’autre et lancer », ou « Lancer quand même ».
+- Elle s’arrête avec l’agent : à son archivage, à sa suppression, à la validation de son ticket (qui retire son worktree), et quand le projet se ferme.
+- Un worktree neuf n’a pas les dépendances du projet (`node_modules`, environnement Python…) : c’est le rôle des étapes de préparation des worktrees (Réglages › Projets, groupe « Worktrees »), qui tournent à sa création.
 
 ## Remplir automatiquement
 

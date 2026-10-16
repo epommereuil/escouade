@@ -8,19 +8,27 @@ Ce que les skills Impeccable doivent savoir d'Escouade, quel que soit l'écran :
 
 web
 
-L'app est une fenêtre desktop Tauri 2 (Windows et macOS) dessinée en technologies web (Svelte 5) ; le site de présentation est un site statique Nuxt 4, dans `website/`.
+L'app est une fenêtre desktop Tauri 2 (Windows, macOS et Linux) dessinée en technologies web (Svelte 5) ; le site de présentation est un site statique Nuxt 4, dans `website/`.
 
 ## Users
 
-Des développeurs qui font travailler plusieurs agents Claude Code en parallèle sur leurs projets, sous Windows 10 ou 11 ou macOS 11 et plus, avec un ou plusieurs comptes Claude (perso, pro…) ou une clé API. Ils lancent le travail, puis reviennent quand un agent a besoin d'eux : une question, une autorisation, une tâche finie, un ticket à tester.
+Des développeurs qui développent avec des agents, plusieurs en parallèle sur leurs projets, sous Windows 10 ou 11, macOS 11 et plus ou Linux, avec un ou plusieurs comptes Claude (perso, pro…) ou une clé API. Ils lancent le travail, puis reviennent quand un agent a besoin d'eux : une question, une autorisation, une tâche finie, un ticket à tester.
 
 ## Product Purpose
 
-Escouade est le poste de pilotage de ces agents : toutes les sessions Claude Code de tous les projets dans une seule fenêtre native, pour garder la vue d'ensemble et n'intervenir que quand il le faut. Réussi : plusieurs agents avancent en même temps sans qu'on surveille des terminaux, et rien n'attend sans qu'on le sache.
+Escouade est l'environnement où ces développeurs mènent tout le cycle avec leurs agents, du ticket au merge, dans une fenêtre native : ils planifient, les agents codent, ils relisent, testent et livrent, et ne sont appelés que quand il le faut. Réussi : plusieurs tickets avancent en même temps sans qu'on surveille des terminaux, chaque changement se relit et se teste avant d'entrer, et rien n'attend sans qu'on le sache.
 
 ## Positioning
 
-Une fenêtre qui pilote une escouade d'agents Claude Code : un onglet par projet, autant d'agents que nécessaire, un worktree git par agent, un vrai chat au lieu d'un terminal, un signal dès qu'un agent attend, quotas et coût en direct, et un Kanban de tickets que des agents prennent seuls et sur lesquels ils bouclent jusqu'à atteindre leurs critères d'acceptation. Gratuit, local et open source (GPL-3.0), par-dessus le Claude Code de l'utilisateur.
+Un environnement de développement agentique (ADE) complet : l'endroit où l'on développe avec des agents de bout en bout, pas seulement celui où on leur parle. Le récit suit le cycle de développement, dans cet ordre :
+
+- **Planifier** : un Kanban de tickets avec leurs critères d'acceptation, leurs captures et leurs fichiers, importés de Jira, Trello, GitHub ou Linear, que le pilote auto confie à des agents qui bouclent jusqu'à les atteindre.
+- **Coder** : des agents en parallèle, chacun dans son worktree, dans un vrai chat ou dans l'interface du moteur ; leurs sous-agents, leurs tâches de fond et leur plan à vue ; un éditeur et de vrais terminaux.
+- **Relire et tester** : diffs, git graph et branches, « ▶ Tester » sur chaque ticket, les commandes qui lancent le projet.
+- **Livrer** : commit relu, merge (squash ou rebase), push ou pull request ; un conflit revient à l'agent.
+- **Piloter** : un signal dès qu'un agent attend, la vue d'ensemble, quotas, coût et statistiques, plusieurs comptes, un serveur MCP qui laisse un agent mener Escouade, le téléphone.
+
+Gratuit, local et open source (GPL-3.0). Le récit ne repose pas sur le nom du moteur : les agents tournent aujourd'hui sur le Claude Code de l'utilisateur, d'autres moteurs (Codex, Copilot CLI, Cursor CLI, OpenCode) et les hébergeurs de code (PR, CI, déploiements) viennent s'y ajouter sans le réécrire. On n'annonce que ce qui est publié ; ce qui arrive va dans la feuille de route.
 
 ## Operating Context
 

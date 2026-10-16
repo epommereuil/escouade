@@ -3,7 +3,7 @@
 import { fTime } from './format';
 import { t } from './i18n';
 import { api } from './ipc';
-import { parseTestId } from './recipe';
+import { inWorktree, parseTestId, parseWorktreeRunId } from './recipe';
 import { app } from './state.svelte';
 import { disposeLog, launchLog } from './terminals';
 import type { LaunchState, Project, RunCommand } from './types';
@@ -42,14 +42,18 @@ export async function startLaunch(project: Project, cmd: RunCommand): Promise<st
   // Once written, the header's end is where the command starts. The process gets the log's size
   // as it is: displayed, it is already fitted.
   await new Promise<void>((done) => x.term.write(`${again}\x1b[2m$ ${cmd.command}\x1b[0m\r\n`, done));
-  // A step of an agent's recipe starts through its agent, in its worktree; any other command, through its project.
+  // A step of an agent's recipe starts through its agent, in its worktree; a launch command, through its project
+  // (in the worktree of an agent for a `wt:` id).
   const test = parseTestId(cmd.id);
+  const wt = parseWorktreeRunId(cmd.id);
   try {
     const size = { cols: x.term.cols, rows: x.term.rows, cursorRow: x.term.buffer.active.cursorY + 1 };
     const onData = (b: ArrayBuffer) => x.term.write(new Uint8Array(b));
     const info = test
       ? await api.testRunStart({ agentId: test.agentId, kind: test.kind, index: test.index, ...size }, onData)
-      : await api.runStart({ projectId: project.id, commandId: cmd.id, ...size }, onData);
+      : wt
+        ? await api.runStart({ projectId: project.id, commandId: wt.commandId, agentId: wt.agentId, ...size }, onData)
+        : await api.runStart({ projectId: project.id, commandId: cmd.id, ...size }, onData);
     app.launchStarted(cmd.id, info.id);
     return null;
   } catch (e) {
@@ -57,8 +61,9 @@ export async function startLaunch(project: Project, cmd: RunCommand): Promise<st
     x.term.write(`\x1b[31m${why}\x1b[0m\r\n`);
     const l = app.launches[cmd.id];
     if (!l) return why;
-    if (test) {
-      // Refused (its ticket is being validated, its agent was archived…): no run took place, so none shows.
+    if (test || wt) {
+      // Refused (its ticket is being validated, its agent was archived, its folder is not in its worktree…): no
+      // run took place, so none shows.
       // The run it was to follow, if any, stays as it was.
       if (previous) app.launches[cmd.id] = previous;
       else {
@@ -93,8 +98,35 @@ export async function restartLaunch(project: Project, cmd: RunCommand) {
   await startLaunch(project, cmd);
 }
 
+/** « Tout lancer », in the project. The commands already running in a worktree are told first, all at once. */
 export async function startAll(project: Project) {
-  await Promise.all(project.runCommands.map((c) => startLaunch(project, c)));
+  const elsewhere = project.runCommands.flatMap((c) =>
+    runsOfCommand(c.id).filter((id) => id !== c.id && app.launches[id]?.status === 'running'),
+  );
+  const all = () => Promise.all(project.runCommands.map((c) => startLaunch(project, c)));
+  if (!elsewhere.length) {
+    await all();
+    return;
+  }
+  const list = elsewhere.map((id) => t('runs.conflict.item', { name: app.launches[id].name })).join(', ');
+  app.modal = {
+    kind: 'confirm',
+    title: t('runs.conflict.titleSome'),
+    body: t('runs.conflict.bodySome', { list }),
+    confirm: t('runs.conflict.stopOthers'),
+    onConfirm: async () => {
+      for (const id of elsewhere) stopLaunch(id);
+      const until = Date.now() + STOP_WAIT_MS;
+      while (elsewhere.some((id) => app.launches[id]?.status === 'running') && Date.now() < until) await sleep(50);
+      await all();
+    },
+    alt: {
+      label: t('runs.conflict.anyway'),
+      onClick: async () => {
+        await all();
+      },
+    },
+  };
 }
 
 export function stopAll(project: Project) {
@@ -106,22 +138,77 @@ function testLaunchesOf(agentId: string): string[] {
   return Object.keys(app.launches).filter((id) => parseTestId(id)?.agentId === agentId);
 }
 
-/** The test launches of an agent stop (validation, archive, deletion): not crashes. */
+/** The agent a launch runs for: a step of its test launch, or a launch command in its worktree. */
+function agentOf(id: string): string | undefined {
+  return parseTestId(id)?.agentId ?? parseWorktreeRunId(id)?.agentId;
+}
+
+/** The ids of what runs for an agent: its test launches and the launch commands in its worktree. */
+function agentLaunchesOf(agentId: string): string[] {
+  return Object.keys(app.launches).filter((id) => agentOf(id) === agentId);
+}
+
+/** What runs for an agent stops (validation, archive, deletion), its worktree launches included: not crashes. */
 export function stopAgentTests(agentId: string) {
-  for (const id of testLaunchesOf(agentId)) stopLaunch(id);
+  for (const id of agentLaunchesOf(agentId)) stopLaunch(id);
 }
 
-/** An agent that is gone takes its test launches with it: stopped silently, their logs dropped. */
+/** An agent that is gone takes what ran for it with it: stopped silently, their logs dropped. */
 export function forgetAgentTests(agentId: string) {
-  forgetLaunches(testLaunchesOf(agentId));
+  forgetLaunches(agentLaunchesOf(agentId));
 }
 
-/** The test launches of the agents of a project. */
+/** What runs for the agents of a project: their test launches and the launch commands in their worktrees. */
 export function testLaunchIds(projectId: string): string[] {
   return Object.keys(app.launches).filter((id) => {
-    const t = parseTestId(id);
-    return !!t && app.agents[t.agentId]?.projectId === projectId;
+    const a = agentOf(id);
+    return !!a && app.agents[a]?.projectId === projectId;
   });
+}
+
+/** The ids of the runs of the launch command `commandId`: in the project, and in any worktree. */
+export function runsOfCommand(commandId: string): string[] {
+  return Object.keys(app.launches).filter((id) => id === commandId || parseWorktreeRunId(id)?.commandId === commandId);
+}
+
+/** Where a run of a launch command is: in the project, or in the worktree of an agent. */
+function whereOf(id: string): string {
+  const w = parseWorktreeRunId(id);
+  const name = w ? app.agents[w.agentId]?.name : undefined;
+  return name ? t('runs.where.inWorktree', { name }) : t('runs.where.inProject');
+}
+
+/**
+ * Starts `cmd` in the project (`agentId` null) or in the worktree of `agentId`. Running elsewhere already,
+ * the two would fight over its port: the user says first whether the other stops.
+ */
+export async function runIn(project: Project, cmd: RunCommand, agentId: string | null) {
+  const agent = agentId ? app.agents[agentId] : undefined;
+  if (agentId && !agent) return;
+  const target = agent ? inWorktree(cmd, agent) : cmd;
+  const others = runsOfCommand(cmd.id).filter((id) => id !== target.id && app.launches[id]?.status === 'running');
+  if (!others.length) {
+    await startLaunch(project, target);
+    return;
+  }
+  app.modal = {
+    kind: 'confirm',
+    title: t('runs.conflict.title', { name: cmd.name }),
+    body: t('runs.conflict.body', { where: others.map(whereOf).join(', ') }),
+    confirm: t('runs.conflict.stopOther'),
+    onConfirm: async () => {
+      for (const id of others) stopLaunch(id);
+      const until = Date.now() + STOP_WAIT_MS;
+      while (others.some((id) => app.launches[id]?.status === 'running') && Date.now() < until) await sleep(50);
+      await startLaunch(project, target);
+    },
+    alt: {
+      label: t('runs.conflict.anyway'),
+      onClick: async () => {
+        await startLaunch(project, target);
+      },
+    },
+  };
 }
 
 /** Commands about to be killed along with their project: their exits are not crashes. Returns the undo. */
@@ -148,8 +235,8 @@ export function forgetLaunches(commandIds: string[]) {
 // to look for when their project closes. (Registered here: the state does not know the logs.)
 app.onAgentRemoved(forgetAgentTests);
 // Test launches are kept by the index of their step: under a new recipe, step n is another command,
-// which must not be taken for the process still running under that id.
-app.onRecipeChanged(forgetAgentTests);
+// which must not be taken for the process still running under that id. Its worktree launches stay.
+app.onRecipeChanged((agentId) => forgetLaunches(testLaunchesOf(agentId)));
 // A ticket "Terminé" is tested no more: its agent's test launches leave the section (the backend stopped
 // them at its validation).
 app.onTicketDone(forgetAgentTests);
@@ -173,4 +260,11 @@ export function launchStatus(l: LaunchState | undefined): { label: string; color
     case 'crashed':
       return { label: crashedLabel(l.code), color: 'var(--del)' };
   }
+}
+
+/** ▶ on a command that is not running (its row, its log): where it ran, through `runIn` for a launch command. */
+export function runHere(project: Project, cmd: RunCommand) {
+  const w = parseWorktreeRunId(cmd.id);
+  const own = project.runCommands.find((c) => c.id === (w?.commandId ?? cmd.id));
+  return own ? runIn(project, own, w?.agentId ?? null) : startLaunch(project, cmd);
 }

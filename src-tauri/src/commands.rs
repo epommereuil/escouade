@@ -1218,12 +1218,16 @@ pub async fn term_spawn(
 
 /// Runs one of the project's launch commands in its own terminal; it ends with the command
 /// (TerminalExit carries its exit code). Stopped with term_kill, like a terminal.
-/// `cursor_row` is the row of its log where it starts.
+/// `cursor_row` is the row of its log where it starts. With `agent_id`, it runs in that agent's
+/// worktree (`Core::worktree_run`), named after it and with its ports, and stops with its test
+/// launches (archive, deletion, validation, worktree removed).
 #[tauri::command(async)]
+#[allow(clippy::too_many_arguments)]
 pub fn run_start(
     core: CoreState,
     project_id: String,
     command_id: String,
+    agent_id: Option<String>,
     cols: u16,
     rows: u16,
     cursor_row: Option<u16>,
@@ -1249,19 +1253,29 @@ pub fn run_start(
         .find(|s| s.id == run.shell)
         .or_else(|| shells.first())
         .ok_or_else(|| shell_not_found(i18n::ui(), &run.shell))?;
-    let cwd = pty::run_cwd(&project.path, &run.cwd).map_err(err)?;
+    let spec = match &agent_id {
+        Some(a) => core
+            .worktree_run(&project_id, a, &command_id)
+            .map_err(err)?,
+        None => crate::testlaunch::RunSpec {
+            name: run.name.clone(),
+            command: run.command.clone(),
+            cwd: pty::run_cwd(&project.path, &run.cwd).map_err(err)?,
+            env: Vec::new(),
+        },
+    };
     let info = TermInfo {
         id: new_id(),
         project_id,
-        name: run.name.clone(),
+        name: spec.name,
         shell: sh.id.clone(),
     };
     let launch = Launch {
         info,
         shell: sh,
-        cwd: &cwd,
-        env: Vec::new(),
-        command: &run.command,
+        cwd: &spec.cwd,
+        env: spec.env,
+        command: &spec.command,
     };
     let r = spawn_launch(
         core.inner(),
@@ -1271,6 +1285,9 @@ pub fn run_start(
         cursor_row,
         output,
     );
+    if let (Some(a), Ok(info)) = (&agent_id, &r) {
+        core.track_test_run(a, &info.id).map_err(err)?;
+    }
     counted(&core, Event::LaunchStarted, r)
 }
 

@@ -1,29 +1,28 @@
 # Introduction
 
-Escouade is a desktop app that runs several Claude Code agents side by side in a single window, on Windows, macOS and Linux. This page says what it is, who it is for, the words it uses and where to find the rest of the documentation.
+Escouade is an agentic development environment (ADE): a desktop app, for Windows, macOS and Linux, where you build software with agents from start to finish, from the ticket to the merge. This page says what it is, who it is for, the words it uses and where to find the rest of the documentation.
 
 ## What Escouade is
 
-[Claude Code](https://code.claude.com/docs/en/overview) is Anthropic’s command-line tool for programming with Claude. Escouade runs as many instances of it as you want, each in its own conversation, and brings them together in a single window:
+An ADE brings the whole development cycle into one place, carried out by agents working in parallel, each in its own conversation and, if you want, in its own git worktree:
 
-- one tab per project, with the list of its agents;
-- for each agent, a readable conversation: text in markdown, tool calls you can unfold, and questions and permission requests as cards you click;
-- the files the agents change, their diffs and their commits, with a git worktree per agent if you want one;
-- a file editor, terminals and commands to run the project;
-- a Kanban board of tickets that agents pick up on their own, which is autopilot;
-- notifications when an agent is waiting for your answer or has finished;
-- the quotas of your subscription, the cost and usage statistics.
+- **plan**: a Kanban board of tickets with their acceptance criteria, their screenshots and their files, imported if need be from Jira, Trello, GitHub Issues or Linear, that agents pick up on their own (that is autopilot) and loop on until the criteria are met;
+- **code**: one tab per project, as many agents as you want, each with a readable conversation (markdown, tool calls you can unfold, questions and permission requests as cards) or Claude Code’s own interface; its subagents and background tasks in the sidebar, the progress of its plan, a file editor and real terminals;
+- **review and test**: the changed files, their diffs, the repository’s git graph and its branches, “▶ Test” on each ticket and the commands that run the project;
+- **ship**: the commit, the merge, squash or rebase into the target branch, the push or the pull request;
+- **steer**: notifications when an agent is waiting for your answer or has finished, the overview of every agent, quotas, cost and statistics, several accounts, an MCP server that lets an agent drive Escouade, and remote control from your phone.
 
-Each agent is a real Claude Code session: Escouade starts `claude` for it and shows its conversation. The session also stays on your disk, in Claude Code’s own files. The app runs on your machine: your projects, conversations and settings are in `~/.escouade/` (see [local data](data)).
+Today, each agent is a real session of [Claude Code](https://code.claude.com/docs/en/overview), Anthropic’s command-line tool for programming with Claude: Escouade starts `claude` for it and shows its conversation. The session also stays on your disk, in Claude Code’s own files. The app runs on your machine: your projects, conversations and settings are in `~/.escouade/` (see [local data](data)). It is free and open source, under the GPL-3.0 license (or later).
 
 ## What Escouade is not
 
 - **An Anthropic product.** It is an independent project, not affiliated with Anthropic. Claude and Claude Code are trademarks of Anthropic.
-- **A replacement for Claude Code.** Claude Code must be installed on the machine and signed in to your Claude account: Escouade contains no model and no subscription, it uses yours. See [installation](installation).
+- **An agent engine.** Claude Code must be installed on the machine and signed in to your Claude account: Escouade contains no model and no subscription, it uses yours. See [installation](installation).
+- **One more IDE.** Its editor is enough to review and touch up what the agents do, but it has no language server and no extensions: keep your IDE for the rest, each worktree is a real folder you open wherever you like. See [the editor](editor).
 
 ## Who it is for
 
-Anyone who programs with Claude Code and wants to run several agents at once without juggling terminals:
+Anyone who builds software with agents and wants to carry the whole cycle through in one place, without juggling terminals, a ticket tool and a Git client:
 
 - you work on several tasks or several projects at the same time, and you want to see at a glance which agent is working, which one is waiting for your answer and which one has finished;
 - you want to review and commit what each agent changed, without the agents stepping on each other;

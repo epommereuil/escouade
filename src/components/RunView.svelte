@@ -1,8 +1,8 @@
 <script lang="ts">
   import { t } from '../lib/i18n';
   import { keyLabel, primaryKey } from '../lib/platform';
-  import { launchStatus, log, restartLaunch, startLaunch, stopLaunch } from '../lib/launch-actions';
-  import { parseTestId } from '../lib/recipe';
+  import { launchStatus, log, restartLaunch, runHere, stopLaunch } from '../lib/launch-actions';
+  import { parseTestId, parseWorktreeRunId } from '../lib/recipe';
   import { app } from '../lib/state.svelte';
   import { SHELL_GLYPH } from '../lib/term-actions';
   import { getXTerm, logKey, mountTerminal } from '../lib/terminals';
@@ -19,9 +19,9 @@
   const st = $derived(launchStatus(run));
   const running = $derived(run?.status === 'running');
   const shell = $derived(app.shells.find((s) => s.id === cmd.shell)?.label ?? cmd.shell);
-  // A step of a recipe runs in its agent's worktree.
+  // A step of a recipe, or a launch command run in a worktree, runs in its agent's.
   const root = $derived.by(() => {
-    const t = parseTestId(cmd.id);
+    const t = parseTestId(cmd.id) ?? parseWorktreeRunId(cmd.id);
     const a = t ? app.agents[t.agentId] : undefined;
     return a ? (a.worktree?.path ?? a.cwd) : project.path;
   });
@@ -92,9 +92,9 @@
       <button class="btn" onclick={() => restartLaunch(project, cmd)}>⟳ {t('runs.action.restart')}</button>
       <button class="btn danger" onclick={() => stopLaunch(cmd.id)}>■ {t('common.stop')}</button>
     {:else if run}
-      <button class="btn primary" onclick={() => startLaunch(project, cmd)}>⟳ {t('runs.action.restart')}</button>
+      <button class="btn primary" onclick={() => runHere(project, cmd)}>⟳ {t('runs.action.restart')}</button>
     {:else}
-      <button class="btn primary" onclick={() => startLaunch(project, cmd)}>▶ {t('runs.action.run')}</button>
+      <button class="btn primary" onclick={() => runHere(project, cmd)}>▶ {t('runs.action.run')}</button>
     {/if}
   </header>
   <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -111,7 +111,7 @@
   {#if !run}
     <div class="idle">
       <span>{t('runs.log.notRun')}</span>
-      <button class="btn primary" onclick={() => startLaunch(project, cmd)}>▶ {t('runs.action.run')}</button>
+      <button class="btn primary" onclick={() => runHere(project, cmd)}>▶ {t('runs.action.run')}</button>
     </div>
   {/if}
 </main>

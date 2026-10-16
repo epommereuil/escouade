@@ -30,7 +30,15 @@ pub(crate) struct Harness {
     _app: tauri::App<MockRuntime>,
 }
 
+/// The fake CLI's path. The tests that launch it read the environment it got from the app (its
+/// launch log), so the variable an agent of Escouade runs with is taken out of the test process
+/// first: inherited, `CLAUDE_CODE_ENABLE_TODO_TOOLS=1` would reach every fake, setting or not (the
+/// app leaves the user's environment as it is). `remove_var` is safe in edition 2021; std's own
+/// readers of the environment (`var`, `Command`) take the same lock, and the value only ever goes
+/// from set to unset, whichever thread of `cargo test` sees it first (nextest: one process a test).
 pub(crate) fn fake_cli() -> String {
+    static INHERITED: std::sync::Once = std::sync::Once::new();
+    INHERITED.call_once(|| std::env::remove_var(TODO_TOOLS_VAR));
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("..")
         .join("tests")

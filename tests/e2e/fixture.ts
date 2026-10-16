@@ -241,6 +241,9 @@ export const test = base.extend<{
       // The fake `claude mcp …` keeps its servers in a folder of the test's, never in the user's home.
       FAKE_CLAUDE_HOME: path.join(root, 'home'),
       CLAUDE_SECURESTORAGE_CONFIG_DIR: undefined,
+      // Set for every agent of Escouade (« Les agents tiennent une liste de tâches »), so inherited when one runs
+      // the tests: the app never forces it off, and the fake CLI would see it whatever the setting (ESC-111).
+      CLAUDE_CODE_ENABLE_TODO_TOOLS: undefined,
       ESCOUADE_USAGE_API: NO_USAGE_API,
       ...appEnv,
     };

@@ -4,7 +4,7 @@
 
 use crate::board::PORT_BLOCK;
 use crate::i18n::{self, Lang};
-use crate::model::AgentMeta;
+use crate::model::{AgentMeta, RunCommand};
 use crate::paths;
 use crate::pty::{self, ShellInfo};
 use anyhow::{anyhow, bail, Result};
@@ -535,6 +535,55 @@ pub fn run_spec(meta: &AgentMeta, kind: &str, index: usize) -> Result<RunSpec> {
         command,
         cwd,
         env,
+    })
+}
+
+/// One of the project's launch commands run in the agent's worktree: the same folder, relative to
+/// the worktree (refused, with why, when it is not there), « Front · refacto-auth » for its
+/// terminal, and the agent's block of ports as its test launches have it.
+pub fn worktree_run_spec(meta: &AgentMeta, run: &RunCommand, lang: Lang) -> Result<RunSpec> {
+    let agent = &meta.name;
+    if meta.archived {
+        bail!(tr_in!(
+            lang,
+            "« {agent} » est archivé : rien ne se lance dans son worktree.",
+            "“{agent}” is archived: nothing runs in its worktree."
+        ));
+    }
+    let wt = meta.worktree.as_ref().ok_or_else(|| {
+        anyhow!(tr_in!(
+            lang,
+            "« {agent} » n'a pas de worktree.",
+            "“{agent}” has no worktree."
+        ))
+    })?;
+    let root = Path::new(&wt.path);
+    if !root.is_dir() {
+        bail!(tr_in!(
+            lang,
+            "Le worktree de « {agent} » n'existe plus.",
+            "The worktree of “{agent}” no longer exists."
+        ));
+    }
+    let dir = run.cwd.trim();
+    let cwd = if dir.is_empty() || dir == "." {
+        root.to_path_buf()
+    } else {
+        paths::contained(root, dir)?
+    };
+    if !cwd.is_dir() {
+        bail!(tr_in!(
+            lang,
+            "Le dossier « {dir} » de « {name} » n'existe pas dans le worktree de « {agent} » (sa branche ne l'a pas, ou pas encore).",
+            "The folder “{dir}” of “{name}” doesn’t exist in the worktree of “{agent}” (its branch doesn’t have it, or not yet).",
+            name = run.name
+        ));
+    }
+    Ok(RunSpec {
+        name: format!("{} · {agent}", run.name),
+        command: run.command.clone(),
+        cwd: cwd.to_string_lossy().into_owned(),
+        env: port_env(meta.port_base),
     })
 }
 
@@ -1198,5 +1247,103 @@ mod tests {
                 "« {dir} » leaves the worktree"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod worktree_run_tests {
+    use super::*;
+    use crate::i18n::Lang::{En, Fr};
+    use crate::model::Worktree;
+
+    fn agent(root: &Path) -> AgentMeta {
+        let path = root.to_string_lossy().to_string();
+        AgentMeta {
+            name: "refacto-auth".into(),
+            cwd: path.clone(),
+            worktree: Some(Worktree {
+                path,
+                branch: "refacto-auth".into(),
+                base_branch: "main".into(),
+                existing: false,
+            }),
+            port_base: Some(4120),
+            ..Default::default()
+        }
+    }
+
+    fn front(cwd: &str) -> RunCommand {
+        RunCommand {
+            id: "c1".into(),
+            name: "Front".into(),
+            command: "npm run dev".into(),
+            shell: "pwsh".into(),
+            cwd: cwd.into(),
+        }
+    }
+
+    #[test]
+    fn a_launch_command_runs_in_the_same_folder_of_the_worktree_with_its_ports() {
+        let wt = crate::paths::test_dir("wt-run-spec");
+        std::fs::create_dir_all(wt.join("web")).unwrap();
+        let meta = agent(&wt);
+        let spec = worktree_run_spec(&meta, &front("web"), Fr).unwrap();
+        assert_eq!(spec.name, "Front · refacto-auth");
+        assert_eq!(spec.command, "npm run dev");
+        assert_eq!(
+            Path::new(&spec.cwd).canonicalize().unwrap(),
+            wt.join("web").canonicalize().unwrap()
+        );
+        assert_eq!(
+            spec.env,
+            vec![
+                ("ESCOUADE_PORT_BASE".to_string(), "4120".to_string()),
+                ("ESCOUADE_PORT_END".to_string(), "4129".to_string()),
+            ]
+        );
+        // No folder: the worktree itself.
+        let top = worktree_run_spec(&meta, &front(" "), Fr).unwrap();
+        assert_eq!(
+            Path::new(&top.cwd).canonicalize().unwrap(),
+            wt.canonicalize().unwrap()
+        );
+    }
+
+    #[test]
+    fn a_launch_command_whose_folder_is_not_in_the_worktree_is_refused_with_why() {
+        let wt = crate::paths::test_dir("wt-run-missing");
+        let meta = agent(&wt);
+        let e = worktree_run_spec(&meta, &front("web"), Fr)
+            .unwrap_err()
+            .to_string();
+        assert_eq!(e, "Le dossier « web » de « Front » n'existe pas dans le worktree de « refacto-auth » (sa branche ne l'a pas, ou pas encore).");
+        let e = worktree_run_spec(&meta, &front("web"), En)
+            .unwrap_err()
+            .to_string();
+        assert_eq!(e, "The folder “web” of “Front” doesn’t exist in the worktree of “refacto-auth” (its branch doesn’t have it, or not yet).");
+        // Nor out of it.
+        assert!(worktree_run_spec(&meta, &front("../elsewhere"), Fr).is_err());
+    }
+
+    #[test]
+    fn no_launch_command_runs_in_the_worktree_of_an_archived_agent_nor_in_one_gone() {
+        let wt = crate::paths::test_dir("wt-run-refused");
+        let mut meta = agent(&wt);
+        meta.archived = true;
+        let e = worktree_run_spec(&meta, &front(""), En).unwrap_err();
+        assert_eq!(
+            e.to_string(),
+            "“refacto-auth” is archived: nothing runs in its worktree."
+        );
+        meta.archived = false;
+        meta.worktree.as_mut().unwrap().path = wt.join("gone").to_string_lossy().into();
+        let e = worktree_run_spec(&meta, &front(""), En).unwrap_err();
+        assert_eq!(
+            e.to_string(),
+            "The worktree of “refacto-auth” no longer exists."
+        );
+        meta.worktree = None;
+        let e = worktree_run_spec(&meta, &front(""), En).unwrap_err();
+        assert_eq!(e.to_string(), "“refacto-auth” has no worktree.");
     }
 }

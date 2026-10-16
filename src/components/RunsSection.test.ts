@@ -2,6 +2,9 @@ import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { setLang } from '../lib/i18n';
+import { forgetAgentTests, runIn, startLaunch, stopAgentTests, testLaunchIds } from '../lib/launch-actions';
+import { menu } from '../lib/menu.svelte';
+import { inWorktree } from '../lib/recipe';
 import { app } from '../lib/state.svelte';
 import type { LaunchState, RunCommand, TestRecipe } from '../lib/types';
 import { agent, fakeBackend, project, resetApp } from '../test/ipc';
@@ -161,6 +164,141 @@ describe('RunsSection', () => {
     expect(await within(row('web')).findByText('en cours')).toBeInTheDocument();
     await userEvent.click(within(row('web')).getByRole('button', { name: 'Stopper' }));
     expect(backend.called('term_kill')[0].args).toEqual({ id: 't7' });
+  });
+});
+
+describe('RunsSection, a launch command in a worktree', () => {
+  const W = agent({
+    id: 'a1',
+    name: 'refacto-auth',
+    worktree: { path: 'C:/p/.claude/worktrees/refacto-auth', branch: 'refacto-auth', baseBranch: 'main' },
+  });
+  const PLAIN = agent({ id: 'a2', name: 'sans-worktree' });
+  const OLD = agent({ id: 'a3', name: 'archivé', archived: true, worktree: { path: 'C:/p/wt/old', branch: 'old', baseBranch: 'main' } });
+
+  beforeEach(() => {
+    resetApp({ projects: [P], agents: [W, PLAIN, OLD] });
+    menu.close();
+  });
+
+  it('asks where on ▶ when an agent has a worktree, and runs there with its agent', async () => {
+    const backend = fakeBackend({ run_start: () => ({ id: 't9', projectId: 'p1', name: 'Front · refacto-auth', shell: 'pwsh' }) });
+    render(RunsSection, { project: P });
+    await userEvent.click(within(row('Front')).getByRole('button', { name: 'Lancer' }));
+    // Only the agents with a worktree, not archived.
+    expect(menu.open?.items.map((i) => i.label)).toEqual(['Dans le projet', '', 'Dans le worktree de refacto-auth']);
+    expect(backend.called('run_start')).toHaveLength(0);
+    menu.open!.items[2].onClick!();
+    await vi.waitFor(() => expect(backend.called('run_start')).toHaveLength(1));
+    expect(backend.called('run_start')[0].args).toMatchObject({ projectId: 'p1', commandId: 'c1', agentId: 'a1' });
+    // Under its agent's name, with its own status; the project's row stays ready.
+    expect(await screen.findByText('refacto-auth')).toBeInTheDocument();
+    expect(within(row('Front · refacto-auth')).getByText('en cours')).toBeInTheDocument();
+    expect(within(screen.getAllByRole('button', { name: /^Front/ })[0]).getByText('prêt')).toBeInTheDocument();
+    expect(screen.getByText('0/2')).toBeInTheDocument();
+  });
+
+  it('runs in the project from the menu, with no agent', async () => {
+    const backend = fakeBackend({ run_start: () => ({ id: 't1', projectId: 'p1', name: 'Front', shell: 'pwsh' }) });
+    render(RunsSection, { project: P });
+    await userEvent.click(within(row('Front')).getByRole('button', { name: 'Lancer' }));
+    menu.open!.items[0].onClick!();
+    await vi.waitFor(() => expect(backend.called('run_start')).toHaveLength(1));
+    expect(backend.called('run_start')[0].args.agentId).toBeUndefined();
+  });
+
+  it('says first that the command runs elsewhere, and stops the other one when asked', async () => {
+    app.launches.c1 = state({ ptyId: 't1', name: 'Front' });
+    const backend = fakeBackend({ run_start: () => ({ id: 't9', projectId: 'p1', name: 'Front · refacto-auth', shell: 'pwsh' }) });
+    await runIn(P, FRONT, 'a1');
+    expect(app.modal).toMatchObject({ kind: 'confirm', title: '« Front » tourne déjà', confirm: "Arrêter l'autre et lancer" });
+    const m = app.modal as Extract<typeof app.modal, { kind: 'confirm' }>;
+    expect(m.body).toContain('dans le projet');
+    expect(m.alt?.label).toBe('Lancer quand même');
+    expect(backend.called('run_start')).toHaveLength(0);
+    const done = m.onConfirm(false);
+    expect(backend.called('term_kill')[0].args).toEqual({ id: 't1' });
+    // The project's run ends: the other one starts after it.
+    app.launches.c1.status = 'stopped';
+    await done;
+    expect(backend.called('run_start')[0].args).toMatchObject({ commandId: 'c1', agentId: 'a1' });
+  });
+
+  it('runs both when the user says so, and names the worktree it runs in', async () => {
+    app.launches['wt:a1:c1'] = state({ ptyId: 't9', name: 'Front · refacto-auth' });
+    const backend = fakeBackend({ run_start: () => ({ id: 't1', projectId: 'p1', name: 'Front', shell: 'pwsh' }) });
+    await runIn(P, FRONT, null);
+    const m = app.modal as Extract<typeof app.modal, { kind: 'confirm' }>;
+    expect(m.body).toContain('dans le worktree de refacto-auth');
+    await m.alt!.onClick();
+    expect(backend.called('term_kill')).toHaveLength(0);
+    expect(backend.called('run_start')[0].args).toMatchObject({ commandId: 'c1' });
+    expect(backend.called('run_start')[0].args.agentId).toBeUndefined();
+  });
+
+  it('says first which commands run in a worktree before « Tout lancer », and runs all once they stopped', async () => {
+    app.launches['wt:a1:c1'] = state({ ptyId: 't9', name: 'Front · refacto-auth' });
+    let n = 0;
+    const backend = fakeBackend({ run_start: () => ({ id: `t${++n}`, projectId: 'p1', name: 'x', shell: 'pwsh' }) });
+    render(RunsSection, { project: P });
+    await userEvent.click(screen.getByRole('button', { name: 'Tout lancer' }));
+    expect(backend.called('run_start')).toHaveLength(0);
+    const m = app.modal as Extract<typeof app.modal, { kind: 'confirm' }>;
+    expect(m).toMatchObject({ title: 'Des commandes tournent déjà ailleurs', confirm: 'Les arrêter et tout lancer' });
+    expect(m.body).toContain('« Front · refacto-auth »');
+    const done = m.onConfirm(false);
+    expect(backend.called('term_kill')[0].args).toEqual({ id: 't9' });
+    app.launches['wt:a1:c1'].status = 'stopped';
+    await done;
+    expect(backend.called('run_start').map((c) => c.args.commandId)).toEqual(['c1', 'c2']);
+    expect(backend.called('run_start').every((c) => c.args.agentId === undefined)).toBe(true);
+  });
+
+  it('shows no run when the backend refuses it, and says why', async () => {
+    const why = "Le dossier « web » de « Front » n'existe pas dans le worktree de « refacto-auth » (sa branche ne l'a pas, ou pas encore).";
+    fakeBackend({
+      run_start: () => {
+        throw why;
+      },
+    });
+    expect(await startLaunch(P, inWorktree(FRONT, W))).toBe(why);
+    expect(app.launches['wt:a1:c1']).toBeUndefined();
+  });
+
+  it('stops the launches in its worktree with its test launches (archive, deletion), and forgets them when it goes', () => {
+    app.launches['wt:a1:c1'] = state({ ptyId: 't9', name: 'Front · refacto-auth' });
+    app.launches.c1 = state({ ptyId: 't1' });
+    const backend = fakeBackend();
+    stopAgentTests('a1');
+    expect(backend.called('term_kill').map((c) => c.args.id)).toEqual(['t9']);
+    expect(app.launches['wt:a1:c1'].stopping).toBe(true);
+    expect(testLaunchIds('p1')).toEqual(['wt:a1:c1']);
+    forgetAgentTests('a1');
+    expect(app.launches['wt:a1:c1']).toBeUndefined();
+    expect(app.launches.c1).toBeDefined();
+  });
+
+  it('runs on ▶ in the project as before when no agent has a worktree', async () => {
+    resetApp({ projects: [P], agents: [PLAIN] });
+    const backend = fakeBackend({ run_start: () => ({ id: 't1', projectId: 'p1', name: 'Front', shell: 'pwsh' }) });
+    render(RunsSection, { project: P });
+    await userEvent.click(within(row('Front')).getByRole('button', { name: 'Lancer' }));
+    expect(menu.open).toBeNull();
+    expect(backend.called('run_start')[0].args).toMatchObject({ commandId: 'c1' });
+  });
+
+  it('asks where in English', async () => {
+    setLang('en');
+    fakeBackend();
+    render(RunsSection, { project: P });
+    await userEvent.click(within(row('Front')).getByRole('button', { name: 'Run' }));
+    expect(menu.open?.items.map((i) => i.label)).toEqual(['In the project', '', 'In the worktree of refacto-auth']);
+    app.launches.c1 = state({ ptyId: 't1', name: 'Front' });
+    await runIn(P, FRONT, 'a1');
+    expect(app.modal).toMatchObject({ title: '“Front” is already running', confirm: 'Stop the other and run' });
+    const m = app.modal as Extract<typeof app.modal, { kind: 'confirm' }>;
+    expect(m.body).toContain('in the project');
+    expect(m.alt?.label).toBe('Run anyway');
   });
 });
 

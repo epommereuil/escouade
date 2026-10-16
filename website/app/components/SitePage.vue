@@ -43,7 +43,6 @@ useHead({
   <SiteHeader />
   <main>
     <HeroSection />
-    <SignalSection />
     <VideoSection />
     <FeatureGrid />
     <InstallSteps />

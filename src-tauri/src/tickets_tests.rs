@@ -14,6 +14,7 @@ use crate::core_tests::{
     wt_step, Harness,
 };
 use crate::model::*;
+use crate::testlaunch;
 use crate::tickets::{error_reason, DraftFile, DraftImage, TicketDraft};
 use crate::usage::Reading;
 use base64::Engine;
@@ -8258,4 +8259,152 @@ async fn a_deleted_tickets_files_go_with_it_once_the_state_without_it_is_saved()
     // No wait for the background save: a crash now must not bring the ticket back without them.
     assert!(!state().contains(&t.id), "the saved state still has it");
     assert!(!dir.exists());
+}
+
+// ---------- launch commands in a worktree ----------
+
+fn launch_command(id: &str, name: &str, cwd: &str) -> RunCommand {
+    RunCommand {
+        id: id.into(),
+        name: name.into(),
+        command: "npm run dev".into(),
+        shell: String::new(),
+        cwd: cwd.into(),
+    }
+}
+
+#[tokio::test]
+async fn a_launch_command_runs_in_an_agents_worktree_with_its_folder_and_its_ports() {
+    let h = harness("tk-wt-run");
+    let (p, _) = h.project(true).await;
+    h.core
+        .update_project(Project {
+            run_commands: vec![
+                launch_command("c1", "Front", "web"),
+                launch_command("c2", "API", "api"),
+            ],
+            ..h.core.project(&p.id).unwrap()
+        })
+        .unwrap();
+    let a = h.core.create_agent(&p.id, None).await.unwrap().meta;
+    // The worktree has `web`; `api` is only in the project's folder.
+    std::fs::create_dir_all(Path::new(&a.cwd).join("web")).unwrap();
+    std::fs::create_dir_all(Path::new(&p.path).join("api")).unwrap();
+    assert_eq!(h.agent(&a.id).port_base, None);
+    let spec = h.core.worktree_run(&p.id, &a.id, "c1").unwrap();
+    assert_eq!(spec.name, format!("Front · {}", a.name));
+    assert_eq!(spec.command, "npm run dev");
+    assert_eq!(
+        Path::new(&spec.cwd).canonicalize().unwrap(),
+        Path::new(&a.cwd).join("web").canonicalize().unwrap()
+    );
+    // Its block, reserved then, is the one its test launches get.
+    let base = h.agent(&a.id).port_base.expect("a block of ports");
+    assert_eq!(spec.env, testlaunch::port_env(Some(base)));
+    assert_eq!(
+        h.core.worktree_run(&p.id, &a.id, "c1").unwrap().env,
+        spec.env
+    );
+    // A folder its worktree lacks is refused, and the error says which and where.
+    let e = h
+        .core
+        .worktree_run(&p.id, &a.id, "c2")
+        .unwrap_err()
+        .to_string();
+    assert_eq!(
+        e,
+        format!(
+            "Le dossier « api » de « API » n'existe pas dans le worktree de « {} » (sa branche ne l'a pas, ou pas encore).",
+            a.name
+        )
+    );
+    // Not an agent of this project, not a command of it.
+    let other = crate::core_tests::repo(&h.dir.join("other"));
+    let q = h
+        .core
+        .create_project(
+            &other.to_string_lossy(),
+            "other",
+            "oklch(0.72 0.12 48)",
+            true,
+            None,
+            true,
+        )
+        .await
+        .unwrap();
+    assert!(h.core.worktree_run(&q.id, &a.id, "c1").is_err());
+    assert!(h.core.worktree_run(&p.id, &a.id, "nope").is_err());
+}
+
+#[tokio::test]
+async fn a_launch_command_in_a_worktree_stops_with_its_agent_and_is_refused_once_archived() {
+    let h = harness("tk-wt-run-stop");
+    let (p, _) = h.project(true).await;
+    h.core
+        .update_project(Project {
+            run_commands: vec![launch_command("c1", "Front", "")],
+            ..h.core.project(&p.id).unwrap()
+        })
+        .unwrap();
+    let a = h.core.create_agent(&p.id, None).await.unwrap().meta;
+    h.core.worktree_run(&p.id, &a.id, "c1").unwrap();
+    // Started as `run_start` does: kept with its test launches.
+    if !test_run(&h, &a, "tk-wt-run-1") {
+        return;
+    }
+    h.core.archive_agent(&a.id, true).await.unwrap();
+    assert!(!term_running(&h, "tk-wt-run-1"));
+    let e = h
+        .core
+        .worktree_run(&p.id, &a.id, "c1")
+        .unwrap_err()
+        .to_string();
+    assert_eq!(
+        e,
+        format!(
+            "« {} » est archivé : rien ne se lance dans son worktree.",
+            a.name
+        )
+    );
+    // An agent without a worktree runs nothing in one.
+    h.core
+        .update_project(Project {
+            worktree_per_agent: false,
+            ..h.core.project(&p.id).unwrap()
+        })
+        .unwrap();
+    let plain = h.core.create_agent(&p.id, None).await.unwrap().meta;
+    let e = h
+        .core
+        .worktree_run(&p.id, &plain.id, "c1")
+        .unwrap_err()
+        .to_string();
+    assert_eq!(e, format!("« {} » n'a pas de worktree.", plain.name));
+    assert_eq!(h.agent(&plain.id).port_base, None);
+}
+
+#[tokio::test]
+async fn preparing_a_launch_gives_the_agent_the_projects_launch_commands() {
+    let h = harness("tk-prepare-commands");
+    let (p, _) = h.project(true).await;
+    h.core
+        .update_project(Project {
+            run_commands: vec![
+                launch_command("c1", "Front", "web"),
+                launch_command("c2", "API", ""),
+            ],
+            ..h.core.project(&p.id).unwrap()
+        })
+        .unwrap();
+    let a = h.core.create_agent(&p.id, None).await.unwrap().meta;
+    h.core.agent_prepare_launch(&a.id).await.unwrap();
+    let dir = PathBuf::from(&a.cwd);
+    let listed = "\n- Front : `npm run dev` (dossier web)\n- API : `npm run dev` (dossier .)";
+    h.wait("the launch commands in the request", |h| {
+        h.stdin_messages(&dir).iter().any(|m| {
+            let t = text_of(&m["message"]["content"]);
+            t.starts_with("Prépare le lancement de test") && t.ends_with(listed)
+        })
+    })
+    .await;
 }

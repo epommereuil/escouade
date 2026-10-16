@@ -3,7 +3,7 @@
 // `test:<agent>:<prep|run|isola>:<n>` among the launches.
 
 import { t } from './i18n';
-import type { Agent, RunCommand } from './types';
+import type { Agent, Project, RunCommand } from './types';
 
 export type TestKind = 'prep' | 'run' | 'isola';
 
@@ -165,4 +165,27 @@ export function revealHidden(text: string): string {
   }
   flush();
   return out.join('\n') + (ends ? '\n' : '');
+}
+
+// One of the project's launch commands run in an agent's worktree, with an id `wt:<agent>:<command>`
+// among the launches: under its agent's name in the section, its terminal named « Front · refacto-auth ».
+
+export const worktreeRunId = (agentId: string, commandId: string) => `wt:${agentId}:${commandId}`;
+
+export function parseWorktreeRunId(id: string): { agentId: string; commandId: string } | null {
+  const m = /^wt:([^:]+):(.+)$/.exec(id);
+  return m ? { agentId: m[1], commandId: m[2] } : null;
+}
+
+/** The launch command `cmd` as it runs in the worktree of `agent`. */
+export function inWorktree(cmd: RunCommand, agent: Agent): RunCommand {
+  return { ...cmd, id: worktreeRunId(agent.id, cmd.id), name: `${cmd.name} · ${agent.name}` };
+}
+
+/** The launch command of a worktree launch's id, while its agent and its command are still there. */
+export function worktreeCommand(id: string, project: Project, agents: Record<string, Agent>): RunCommand | null {
+  const w = parseWorktreeRunId(id);
+  const a = w ? agents[w.agentId] : undefined;
+  const c = w ? project.runCommands.find((x) => x.id === w.commandId) : undefined;
+  return a && c && a.projectId === project.id ? inWorktree(c, a) : null;
 }

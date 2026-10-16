@@ -106,7 +106,7 @@ Aussi pour la 1.8 :
   - dans le menu du « + », après les shells et un séparateur, « Dans le worktree de… » avec les agents du projet qui en ont un (pas les archivés), dans l'ordre de la barre latérale (`app.projectAgents`) ; ni l'entrée ni le séparateur quand il n'y en a aucun. Un clic remplace le menu par un second, ancré au même bouton (`worktreeMenu`, après un `tick()` comme « Nouvel agent sur une branche… » : le focus clavier y entre et revient au bouton) ;
   - un bouton « Terminal » dans l'en-tête de la conversation d'un agent qui a un worktree (pas archivé), juste après « Éditeur », avec le glyphe du premier shell et le même repli que les autres boutons aux petites largeurs ;
   - textes fr et en (`nav.sidebar.inWorktree`, `conv.header.terminal`, `conv.header.terminalHint`), docs du site (terminaux, interface).
-- [ ] **Les commandes de lancement dans un worktree** (à étudier, demandé le 2026-10-13). Aujourd'hui, les commandes de la section « Lancement » tournent seulement dans le dossier du projet (`run_start`, `commands.rs` : `pty::run_cwd(&project.path, &run.cwd)`). Il faudrait pouvoir les lancer dans le worktree d'un agent, pour voir son travail tourner sans le fusionner. À voir :
+- [x] **Les commandes de lancement dans un worktree** (demandé le 2026-10-13, ESC-19, fait le 2026-10-16 ; voir `docs/SPEC.md`, « Lancement »). Aujourd'hui, les commandes de la section « Lancement » tournent seulement dans le dossier du projet (`run_start`, `commands.rs` : `pty::run_cwd(&project.path, &run.cwd)`). Il faudrait pouvoir les lancer dans le worktree d'un agent, pour voir son travail tourner sans le fusionner. À voir :
   - **où choisir** : un menu sur ▶ (« Dans le projet », « Dans le worktree de <agent> »), ou « Lancer » dans le clic droit de la carte de l'agent, avec la liste des commandes ;
   - **dossier** : le même `cwd` relatif, pris dans le worktree. S'il n'y existe pas, le lancement est refusé et le message dit pourquoi ;
   - **ports** : la même commande lancée dans le projet et dans un worktree se dispute le port (deux `npm run dev` sur 5173). Les lancements de test réservent déjà un bloc de ports par worktree (`ESCOUADE_PORT_BASE`, `testlaunch.rs`), mais une commande de lancement ne reçoit aucune variable d'Escouade (consigne de `worktrees.rs`). Il faut choisir : exporter le bloc de l'agent, prévenir du conflit, ou n'autoriser qu'une instance à la fois ;
@@ -114,6 +114,12 @@ Aussi pour la 1.8 :
   - **dépendances** : un worktree neuf n'a pas de `node_modules`. C'est le rôle des étapes de préparation du worktree (`WorktreeStep`), à rappeler dans le message d'erreur ou la doc ;
   - **cycle de vie** : ces commandes s'arrêtent quand l'agent est archivé ou supprimé, ou quand son worktree est retiré, comme ses lancements de test aujourd'hui ;
   - **lien avec le « Lancement de test » des tickets** (recette proposée par l'agent, `testlaunch.rs`) : ne pas faire deux fois la même chose. Par exemple, la recette pourrait partir des commandes de lancement du projet quand il en a.
+  - **Décidé avec l'utilisateur le 2026-10-16 (ESC-19)** :
+    - où choisir : les deux. Le ▶ d'une commande ouvre un menu dès qu'un agent du projet a un worktree (« Dans le projet », puis « Dans le worktree de <agent> » par agent, non archivé) ; sans worktree, ▶ lance dans le projet comme avant. Et « Lancer… » au clic droit de la carte d'un agent qui a un worktree, avec la liste des commandes du projet. « Tout lancer » reste dans le projet ;
+    - ports : le lancement dans un worktree reçoit le bloc de ports de l'agent (`ESCOUADE_PORT_BASE`, `ESCOUADE_PORT_END`, réservé à ce moment s'il n'en a pas), le même que ses lancements de test. Et si la même commande tourne déjà ailleurs (projet ou autre worktree), une confirmation le dit avant de lancer : « Arrêter l'autre et lancer » ou « Lancer quand même » ;
+    - état : les lignes du projet ne changent pas ; un lancement dans un worktree apparaît sous le nom de l'agent, comme ses lancements de test, avec son propre état et son journal ; son terminal s'appelle « Front · refacto-auth » ;
+    - lien avec le lancement de test : les deux restent distincts mais partagent le bloc de ports et le cycle de vie (ils s'arrêtent ensemble : archive, suppression, validation du ticket, worktree retiré) ; « Préparer le lancement » donne à l'agent les commandes de lancement du projet (nom, commande, dossier) pour qu'il en parte.
+  - Fait (2026-10-16) : `run_start` prend `agentId` (`Core::worktree_run`, `testlaunch::worktree_run_spec`) ; le terminal est suivi avec les lancements de test de l'agent (`track_test_run`), donc arrêté avec eux (archive, suppression, validation qui retire le worktree, fermeture du projet). Côté fenêtre : id `wt:<agent>:<commande>` (`recipe.ts`), `runIn` et `runHere` (`launch-actions.ts`), menu du ▶ (`RunsSection.svelte`), « Lancer… » au clic droit de la carte (`Sidebar.svelte`). La recette de « Préparer le lancement » reçoit la liste des commandes du projet (`board::prepare_message`). Tests : Rust (`testlaunch::worktree_run_tests`, `tickets_tests` « launch command … worktree », `board::tests`), Vitest (`RunsSection.test.ts`, `Sidebar.test.ts`), e2e (`app.spec.ts`, « … (ESC-19) » : port reçu, conflit, dossier absent, archivage).
 - [x] **Les onglets des projets ne défilent pas** (bug signalé le 2026-10-14, corrigé le 2026-10-15, ESC-20). Avec beaucoup de projets ouverts, ceux qui ne tiennent pas dans la barre du haut sont coupés et inaccessibles, et le « + » qui ajoute un projet disparaît avec eux. Cause : `.tabs` est en `overflow: hidden` et chaque onglet en `flex-shrink: 0` (`TitleBar.svelte`). À faire :
   - la barre des onglets défile à l'horizontale : molette (le défilement vertical devient horizontal), pavé tactile, barre de défilement fine au survol ;
   - le « + » reste visible, hors de la zone qui défile ;
@@ -170,7 +176,7 @@ Aussi pour la 1.8 :
   - Décidé le 2026-10-15 : toutes les voix dont la licence le permet, au choix ; envoi seul après un silence ; en mode vocal, l'agent écrit lui-même le texte lu (un résumé moins verbeux et moins technique), la réponse complète restant à l'écran ; barge-in ; vue Escouade seulement.
   - Catalogue relevé le 2026-10-15 (données de PiperHub : `github.com/fox3000foxy/piper-bank`, `src/data/models.json` et `datasets.json`) : licence du modèle et du jeu de données permissives, et aucune voix de personnage, de personne ni de marque (l'audit de PiperHub met « MIT » sur des voix de GLaDOS ou de Wheatley). La licence lue sur Hugging Face prime sur celle de PiperHub (Fuze : « SandBlock Studios » chez PiperHub, CC BY 4.0 dans le README de son jeu de données). En français, quatre des cinq voix haute définition sont des personnages ou des marques ; Fuze passe par sa licence, mais son jeu de données a été généré par ElevenLabs v4 (« gaming YouTuber style ») : conditions d'ElevenLabs et droit à la voix à vérifier ; 8 voix basses ou moyennes officielles en MIT (Siwis, Tom, MLS, UPMC, Gilles, MLS 1840). En anglais, 64 sur 135, dont LibriTTS, Ryan, LJSpeech, Cori, Librivox AU, Colin, Mei en haute définition (Lessac à vérifier : jeu de données Blizzard 2013).
   - Voix téléchargées à la demande (somme de contrôle), essai écoutable, vitesse, volume, licence et attribution ; pas d'écho du haut-parleur dans le micro ; questions et permissions de l'agent lues et répondues à la voix, ou conversation en pause.
-  - Licences : Escouade passe en GPL-3.0 ou ultérieure le 2026-10-15 ; Piper (piper1-gpl) et espeak-ng, en GPL-3.0, peuvent être liés ou lancés à part (à choisir à l'implémentation : programme à part téléchargé à la demande, ou lié).
+  - Licences : Escouade passe en GPL-3.0 ou ultérieure le 2026-10-15 ; Piper (piper1-gpl) et espeak-ng, en GPL-3.0, peuvent être liés ou lancés à part. Décidé le 2026-10-16 : Piper est lié à l'app, et le catalogue des voix est une liste aux licences vérifiées, livrée avec l'app et mise à jour aux releases (pas le catalogue de PiperHub lu en direct).
 - [x] **Fermer un projet garde son historique** (demandé le 2026-10-14, ESC-89 ; fait le 2026-10-15) : le rouvrir dans le même dossier le retrouve.
   - Aujourd'hui, « Fermer le projet » (`Core::remove_project`) efface le journal de conversation de chaque agent et son journal de préparation, les tickets du projet (`drop_project_tickets`) et ses réservations de comptes. Les worktrees, les sessions de Claude Code et les stats restent. Un projet recréé dans le même dossier reçoit un nouvel id et repart de zéro.
   - Fermer retire le projet de l'app sans effacer son historique : réglages, agents et conversations, tickets (images comprises) restent sur le disque, rangés comme « projet fermé » avec le chemin de son dossier. Les process, terminaux et lancements de test s'arrêtent comme aujourd'hui.
@@ -289,28 +295,61 @@ Rien de ce qui suit n'a été lancé. Les faits viennent du code source et des d
 - Copilot CLI 1.0.95, avec le Copilot SDK 1.0.19 ;
 - Cursor CLI (`agent`) : les docs seulement, sans relever de version.
 
+Codex a été essayé pour de vrai le 2026-10-16 (ESC-22), avec la version 0.163.0 : réponses ci-dessous.
+
 Chaque essai enregistre ses flux réels dans `tests/fixtures/` (comme `real-run-inline.jsonl`), pour les rejouer dans les tests.
 
 ### Codex (`codex app-server`, JSON-RPC sur stdio)
-- [ ] **Un tour complet enregistré** : texte, raisonnement, commande, modification de fichier, demande d'approbation, interruption, `update_plan`, un sous-agent (`collabToolCall`), une compaction, la fin d'un tour arrêté par la limite.
-- [ ] **Méthodes expérimentales** : environ 40 % des méthodes demandent `capabilities.experimentalApi`. Lister celles dont Escouade a besoin (`thread/fork` ? `item/tool/requestUserInput` ? mode Plan ? `approvalsReviewer` ?), et n'en garder que le strict nécessaire.
-- [ ] **Bac à sable, worktree et commit** : en `workspace-write`, dans `<projet>/.claude/worktrees/<agent>`, l'agent peut-il commiter ?
-  - Un commit écrit dans `<projet>/.git`, hors du worktree, et Codex protégerait `.git` en lecture seule dans ses dossiers inscriptibles (à vérifier).
-  - Faut-il `sandbox_workspace_write.writable_roots` ?
-  - Mêmes questions avec le bac à sable Windows (`elevated` / `unelevated` : faut-il une installation avec les droits d'admin ?).
-- [ ] **MCP par process** : `-c mcp_servers.escouade.url=…` avec `bearer_token_env_var`. Le jeton passe par l'environnement, jamais par la ligne de commande, que la liste des process montre.
-  - `-c mcp_servers.escouade.enabled=false` doit écraser une entrée `escouade` de l'utilisateur.
-  - Autre piste : la `config` de `thread/start`.
-- [ ] **Consignes ajoutées** (protocole du ticket, aujourd'hui `--append-system-prompt`) : `developerInstructions` de `thread/start` ou `-c developer_instructions=…`. Survivent-elles à une reprise ?
-- [ ] **Second compte** : un `CODEX_HOME` à part, connexion (`codex login`, ChatGPT ou code d'appareil), entrée du trousseau propre à chaque dossier. Lire le quota par `account/rateLimits/read` sans lancer de tour, et voir ce qu'un app-server lancé pour ça seulement coûte.
-- [ ] **Reprise sur un autre compte** : un `rollout-*.jsonl` copié dans un autre `CODEX_HOME` se reprend-il par `thread/resume` ?
-- [ ] **Windows** : lancer le binaire natif, pas le `codex.cmd` de npm (comme `resolve_binary` le fait pour `claude`). Le process et ses enfants restent dans le Job de l'agent.
-- [ ] **Vue terminal** (voir « Vue terminal de chaque moteur ») :
-  - déclarer les hooks d'Escouade pour un seul process : `-c hooks…`, ou un fichier du `CODEX_HOME` ;
-  - la vérification de confiance des hooks (`/hooks`) bloque-t-elle ceux qu'Escouade ajoute ?
-  - un signal pour une permission en attente ;
-  - `codex resume <id>` sur un fil créé par l'app-server, et `thread/resume` sur une session de l'interface ;
-  - la touche qui interrompt, et le rollout pendant que la session tourne.
+Essayé le 2026-10-16 avec **Codex 0.163.0** (paquet npm `@openai/codex@0.163.0`, binaire natif `codex.exe`), sous Windows 11, avec un compte ChatGPT (offre gratuite) et le modèle `gpt-6-luna`. La version 0.144.5 livrée avec l'app de bureau Codex était aussi sur le poste : les deux coexistent, d'où l'intérêt de la plage de versions testées. Flux enregistrés dans `tests/fixtures/codex/` (voir son README). Le client d'essai n'est pas gardé.
+
+- [x] **Un tour complet enregistré** (`full-turn.jsonl`) : texte, raisonnement, commande, modification de fichier, demande d'approbation, interruption, `update_plan`, un sous-agent, une compaction. La fin d'un tour arrêté par la limite n'a pas été provoquée : il aurait fallu épuiser le quota du mois de l'offre gratuite. À sa place, un tour en échec (`failed-turn.jsonl`) : `turn/completed` avec `status: failed` et `error` (`message`, `codexErrorInfo`). D'après le schéma de la 0.163, un tour arrêté par la limite a la même forme, avec `codexErrorInfo: usageLimitExceeded` (ou `rateLimitExceeded`), et le quota dit pourquoi (`rateLimitReachedType` : `rate_limit_reached`, crédits ou limite de l'espace de travail épuisés). À enregistrer le jour où un compte atteint vraiment sa limite. Ce qu'on a appris :
+  - **`update_plan` n'est plus offert par défaut** au modèle (0.163, `gpt-6-luna`). Il faut `-c tools.update_plan.enabled=true`, après quoi `turn/plan/updated` arrive (étapes, statut `pending` / `inProgress` / `completed`).
+  - **Sous-agent** : pas de `collabToolCall`. Le lancement est un élément `subAgentActivity` (`kind: started`, puis `completed`), avec `agentThreadId` et `agentPath` (`/root/<nom>`). L'attente est un `collabAgentToolCall` (`tool: wait`). Le sous-agent a son propre fil : ses `turn/started`, éléments et `turn/completed` passent sur la même connexion, avec son `threadId` et le `rootTurnId` du tour parent. Il faut donc filtrer `turn/completed` par `threadId` et `turn.id`, sinon la fin du sous-agent passe pour celle du tour.
+  - **Commande** : `commandExecution` porte la commande entière (`pwsh.exe -Command '…'` sous Windows), `commandActions` (lecture, recherche, inconnu…), `aggregatedOutput`, `exitCode`, `source`. Une commande refusée par le bac à sable échoue d'abord (`status: failed`), puis le modèle la redemande avec élévation : nouvel élément, `item/commandExecution/requestApproval` avec `reason` (rédigée dans la langue de l'utilisateur), `proposedExecpolicyAmendment` et `availableDecisions` ; `thread/status/changed` passe à `activeFlags: ["waitingOnApproval"]`, puis `serverRequest/resolved`.
+  - **Modification** : `fileChange` avec `changes[]` (`path`, `kind`, `diff`).
+  - **Message** : `agentMessage` avec `phase` (`commentary` en cours de tour, `final_answer` à la fin).
+  - **Raisonnement** : seulement des titres résumés (`summary: ["**Preparing a plan update**"]`), en anglais, et souvent vides ; `content` reste vide.
+  - **Interruption** : `turn/interrupt` répond aussitôt, puis `turn/completed` avec `status: interrupted`. Fermer l'entrée du process en plein tour l'arrête aussi (`turn_aborted` dans le rollout).
+  - **Compaction** : `thread/compact/start` ouvre un tour à lui, avec un élément `contextCompaction`.
+  - **Copie** : `thread/fork` marche (stable), au dernier tour ou à un tour donné (`lastTurnId`) ; une copie éphémère exige `excludeTurns: true`.
+  - **Tokens et quota** : `thread/tokenUsage/updated` après chaque appel (`total`, `last`, `modelContextWindow` : 258 400 pour `gpt-6-luna`) et `account/rateLimits/updated`.
+  - **Bruit** : `turn/moderationMetadata` à chaque étape, `skills/changed`, `mcpServer/startupStatus/updated` de chaque serveur MCP de l'utilisateur, `remoteControl/status/changed`, `thread/readState/changed` : à ignorer.
+  - **L'environnement de l'utilisateur suit** : ses plugins, skills (superpowers compris) et serveurs MCP de `config.toml` sont chargés dans les fils d'Escouade, comme avec Claude.
+- [x] **Méthodes expérimentales** : 172 méthodes du client en mode expérimental, contre 105 stables. Tout ce qu'il faut à Escouade est **stable**, sauf le mode Plan :
+  - stables : `thread/start|resume|fork|compact/start|turns/list`, `turn/start|steer|interrupt`, `item/tool/requestUserInput` (la question elle-même), `approvalsReviewer`, `developerInstructions`, `account/read`, `account/rateLimits/read`, `model/list`, `skills/list`, `hooks/list`, `command/exec`, `windowsSandbox/readiness`, `mcpServerStatus/list` ;
+  - expérimental : `collaborationMode` de `turn/start` (le mode Plan), et `collaborationMode/list`. Sans `experimentalApi`, il est refusé (`turn/start.collaborationMode requires experimentalApi capability`).
+  - `multiAgentMode` est déprécié (ignoré) : les sous-agents se lancent à la demande, sans réglage.
+  - Proposé : `experimentalApi` à `true`, seulement pour le mode Plan, et le test de schéma de la version testée vérifie les champs lus. Sans lui, Escouade n'aurait pas de mode Plan sur Codex.
+- [x] **Bac à sable, worktree et commit** : en `workspace-write`, l'agent **ne peut pas commiter sans élévation**, sous Windows avec `elevated` comme avec `unelevated`.
+  - Écrire dans le worktree passe. `git add` échoue : `Unable to create '<projet>/.git/worktrees/<agent>/index.lock': Permission denied`. Le modèle redemande alors la commande avec élévation, et Escouade reçoit une demande d'approbation pour chaque `git add` et `git commit`.
+  - `writable_roots` n'y change rien : avec `<projet>/.git`, ou avec `.git/worktrees/<agent>`, `objects`, `refs` et `logs`, même refus (essayé par `command/exec`, sans modèle). Codex protège tout `.git`.
+  - Lire `~/.config/git/ignore` est aussi refusé dans le bac à sable (simple avertissement de git).
+  - Le réseau est coupé en `workspace-write` : `git ls-remote` échoue, puis passe après approbation.
+  - `elevated` demande une installation avec les droits d'admin (déjà faite ici par l'app de bureau, `[windows] sandbox = "elevated"` dans `config.toml`) ; `unelevated` marche sans (`windowsSandbox/readiness` : `ready`).
+  - Non essayé sous Linux et macOS (à vérifier là-bas, avec le même client).
+- [x] **MCP par process** : `-c mcp_servers.escouade.url="http://127.0.0.1:<port>/mcp"` et `-c mcp_servers.escouade.bearer_token_env_var="ESCOUADE_MCP_TOKEN"`, le jeton dans l'environnement du process : le serveur reçoit `Authorization: Bearer <jeton>` à chaque appel, et ses outils sont listés (`mcpServerStatus/list`).
+  - `-c mcp_servers.escouade.enabled=false` écrase bien une entrée `escouade` de l'utilisateur : rien n'est lancé.
+  - `bearer_token` en clair dans une entrée HTTP est refusé (« not supported for streamable_http ») : une entrée de l'utilisateur passe par `http_headers` ou `bearer_token_env_var`.
+  - **Piège de la `config` de `thread/start`** : elle marche aussi, mais si elle contient une table `mcp_servers`, celle-ci remplace celle des `-c`, et l'`enabled=false` passé en ligne de commande est perdu (l'entrée de l'utilisateur repart). Retenu : tout par `-c`, rien par la `config` de `thread/start`.
+- [x] **Consignes ajoutées** : `developerInstructions` de `thread/start` marche. Codex les écrit dans le rollout comme message `developer` : elles **survivent à une reprise** sans être redonnées (`resume.jsonl`), et elles passent aussi aux sous-agents (le sous-agent a suivi la consigne).
+- [ ] **Second compte** : **à vérifier plus tard**, l'utilisateur n'ayant pas de second compte ChatGPT (décidé le 2026-10-16). Fait avec le compte connecté :
+  - `account/rateLimits/read` marche **sans lancer de tour** : environ 0,1 s de démarrage, 0,5 s pour la lecture, 62 Mo de RAM pour un app-server lancé pour ça seulement.
+  - L'offre gratuite n'a qu'une fenêtre, `primary`, de 43 200 min (30 jours), `secondary: null`, plus `credits`, `planType`, `rateLimitReachedType` et `rateLimitsByLimitId`.
+  - `account/read` donne le type de compte, l'adresse et l'offre ; `initialize` donne le `codexHome` utilisé.
+  - Le `CODEX_HOME` d'un process se change bien par l'environnement (essayé avec un dossier vide, pour le MCP). Reste à essayer : la connexion d'un second compte, l'entrée du trousseau propre à chaque dossier.
+- [ ] **Reprise sur un autre compte** : **à vérifier plus tard** (pas de second compte). Copier `auth.json` dans un autre `CODEX_HOME` pour simuler n'a pas été fait : le jeton de rafraîchissement tourne et l'original pourrait s'en trouver invalidé.
+- [x] **Windows** : le binaire natif marche partout dans l'essai. Avec npm, c'est `node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex.exe`, à lancer sur place (ses `codex-resources/` sont à côté : `codex-command-runner.exe`, `codex-windows-sandbox-setup.exe`). Le lanceur `codex.js` n'ajoute que `CODEX_MANAGED_BY_NPM` et `CODEX_MANAGED_PACKAGE_ROOT` (pour ses conseils de mise à jour). L'app de bureau a le sien, `%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe`.
+  - **Job** : le process mis dans un Job dès son lancement, ses enfants y restent tous, `codex-command-runner` et les commandes du bac à sable `elevated` comprises ; `TerminateJobObject` tue tout l'arbre. Pareil en `unelevated`.
+  - Une commande `node -e …` dans le bac à sable n'a pas trouvé `node` (installé dans `C:\Program Files\nodejs`), alors que `git` est trouvé : le `PATH` des commandes est à regarder quand on fera les lancements de test sous Codex.
+- [x] **Vue terminal** :
+  - **Hooks pour un seul process** : `-c 'hooks.<Événement>=[{hooks=[{type="command",command="…"}]}]'` marche, pour l'app-server comme pour l'interface. Événements : `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PermissionRequest`, `PostToolUse`, `PreCompact`, `PostCompact`, `SessionEnd`, `SubagentStart`, `SubagentStop`, `Stop`, `Interrupt`.
+  - **Confiance des hooks** : ceux passés par `-c` (source `sessionFlags`) sont `untrusted` et **ne partent pas**. La confiance se donne aussi pour ce seul process : `-c 'hooks.state={"<clé>"={trusted_hash="sha256:…"}}'`, avec la clé et le hachage que donne `hooks/list` (la clé vaut `C:\<session-flags>\config.toml:<événement>:0:0`). Rien n'est écrit dans le `config.toml` de l'utilisateur.
+  - **Permission en attente** : le hook `PermissionRequest` existe et part (`tool_name`, `tool_input`). Les charges sont celles de Claude Code (`session_id`, `turn_id`, `cwd`, `hook_event_name`, `tool_name: "Bash"`…, voir `hooks-payloads.jsonl`) ; `Stop` donne `last_assistant_message`, et `transcript_path` le rollout (sauf fil éphémère).
+  - **Reprise croisée** : `codex resume <id>` reprend un fil créé par l'app-server, et `thread/resume` reprend une session née dans l'interface (`thread/turns/list` lit ses tours). Une session neuve de l'interface prend le modèle du `config.toml` : passer `-m`.
+  - **Interruption** : Échap (« esc to interrupt »), suivie du hook `Interrupt` et d'un tour `interrupted`. Un message collé entre crochets (`ESC[200~…ESC[201~`) puis Entrée part bien.
+  - **Rollout** : écrit au fil du tour (18 → 27 lignes pendant une commande), lisible pendant que la session tourne.
+  - **Confiance du dossier** : sur un projet non approuvé, l'interface s'ouvre sur « Trust and continue » (pour la racine du dépôt, donc le projet, pas le worktree). Entrée seule l'accepte, et Codex l'écrit dans le `config.toml` du compte (`[projects.'<racine>'] trust_level = "trusted"`) ; Ctrl+C sort sans rien écrire. Aucun hook ne part avant ce choix, ni juste après : `SessionStart` n'arrive qu'avec le premier message.
+  - **L'app-server approuve le projet tout seul** : `thread/start` en `workspace-write` écrit cette même confiance dans le `config.toml` du compte, sans rien demander (en `read-only`, non). Un projet où un agent Codex a tourné en vue Escouade n'a donc plus de dialogue dans l'interface.
 
 ### Copilot CLI (Copilot SDK, JSON-RPC sur stdio)
 - [ ] **SDK Rust ou client maison** : la crate `github-copilot-sdk` (1.0.19, « generally available », Rust 1.94 au moins) parle à `copilot --server --stdio` en JSON-RPC 2.0, avec des en-têtes `Content-Length` comme LSP.
@@ -433,10 +472,12 @@ But : un agent tourne sur Claude Code, Codex, Copilot CLI, Cursor CLI ou OpenCod
 | Quota d'abonnement | `rate_limit_event`, `get_usage` | `account/rateLimits/*` (deux fenêtres en %, durée en minutes) | crédits d'IA du mois (`account.getQuota`, expérimental) ; limites de session et hebdo sans API connue | budget du mois sur le tableau de bord, sans API connue | aucun |
 | Comptes | `CLAUDE_CONFIG_DIR` | `CODEX_HOME` | `COPILOT_HOME`, ou un jeton par session | `agent login`, ou une clé (`CURSOR_API_KEY`) | une config (XDG, `OPENCODE_CONFIG_DIR`, non vérifié) |
 | MCP par process | `--mcp-config` | `-c mcp_servers.…` | `--additional-mcp-config`, `--disable-mcp-server` | `mcpServers` de `session/new` (à vérifier) ; sinon `.cursor/mcp.json` | `OPENCODE_CONFIG_CONTENT` |
-| Tâches / sous-agents | outils de tâches, `Task` | `turn/plan/updated` / `collabToolCall` | `session.todos_changed` puis lecture par appel / `subagent.*` | `cursor/update_todos` (ou `plan` d'ACP) / `cursor/task` | `todo.updated` / outil `task`, sessions enfants |
+| Tâches / sous-agents | outils de tâches, `Task` | `turn/plan/updated` (avec `-c tools.update_plan.enabled=true`) / `subAgentActivity` et `collabAgentToolCall` | `session.todos_changed` puis lecture par appel / `subagent.*` | `cursor/update_todos` (ou `plan` d'ACP) / `cursor/task` | `todo.updated` / outil `task`, sessions enfants |
 | Instructions lues | `CLAUDE.md`, `.claude/` | `AGENTS.md` | `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`, `.claude/skills` | `AGENTS.md`, `.cursor/rules` | `AGENTS.md` |
 | Commandes `/` pour un client | `initialize` | `skills/list` | aucune (réservées à l'interface du terminal) | à relever (`available_commands_update` d'ACP ?) | `/command`, `/skill` |
 | Transcripts | `~/.claude/projects/…/*.jsonl` | `$CODEX_HOME/sessions/…/rollout-*.jsonl` (format interne) | `~/.copilot/session-state/<id>/events.jsonl` | non relevés | SQLite, schéma non public |
+
+Codex a été essayé pour de vrai le 2026-10-16, en 0.163.0 (point 0) : ce qui suit en tient compte.
 
 Escouade tient déjà son propre journal normalisé de chaque conversation (`conv.rs`). La recherche, la relecture, les cartes et les stats lisent ce journal, pas les transcripts des CLI, donc les transcripts des autres moteurs n'ont pas à être lus.
 
@@ -474,13 +515,14 @@ Critère d'ensemble : à la fin, avec Claude seul, rien ne change pour l'utilisa
   | Codex | `fileChange` | `Edit` ou `Write`, avec ses +N −M et le fichier touché |
   | Codex | `mcpToolCall` | `mcp__<serveur>__<outil>` |
   | Codex | `webSearch` | `WebSearch` |
+  | Codex | `subAgentActivity` (lancement, fin) et `collabAgentToolCall` (`wait`…) | `Task`, le sous-agent suivi par son `agentThreadId` |
   | Copilot | shell, écriture, lecture… (noms relevés au point 0) | leur équivalent chez Claude Code ; les diffs viennent de `detailedContent` et des `fileEdits` des permissions |
   | Copilot | outil MCP (`serverName`, `toolName`) | `mcp__<serveur>__<outil>` |
   | Cursor | `tool_call` d'ACP, selon son `kind` : `execute`, `edit`, `read`, `search`, `fetch` | `Bash`, `Edit` (ou `Write`), `Read`, `Grep`, `WebFetch` ; les noms propres à Cursor (`readToolCall`, `writeToolCall`…) relevés au point 0 |
   | Cursor | outil MCP | `mcp__<serveur>__<outil>` |
   | OpenCode | `bash`, `edit`, `write`, `read`, `grep`, `glob`, `list`, `patch`, `webfetch`, `todowrite`, `task` | leur équivalent chez Claude Code |
 - [ ] **Process** :
-  - Codex : un `codex app-server` par agent.
+  - Codex : un `codex app-server` par agent, lancé par son binaire natif (sous Windows, le `codex.exe` du paquet de la plateforme, pas `codex.cmd`), avec `-c tools.update_plan.enabled=true` et `capabilities.experimentalApi` (pour le mode Plan seulement). Ses enfants restent dans le Job, bac à sable compris (vérifié). Les événements des sous-agents arrivent sur la même connexion : tout se trie par `threadId`.
   - Copilot : un `copilot --server --stdio` par agent (par la crate du SDK si elle laisse Escouade lancer le process, voir point 0).
   - Cursor : un `agent acp` par agent.
   - OpenCode : un `opencode serve` par agent, sur `127.0.0.1`, avec un port libre et un mot de passe tiré au hasard, sauf si l'essai du point 0 le montre trop coûteux. Le backend lit son flux SSE `/event`.
@@ -512,13 +554,19 @@ Critère d'ensemble : à la fin, avec Claude seul, rien ne change pour l'utilisa
 
   | Escouade | Codex | Copilot | Cursor | OpenCode |
   |---|---|---|---|---|
-  | Plan | mode Plan, bac à sable `read-only` | mode `plan` | mode `plan` | agent `plan` |
+  | Plan | `collaborationMode: plan` (expérimental, essayé), bac à sable `read-only` | mode `plan` | mode `plan` | agent `plan` |
   | Demander | `on-request`, `workspace-write` | `manual` | mode `agent`, chaque outil demandé | agent `build`, `edit` et `bash` en `ask` |
-  | Accepter les modifications | `workspace-write` : les écritures du bac à sable passent, une commande qui en sort demande | `manual`, les demandes `write` du dossier de l'agent acceptées d'office (ou `--allow-tool write`) | mode `agent`, les écritures du dossier de l'agent acceptées d'office par Escouade | `edit` en `allow`, `bash` en `ask` |
+  | Accepter les modifications | `workspace-write` : les écritures du bac à sable passent, une commande qui en sort demande ; Escouade accepte d'office `git add` et `git commit` dans le worktree de l'agent | `manual`, les demandes `write` du dossier de l'agent acceptées d'office (ou `--allow-tool write`) | mode `agent`, les écritures du dossier de l'agent acceptées d'office par Escouade | `edit` en `allow`, `bash` en `ask` |
   | Auto | `on-request` + `approvalsReviewer: auto_review` | `assisted` ou `autopilot` (voir point 0) | absent (masqué) | absent (masqué) |
   | Sans permissions | `never`, `danger-full-access` | `allow-all` | `--force` (en ACP, à vérifier) | tout en `allow` |
 
   Le mode `ask` de Cursor (questions, lecture seule) n'a pas d'équivalent dans Escouade : il n'est pas proposé.
+
+  Codex, d'après l'essai du 2026-10-16 :
+  - En `workspace-write`, un agent en worktree ne peut pas commiter sans élévation, `writable_roots` ou pas, parce que Codex protège tout `.git` et que l'index du worktree est dans `<projet>/.git/worktrees/<agent>`. Chaque `git add` et `git commit` échoue, puis revient comme demande d'approbation. En « Demander », la carte le dit (« commit hors du bac à sable ») ; en « Accepter les modifications » et pour le pilote auto, Escouade accepte d'office les commandes `git` dont le dossier est le worktree de l'agent. « Pour cette session » (`acceptForSession`) ne vaut que pour la même commande.
+  - Le réseau est coupé en `workspace-write` (un `npm install` ou un `git fetch` demande aussi) : le titre du mode le dit.
+  - « Sans permissions » (`never`, `danger-full-access`) devrait commiter sans rien demander, puisqu'il n'y a plus de bac à sable (attendu, pas essayé).
+  - Le mode Plan demande `experimentalApi` sur la connexion. Il se règle par tour : il vaut au tour suivant, comme le modèle.
 - [ ] **Changement à chaud** : avec Codex, il vaut à partir du tour suivant (`turn/start`). Avec Copilot, tout de suite (`model.switchTo`, `mode.set`). Avec OpenCode, à chaque prompt. Avec Cursor, selon le point 0. Le menu le dit quand un tour est en cours.
 - [ ] **Commandes `/`** :
   - Claude : comme aujourd'hui.
@@ -538,10 +586,11 @@ Critère d'ensemble : à la fin, avec Claude seul, rien ne change pour l'utilisa
 
 ### Permissions et questions
 - [ ] **Codex** :
-  - Une commande donne une carte « Codex veut lancer : <commande> », avec son dossier et sa raison.
+  - Une commande donne une carte « Codex veut lancer : <commande> », avec son dossier et sa raison (`reason`, que le modèle rédige dans la langue de l'utilisateur). La commande arrive enveloppée (`pwsh.exe -Command '…'` sous Windows) : la carte montre `commandActions[].command`, la commande telle que le modèle l'a écrite.
   - Une modification de fichier donne une carte avec son diff.
   - `item/permissions/requestApproval` donne une carte qui dit ce qui est demandé.
-  - Boutons : « Autoriser » (`accept`), « Pour cette session » (`acceptForSession`), « Refuser » (`decline`).
+  - Boutons : « Autoriser » (`accept`), « Pour cette session » (`acceptForSession`), « Refuser » (`decline`). `acceptWithExecpolicyAmendment` (une règle gardée dans `~/.codex/rules`, pour toutes les sessions) n'est pas proposé, comme le « Toujours » des autres moteurs (voir « Décisions »).
+  - L'attente se lit aussi dans `thread/status/changed` (`activeFlags: ["waitingOnApproval"]`), et `serverRequest/resolved` dit qu'une demande est close, même si c'est Codex qui l'a close (tour interrompu).
 - [ ] **Copilot** : `permission.requested` donne une carte selon son `kind`.
   - Shell : la commande entière et les chemins qu'elle touche.
   - Écriture : le diff.
@@ -552,7 +601,7 @@ Critère d'ensemble : à la fin, avec Claude seul, rien ne change pour l'utilisa
 - [ ] **Cursor** : `session/request_permission` donne une carte selon le `kind` de l'outil : la commande, la modification avec son diff, le fichier lu, l'adresse, l'outil MCP. Boutons : « Autoriser » (`allow-once`), « Toujours » (`allow-always`, qui écrit dans `~/.cursor/cli-config.json` : voir « Décisions »), « Refuser » (`reject-once`).
 - [ ] **OpenCode** : `permission.asked` donne une carte. Boutons : « Autoriser » (`once`), « Toujours » (`always`, qui écrit le motif retenu, `patterns`), « Refuser » (`reject`, avec le message saisi).
 - [ ] **Questions** : la carte de question existante reçoit :
-  - Codex : `item/tool/requestUserInput` (options, « Autre », champ secret masqué). Ces questions n'arrivent qu'en mode Plan : le dire dans la doc.
+  - Codex : `item/tool/requestUserInput` (`questions[]` avec `id`, `header`, `question`, `options` avec leur description, `isOther`, `isSecret`), réponse `{answers: {<id>: {answers: [<libellé>]}}}`. Ces questions n'arrivent qu'en mode Plan (essayé) : le dire dans la doc. La fin d'un plan est un élément `plan` (texte Markdown), qui devient la carte « Plan à approuver ».
   - Copilot : `user_input.requested` (choix et réponse libre) et `elicitation.requested` (un formulaire de plusieurs champs, qui demande une carte un peu plus riche).
   - Cursor : `cursor/ask_question` (une extension, qui attend la réponse).
   - OpenCode : `question.asked`.
@@ -560,7 +609,7 @@ Critère d'ensemble : à la fin, avec Claude seul, rien ne change pour l'utilisa
 - [ ] Les notifications, la liste « À répondre » de la vue d'ensemble et le pilote auto ne changent pas : ils lisent les demandes normalisées.
 
 ### Plan, tâches, sous-agents (bandeau « Plan » de la 1.7)
-- [ ] **Codex** : `turn/plan/updated` (les étapes d'`update_plan` et leur statut) donne les tâches, `collabToolCall` les sous-agents.
+- [ ] **Codex** : `turn/plan/updated` (les étapes d'`update_plan` et leur statut) donne les tâches, à condition de lancer Codex avec `-c tools.update_plan.enabled=true` (sinon le modèle n'a pas l'outil). Les sous-agents viennent de `subAgentActivity` (`started` / `completed`, `agentThreadId`, `agentPath`) ; leurs éléments et leurs tours arrivent sur la même connexion, sous leur propre `threadId`, ce qui donne leur activité comme les sous-agents de Claude.
 - [ ] **Copilot** : `session.todos_changed` dit que les tâches ont changé, puis Escouade les lit (`plan.readSqlTodosWithDependencies`, dépendances comprises). Les sous-agents viennent de `subagent.*` et de l'`agentId` de chaque événement.
 - [ ] **Cursor** : `cursor/update_todos` (ou le `plan` d'ACP) donne les tâches, `cursor/task` les sous-agents (à confirmer au point 0).
 - [ ] **OpenCode** : `todo.updated` (`pending`, `in_progress`, `completed`, `cancelled`) donne les tâches. L'outil `task` et les sessions enfants donnent les sous-agents, avec leurs tokens et leurs outils.
@@ -571,7 +620,9 @@ Critère d'ensemble : à la fin, avec Claude seul, rien ne change pour l'utilisa
 - [ ] **Comptes Codex** : un compte est un `CODEX_HOME`.
   - Principal est `~/.codex`, lancé sans toucher à la variable, comme pour Claude.
   - Les autres sont dans `~/.escouade/codex/<nom>`. « Ajouter un compte » ouvre un terminal intégré avec `codex login`.
-  - Ce qui se partage (`config.toml`, `AGENTS.md`, skills) est proposé par lien ou par copie. `auth.json` n'est jamais copié.
+  - Ce qui se partage (`config.toml`, `AGENTS.md`, skills) est proposé par lien ou par copie. `auth.json` n'est jamais copié (son jeton de rafraîchissement tourne : deux dossiers qui s'en servent pourraient s'invalider l'un l'autre).
+  - Le `config.toml` d'un compte garde aussi son bac à sable Windows (`[windows] sandbox`) et la confiance des dossiers (`[projects.'<racine>']`) : un compte neuf part sans, et `elevated` y demande son installation (droits d'admin).
+  - À vérifier avec un vrai second compte (point 0) : la connexion dans un `CODEX_HOME` à part et la séparation du trousseau.
 - [ ] **Comptes Copilot** : un compte est un `COPILOT_HOME`.
   - Principal est `~/.copilot`, lancé sans la variable.
   - Les autres sont dans `~/.escouade/copilot/<nom>`, avec `copilot login` dans un terminal intégré.
@@ -581,8 +632,8 @@ Critère d'ensemble : à la fin, avec Claude seul, rien ne change pour l'utilisa
   - Principal est la connexion de `agent login`, lancé sans rien changer.
   - Les autres sont une clé d'API par compte, gardée dans le trousseau et passée par `CURSOR_API_KEY` dans l'environnement du process, jamais sur la ligne de commande. Sauf si le point 0 trouve un dossier de config à part par compte, à traiter alors comme `CODEX_HOME`.
 - [ ] **Quota de Codex** :
-  - Source : `account/rateLimits/updated` sur un agent vivant. Sinon, `account/rateLimits/read` toutes les 5 min, par un app-server du compte lancé pour ça (voir point 0).
-  - Les fenêtres prennent un libellé selon leur durée (`windowDurationMins` 300 → « 5h », 10080 → « 7j » / « W »), avec `usedPercent` et `resetsAt`.
+  - Source : `account/rateLimits/updated` sur un agent vivant (après chaque appel du modèle). Sinon, `account/rateLimits/read` toutes les 5 min, par un app-server du compte lancé pour ça puis arrêté : essayé, il ne lance aucun tour et coûte peu (0,6 s, 62 Mo).
+  - Les fenêtres prennent un libellé selon leur durée (`windowDurationMins` 300 → « 5h », 10080 → « 7j » / « W », 43200 → « 30j »), avec `usedPercent` et `resetsAt`. Une seule fenêtre peut exister (`secondary: null` avec l'offre gratuite) : la barre n'en montre alors qu'une.
   - Un tour arrêté par la limite (`rateLimitReachedType`) attend la remise à zéro, puis reprend seul, comme chez Claude.
 - [ ] **Quota de Copilot** :
   - Une barre « crédits du mois » (`remainingPercentage`, remise à zéro à `resetDate`), lue dans les `quotaSnapshots` de chaque appel, sinon par `account.getQuota`.
@@ -593,7 +644,7 @@ Critère d'ensemble : à la fin, avec Claude seul, rien ne change pour l'utilisa
   - Sinon : pas de barre, un lien vers le tableau de bord dans le panneau des comptes, et pas de pause au quota pour le pilote auto, comme pour OpenCode.
   - Un tour arrêté par la limite devient une carte qui le dit.
 - [ ] **Comptes réservés aux projets, pour tout moteur** : chaque compte, de tout moteur, peut être « Réservé aux projets » cochés, comme les comptes Claude aujourd'hui (Principal compris), avec les mêmes règles. Les moteurs ont un ordre, réglable : il donne les moteurs de secours de chaque projet (voir la section suivante).
-- [ ] **Bascule automatique** : entre comptes du même moteur seulement (passer à un autre moteur : voir la section suivante). Les nouveaux agents et tickets partent sur le compte suivant sous le seuil. Reprendre un agent Codex, Copilot ou Cursor sur un autre compte ne se fait que si l'essai du point 0 l'a permis.
+- [ ] **Bascule automatique** : entre comptes du même moteur seulement (passer à un autre moteur : voir la section suivante). Les nouveaux agents et tickets partent sur le compte suivant sous le seuil. Reprendre un agent Codex, Copilot ou Cursor sur un autre compte ne se fait que si l'essai du point 0 l'a permis. Pour Codex, cet essai reste à faire (pas de second compte le 2026-10-16) : d'ici là, la bascule ne vaut que pour les nouveaux agents et tickets Codex, et un agent Codex arrêté par la limite attend la remise à zéro ou continue sur un autre moteur.
 - [ ] **OpenCode** : il n'a pas de quota d'abonnement (il passe par les API des fournisseurs).
   - Un seul compte en 1.8 : sa config par défaut.
   - Pas de barre de quota : la barre d'état montre seulement le coût du jour.
@@ -624,7 +675,7 @@ But : « je n'ai plus de quota Claude, je passe sur Codex ». Aujourd'hui, un ag
 - [ ] **Tests** : deux faux moteurs du banc de conformité (limite sur le premier, suite sur le second, retour) ; essai réel Claude → Codex avant la release (ESC-52).
 
 ### Coût, tokens, stats
-- [ ] **Codex** : les tokens d'un tour sont le `last` de `thread/tokenUsage/updated` (entrée, cache lu, cache écrit, sortie, raisonnement). Codex ne donne aucun coût en dollars : il est estimé avec une grille des modèles OpenAI dans `pricing.rs` et marqué « estimé ». Avec un abonnement ChatGPT, c'est un coût théorique, comme celui de Claude avec Max.
+- [ ] **Codex** : les tokens d'un tour sont la différence des `total` de `thread/tokenUsage/updated` entre le début et la fin du tour (`inputTokens`, `cachedInputTokens`, `cacheWriteInputTokens`, `outputTokens`, `reasoningOutputTokens`) : `last` n'est que le dernier appel au modèle, et un tour en fait plusieurs. Ceux d'un sous-agent arrivent sous son `threadId`, à ajouter au tour parent. Codex ne donne aucun coût en dollars : il est estimé avec une grille des modèles OpenAI dans `pricing.rs` et marqué « estimé ». Avec un abonnement ChatGPT, c'est un coût théorique, comme celui de Claude avec Max.
 - [ ] **Copilot** : les tokens de chaque appel (`assistant.usage`) additionnés par tour. Le coût vient des nano-AIU convertis en dollars (conversion à vérifier au point 0), sinon des prix par token de `models.list`.
 - [ ] **Cursor** : ni tokens ni coût connus dans son flux, à chercher au point 0. Sans source, le coût d'un tour n'est pas affiché (« — ») et les stats de Cursor comptent les tours et leur durée.
 - [ ] **OpenCode** : `cost` et `tokens` de chaque message, additionnés par tour.
@@ -636,13 +687,13 @@ But : « je n'ai plus de quota Claude, je passe sur Codex ». Aujourd'hui, un ag
 
 ### Serveur MCP d'Escouade
 - [ ] **Agents d'Escouade** (l'interrupteur « Claude et les agents peuvent piloter Escouade », depuis ESC-91) : même jeton par lancement et même oubli qu'aujourd'hui.
-  - Codex : `-c mcp_servers.escouade.url=…` et `bearer_token_env_var`, avec le jeton dans l'environnement du process. Réglage désactivé : `-c mcp_servers.escouade.enabled=false`.
+  - Codex : `-c mcp_servers.escouade.url=…` et `bearer_token_env_var`, avec le jeton dans l'environnement du process. Réglage désactivé : `-c mcp_servers.escouade.enabled=false`. Les deux essayés (point 0). Jamais par la `config` de `thread/start`, qui ferait perdre les `-c` sur `mcp_servers`.
   - Copilot : `--additional-mcp-config @<fichier privé>` (comme le `--mcp-config` de Claude : un fichier 0600, oublié à la fin du process), ou `mcpServers` à la création de session. Réglage désactivé : `--disable-mcp-server escouade`.
   - Cursor : une entrée HTTP dans les `mcpServers` de `session/new`, avec l'en-tête `Authorization`, si le point 0 montre que Cursor les prend. Réglage désactivé : rien de passé (pour une entrée `escouade` de l'utilisateur, voir point 0).
   - OpenCode : `OPENCODE_CONFIG_CONTENT`, avec une entrée `remote` et l'en-tête `Authorization: Bearer {env:ESCOUADE_MCP_TOKEN}`. Réglage désactivé : `enabled:false`.
 - [ ] Leurs appels prennent le nom `mcp__escouade__<outil>` dans la conversation, donc la carte de permission et les libellés des outils d'Escouade marchent tels quels.
 - [ ] **« <Moteur> peut piloter Escouade »** (déclaration pour l'utilisateur, après tout le reste) :
-  - Codex : une entrée dans le `config.toml` de chaque compte, par `codex mcp add` s'il prend une URL et un en-tête, sinon par une édition qui garde les commentaires (`toml_edit`).
+  - Codex : une entrée dans le `config.toml` de chaque compte, par `codex mcp add` s'il prend une URL et un en-tête, sinon par une édition qui garde les commentaires (`toml_edit`). Le jeton y passe par `http_headers = { Authorization = "Bearer …" }` : `bearer_token` est refusé pour une entrée HTTP.
   - Copilot : une entrée dans le `mcp-config.json` de chaque `COPILOT_HOME`.
   - Cursor : une entrée dans `~/.cursor/mcp.json`, la config qu'il partage avec l'éditeur Cursor. L'éditeur pourrait alors piloter Escouade lui aussi.
   - OpenCode : une entrée dans sa config globale (JSONC, commentaires gardés).
@@ -675,7 +726,7 @@ But : comme en vue Claude Code (`docs/PROTOCOL.md`, « Vue Claude Code »), un a
 
   | Moteur | Interface | État en direct | Conversation | Changer de vue |
   |---|---|---|---|---|
-  | Codex | `codex` | hooks, stables depuis la 0.124 (`SessionStart`, `PreToolUse`, `PostToolUse`, `Stop`…), par `hooks.json` ou `[hooks]` de `config.toml` | le `rollout-*.jsonl` de la session (format interne) | `codex resume <id>` ↔ `thread/resume`, dans le même `CODEX_HOME` |
+  | Codex | `codex` | hooks par `-c hooks.<Événement>=…` et leur confiance par `-c hooks.state=…`, pour ce seul process (essayé) : `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PermissionRequest`, `PostToolUse`, `Stop`, `Interrupt`… | le `rollout-*.jsonl` de la session (format interne), écrit au fil du tour | `codex resume <id>` ↔ `thread/resume`, dans le même `CODEX_HOME` (essayé dans les deux sens) |
   | Copilot | `copilot` | hooks de `~/.copilot/hooks/*.json` (ou du `COPILOT_HOME` du compte) : `preToolUse`, `postToolUse`, `agentStop`, `sessionEnd`… | `session-state/<id>/events.jsonl` | `copilot --resume <id>` ↔ `resume_session` |
   | Cursor | `agent` | hooks du CLI partiels : seuls `beforeShellExecution` et `afterShellExecution` partent (forum de Cursor), pas de `stop` | journal non relevé ; au retour en vue Escouade, `session/load` d'ACP rejoue l'historique | `agent --resume <id>` ↔ `session/load` |
   | OpenCode | `opencode attach <adresse> --session <id>` | le flux SSE du serveur de l'agent, comme en vue Escouade | le même flux | rien à arrêter : l'interface se branche sur le serveur de l'agent, et les deux vues marchent en même temps |
@@ -686,7 +737,14 @@ But : comme en vue Claude Code (`docs/PROTOCOL.md`, « Vue Claude Code »), un a
   - la vue le dit (« Suivi limité : Cursor ne prévient pas Escouade de la fin d'un tour ») ;
   - l'historique revient au retour en vue Escouade ;
   - à revoir à chaque version du CLI.
-- [ ] **Permission en attente** : Claude Code a `PermissionRequest`. Chez Codex et Copilot, trouver le signal : un hook dédié, ou le `PreToolUse` d'un outil que la politique fera demander. Sans lui, la carte ne dit pas « attend ta réponse ».
+- [ ] **Permission en attente** : Claude Code a `PermissionRequest`, Codex aussi (essayé : il part avant la demande, avec `tool_name` et `tool_input`). Chez Copilot, trouver le signal : un hook dédié, ou le `PreToolUse` d'un outil que la politique fera demander. Sans lui, la carte ne dit pas « attend ta réponse ».
+- [ ] **Vue Codex**, d'après l'essai du 2026-10-16 :
+  - Les hooks d'Escouade passent par `-c` et leur confiance aussi (`hooks.state`, clés et hachages lus par `hooks/list` d'un app-server lancé avec les mêmes `-c`) : rien n'est écrit chez l'utilisateur. Sans cette confiance, Codex les ignore sans rien dire.
+  - Les charges des hooks sont celles de Claude Code (`session_id`, `turn_id`, `tool_name: "Bash"`, `last_assistant_message`…) : le serveur de hooks d'Escouade les lit presque tel quel.
+  - Interrompre envoie Échap ; le hook `Interrupt` le confirme.
+  - **Confiance du dossier** : sur un projet que Codex ne connaît pas, l'interface s'ouvre sur « Trust and continue », pour la racine du dépôt, et Entrée l'accepte. Aucun hook ne le signale (`SessionStart` attend le premier message). Avant de coller un message, Escouade lit donc `[projects.'<racine>'] trust_level` dans le `config.toml` du compte : sans confiance, il ne colle rien, garde le message en file et dit « Codex demande si tu fais confiance à ce dossier : réponds dans le terminal ». Il ne répond jamais à cette question.
+  - En vue Escouade, l'app-server écrit cette confiance de lui-même au premier `thread/start` en `workspace-write`. Le dire dans la doc (Escouade touche ainsi au `config.toml` de l'utilisateur, par Codex), et voir s'il faut le dire dans l'app.
+  - Une session neuve prend le modèle du `config.toml` : Escouade passe `-m` avec celui de l'agent.
 - [ ] **Bouton et réglage** : « Vue Claude Code » devient « Vue <moteur> » (« Vue Codex »…) dans l'en-tête de la conversation et le clic droit sur la carte. Le réglage des nouveaux agents propose « Escouade » ou « Terminal du moteur ». Textes fr et en.
 - [ ] **Coût** : estimé depuis l'usage lu dans le journal, comme en vue Claude Code. Rien pour Cursor.
 - [ ] **Tests** : chaque faux moteur a aussi une interface factice, lancée dans un pseudo-terminal, qui écrit son journal et appelle ses hooks, comme pour la vue Claude Code (`tests/fixtures/tui-transcript.jsonl`, `tui-hooks.jsonl`).
@@ -697,7 +755,7 @@ But : comme en vue Claude Code (`docs/PROTOCOL.md`, « Vue Claude Code »), un a
   - L'avertissement « Claude Code refuserait par défaut ».
   - Les tâches de fond et les workflows.
   - `CLAUDE_CODE_ENABLE_TODO_TOOLS`.
-- [ ] La copie d'un agent se fait au dernier tour (Codex), au dernier événement (Copilot) ou au dernier message (OpenCode), qui est le même point que celui de Claude. Pour Cursor, selon le point 0 ; s'il ne sait pas copier, « Dupliquer la conversation » est masqué pour ses agents.
+- [ ] La copie d'un agent se fait au dernier tour (Codex, `thread/fork` avec `lastTurnId`, essayé), au dernier événement (Copilot) ou au dernier message (OpenCode), qui est le même point que celui de Claude. Pour Cursor, selon le point 0 ; s'il ne sait pas copier, « Dupliquer la conversation » est masqué pour ses agents.
 
 ### Textes
 - [ ] Environ 100 « Claude » par catalogue (fr et en).
@@ -705,7 +763,7 @@ But : comme en vue Claude Code (`docs/PROTOCOL.md`, « Vue Claude Code »), un a
   - Ceux qui parlent de Claude lui-même restent (comptes Claude, Remote Control).
   - « Langue des textes rédigés par Claude » devient « … par les agents ».
 - [ ] Consignes ajoutées et invites du pilote auto :
-  - Codex : `developerInstructions`.
+  - Codex : `developerInstructions` de `thread/start` (essayé). Codex les garde dans le rollout : une reprise n'a pas à les redonner, et ses sous-agents les reçoivent aussi (le protocole du ticket doit donc rester valable pour un sous-agent, ou le dire).
   - Copilot : le message système de la session (point 0).
   - Cursor : une règle passée au process, ou un préambule au premier message (point 0).
   - OpenCode : le `system` du prompt.
@@ -713,7 +771,7 @@ But : comme en vue Claude Code (`docs/PROTOCOL.md`, « Vue Claude Code »), un a
 
 ### Tests
 - [ ] **Faux moteurs** : `fake-codex.mjs` (app-server JSON-RPC), `fake-copilot.mjs` (JSON-RPC à en-têtes `Content-Length`), `fake-cursor.mjs` (ACP, JSON-RPC sur stdio, avec les extensions `cursor/*`) et `fake-opencode.mjs` (serveur HTTP + SSE), avec leurs `.cmd`. Mêmes scénarios que le faux `claude` : texte, raisonnement, commande avec approbation, modification de fichier, question, interruption, plan, limite, reprise, copie, quota.
-- [ ] **Tests unitaires** : chaque traduction (flux réel enregistré → éléments de conversation), la correspondance des modes, l'estimation du coût, le libellé des fenêtres de quota.
+- [ ] **Tests unitaires** : chaque traduction (flux réel enregistré → éléments de conversation ; pour Codex, ceux de `tests/fixtures/codex/`, et le rollout de la vue terminal), la correspondance des modes, l'estimation du coût, le libellé des fenêtres de quota.
 - [ ] **e2e** :
   - Un agent sur Codex : message, approbation d'une commande, diff, fin de tour.
   - Le même sur Copilot, sur Cursor, puis sur OpenCode.
@@ -737,7 +795,8 @@ But : comme en vue Claude Code (`docs/PROTOCOL.md`, « Vue Claude Code »), un a
   - Contre : ACP est le plus petit dénominateur. Quota, crédits, coût et permissions typées passent peut-être seulement par les protocoles propres (à vérifier). Et sa v2 arrive.
   - Pour OpenCode, garder `opencode serve` garde aussi `opencode attach` : sa vue terminal, la plus simple de toutes, se branche sur le serveur de l'agent.
   - Proposé : ACP pour Cursor. Pour Copilot et OpenCode, décider après le point 0, en comparant ce que donne chaque voie.
-- [ ] **Mot de l'interface** : « Moteur » (proposé) ? « Agent » est déjà pris.
+- [x] **Mot de l'interface** (décidé le 2026-10-16) : « Harness », le mot anglais gardé tel quel en français comme en anglais (Réglages › « Harness », « un harness ») ; « Agent » est déjà pris. Le code peut garder `engine`, et ce document « moteur » pour la conception.
+- [x] **Essais du point 0** (décidé le 2026-10-16) : Codex seul pour l'instant (installé et connecté) ; la refonte commence avec Claude Code et Codex (ESC-26 ne dépend plus que d'ESC-22). Copilot CLI, Cursor CLI et OpenCode, pas installés, seront essayés plus tard (ESC-23 à 25). Pas de second compte ChatGPT : l'essai de `CODEX_HOME` et de la reprise sur un autre compte reste à faire.
 - [x] **Repli sur un autre moteur** (décidé le 2026-10-14) : oui, et pour un agent en cours, pas seulement pour les nouveaux tickets : voir « Continuer sur un autre moteur quand le quota est épuisé ». Décidé le même jour : l'automatique est une option, désactivée par défaut, et les moteurs de secours se règlent par projet, par les comptes réservés aux projets. Le retour n'est jamais automatique : « Revenir sur Claude » est proposé.
 - [ ] **Garde-fou d'OpenCode**, qui n'a pas de quota : un budget par jour en dollars, au-delà duquel le pilote auto se met en pause ?
 
@@ -881,9 +940,11 @@ But : Escouade suit le travail des agents après le push, jusqu'à la production
 - [x] **Correction automatique par le pilote auto** (décidé le 2026-10-14) :
   - CI en échec : corrigée seule, dans la limite des boucles ;
   - retours de relecture : Escouade propose de les faire corriger par l'agent dès qu'ils arrivent, et l'agent ne part qu'avec l'accord de l'utilisateur (un relecteur humain peut attendre une discussion plutôt qu'un correctif).
-- [ ] **Ce qu'Escouade publie au nom de l'utilisateur** (réponses sous les fils, relecture rédigée par un agent) : proposé, rien sans un réglage ou une validation à la main.
-- [ ] **Mot de l'interface** : « PR » partout, ou « MR » sur GitLab ? Proposé : le mot de l'hébergeur.
-- [ ] **Worktree pendant la revue** : le garder jusqu'au merge (corrections plus rapides, mais disque et `node_modules`), ou le supprimer comme aujourd'hui et le recréer au besoin depuis la branche ? Proposé : comme aujourd'hui.
+- [x] **Ce qu'Escouade publie au nom de l'utilisateur** (décidé le 2026-10-16) : rien sans un réglage allumé ou une validation à la main ; répondre sous les fils est un réglage éteint par défaut, une relecture rédigée par un agent attend sa validation.
+- [x] **Mot de l'interface** (décidé le 2026-10-16) : le mot de l'hébergeur, « MR » sur GitLab, « PR » ailleurs.
+- [x] **Worktree pendant la revue** (décidé le 2026-10-16) : comme aujourd'hui, supprimé à la validation et recréé depuis la branche quand l'agent doit corriger.
+- [x] **Essais réels** (décidé le 2026-10-16) : sur GitHub seulement ; GitLab, Bitbucket Cloud et Gitea/Forgejo d'après leur documentation et leurs sources, à essayer en vrai plus tard.
+- [x] **Ordre** (décidé le 2026-10-16) : les hébergeurs passent après les harness.
 - [x] **Ce qui entre dans la 1.8** (décidé le 2026-10-14) : tout le chapitre 2, pour l'instant. La découpe de « Ampleur » reste le repli si la 1.8 s'allonge.
 
 ### Plus tard

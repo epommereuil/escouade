@@ -358,7 +358,7 @@ export const api = {
     return invoke<TermInfo>('term_spawn', { ...a, output });
   },
   runStart: (
-    a: { projectId: string; commandId: string; cols: number; rows: number; cursorRow: number },
+    a: { projectId: string; commandId: string; agentId?: string; cols: number; rows: number; cursorRow: number },
     onData: (d: ArrayBuffer) => void,
   ) => {
     const output = new Channel<ArrayBuffer>();

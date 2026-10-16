@@ -14,22 +14,36 @@ export const SITE = 'https://escouade.dev/';
 /** Public address of the page of `lang`. */
 export const pageUrl = (lang: Lang) => `${SITE}${LANGS.find((l) => l.code === lang)!.path}`;
 
-/** The features, in the order of the page, with the screenshot (a file of the images folder) that shows each. */
+/**
+ * The steps of developing with agents, the chapters of the page's features: Escouade is a whole development
+ * environment, from the ticket to the merge, and the page tells it in that order.
+ */
+export const STAGES = ['plan', 'code', 'review', 'ship', 'steer'] as const;
+
+export type StageId = (typeof STAGES)[number];
+
+/**
+ * The features, in the order of the page, with the step they belong to and the screenshot (a file of the images
+ * folder) that shows each. A step may have none: it then says what it does in its points alone.
+ */
 export const FEATURE_SHOTS = [
-  { id: 'agents', file: 'agents.jpg' },
-  { id: 'chat', file: 'chat.jpg' },
-  { id: 'notifications', file: 'notifications.jpg' },
-  { id: 'git', file: 'git.jpg' },
-  { id: 'editeur', file: 'editor.jpg' },
-  { id: 'tableau', file: 'board.jpg' },
-  { id: 'test', file: 'test.jpg' },
-  { id: 'integrations', file: 'integrations.jpg' },
-  { id: 'lancement', file: 'launch.jpg' },
-  { id: 'stats', file: 'stats.jpg' },
-  { id: 'remote', file: 'remote.jpg' },
-] as const;
+  { id: 'tableau', stage: 'plan', file: 'board.jpg' },
+  { id: 'integrations', stage: 'plan', file: 'integrations.jpg' },
+  { id: 'agents', stage: 'code', file: 'agents.jpg' },
+  { id: 'chat', stage: 'code', file: 'chat.jpg' },
+  { id: 'editeur', stage: 'code', file: 'editor.jpg' },
+  { id: 'git', stage: 'review', file: 'git.jpg' },
+  { id: 'test', stage: 'review', file: 'test.jpg' },
+  { id: 'lancement', stage: 'review', file: 'launch.jpg' },
+  { id: 'notifications', stage: 'steer', file: 'notifications.jpg' },
+  { id: 'stats', stage: 'steer', file: 'stats.jpg' },
+  { id: 'remote', stage: 'steer', file: 'remote.jpg' },
+] as const satisfies readonly { id: string; stage: StageId; file: string }[];
 
 export type FeatureId = (typeof FEATURE_SHOTS)[number]['id'];
+
+/** The feature whose screenshot the hero shows whole: the code under review, more than a conversation. */
+export const HERO_SHOT: FeatureId = 'git';
 
 /**
  * The folder of public/ holding the screenshots (and the video's poster) each language's page shows: the same

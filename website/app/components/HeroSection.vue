@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { fmt } from '~/data/catalog';
-import { CHANGELOG, DOWNLOAD, REPO, imageOf } from '~/data/site';
+import { CHANGELOG, DOWNLOAD, FEATURE_SHOTS, HERO_SHOT, REPO, imageOf } from '~/data/site';
 
 const { lang, text } = useLang();
 const asset = useAsset();
 const { version } = useRuntimeConfig().public;
-const shot = computed(() => text.value.features.items.agents);
+// The hero shows one of the features' screenshots whole: the code an agent changed, under review.
+const shot = computed(() => text.value.features.items[HERO_SHOT]);
+const file = FEATURE_SHOTS.find((s) => s.id === HERO_SHOT)!.file;
 </script>
 
 <template>
@@ -24,7 +26,7 @@ const shot = computed(() => text.value.features.items.agents);
     </div>
     <div class="product">
       <div class="glow" aria-hidden="true" />
-      <AppWindow class="frame" :src="asset(imageOf(lang, 'agents.jpg'))" :alt="shot.alt" />
+      <AppWindow class="frame" :src="asset(imageOf(lang, file))" :alt="shot.alt" />
     </div>
   </section>
 </template>

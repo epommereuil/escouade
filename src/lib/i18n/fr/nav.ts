@@ -61,6 +61,8 @@ export default {
       archive: 'Archiver',
       archiveHint: 'garde la conversation',
       prepareLaunch: 'Préparer le lancement',
+      // The project's launch commands, to run in its worktree.
+      launch: 'Lancer…',
       openTerminal: 'Ouvrir un terminal',
       toTerminal: 'Vue Claude Code',
       toRich: 'Vue Escouade',

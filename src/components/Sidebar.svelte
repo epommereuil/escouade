@@ -6,6 +6,7 @@
   import { fDur, fTok, fUsd, fWhen, tildify } from '../lib/format';
   import { canSwitchView, copyRemoteLink, integrateBase, openRemote, switchView, toggleRemote } from '../lib/agent-actions';
   import { startAgentOn } from '../lib/branch-actions';
+  import { runIn } from '../lib/launch-actions';
   import { ticketTag } from '../lib/board';
   import { shortBranch } from '../lib/branches';
   import { buffers, lossNotice } from '../lib/editor/buffers.svelte';
@@ -98,6 +99,9 @@
       a.archived
         ? { label: t('nav.sidebar.menu.restore'), onClick: () => app.run(api.archiveAgent(a.id, false)) }
         : { label: t('nav.sidebar.menu.archive'), hint: t('nav.sidebar.menu.archiveHint'), onClick: () => confirmArchive(a) },
+      ...(a.worktree && !a.archived && project.runCommands.length
+        ? [{ label: t('nav.sidebar.menu.launch'), onClick: () => launchMenu(e, a) }]
+        : []),
       ...(canPrepare(a) ? [{ label: t('nav.sidebar.menu.prepareLaunch'), onClick: () => prepareLaunch(a) }] : []),
       // Its base branch goes into its own, as the project's strategy says.
       ...(a.worktree && !a.archived
@@ -121,6 +125,17 @@
       { label: '', separator: true },
       { label: t('nav.sidebar.menu.delete'), danger: true, onClick: () => confirmDelete(a) },
     ]);
+  }
+
+  /** « Lancer… »: the project's launch commands, each to run in the agent's worktree, where its menu was. */
+  async function launchMenu(e: MouseEvent, a: Agent) {
+    const at = { x: e.clientX, y: e.clientY };
+    // Once the card's menu is gone.
+    await tick();
+    menu.open = {
+      ...at,
+      items: project.runCommands.map((c) => ({ label: c.name, hint: c.cwd || undefined, onClick: () => runIn(project, c, a.id) })),
+    };
   }
 
   function remoteItems(a: Agent): MenuItem[] {

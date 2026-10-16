@@ -4,9 +4,9 @@ import { DOWNLOAD } from './site';
 
 export const en: Catalog = {
   meta: {
-    title: 'Escouade — the cockpit for your Claude Code agents',
+    title: 'Escouade — the development environment built for agents',
     description:
-      'Escouade, the cockpit for your Claude Code agents: a free, open source Windows, macOS and Linux app to run several agents in parallel, in a single window, and hand them tickets, even from Jira, Trello, GitHub or Linear, that they carry through to the end.',
+      'Escouade is a free, open source agentic development environment (ADE) for Windows, macOS and Linux: plan in a Kanban, have agents code in parallel, each in its own worktree, then review, test and ship without leaving the window.',
     locale: 'en_US',
   },
 
@@ -26,9 +26,9 @@ export const en: Catalog = {
   anchors: { features: 'features', install: 'install', roadmap: 'roadmap' },
 
   hero: {
-    line1: 'A squad of Claudes.',
-    line2: 'A single window.',
-    lede: 'All your Claude Code sessions in a single window: as many agents as you want, in parallel, and a signal as soon as one of them needs you.',
+    line1: 'The development environment',
+    line2: 'built for agents.',
+    lede: 'Plan, code, review, test, ship: the whole cycle runs with agents working in parallel, in a free, open source ADE that runs on your machine.',
     download: 'Download for Windows, macOS and Linux',
     github: 'View on GitHub',
     meta: 'Version {version} · Windows 10 and 11, macOS 11 or later, Linux · Free and open source (GPL-3.0)',
@@ -48,12 +48,108 @@ export const en: Catalog = {
   video: { title: 'Escouade at work.' },
 
   features: {
-    title: 'Inside the window.',
-    lead: 'Each agent moves forward on its own. You keep the big picture and only step in when you need to.',
+    title: 'From ticket to merge.',
+    lead: 'The same five steps as ever. The difference: a squad of agents works through them with you, in parallel.',
+    stages: {
+      plan: {
+        title: 'Plan',
+        text: 'Write down what needs doing, or import it: each ticket carries its acceptance criteria, and autopilot hands it to an agent.',
+        points: [
+          {
+            title: 'Screenshots and files in the ticket',
+            text: 'Paste a screenshot or a mockup, attach a log or a spreadsheet: the ticket’s agent gets them with its instructions.',
+          },
+          {
+            title: 'Tickets that wait for each other',
+            text: 'A ticket can wait for others before it starts, or pick up a branch that already exists.',
+          },
+          {
+            title: 'An autopilot that spares your quota',
+            text: 'From 1 to 6 agents in parallel, a number of loops per ticket, and a pause near the limit of your quotas.',
+          },
+        ],
+      },
+      code: {
+        title: 'Code',
+        text: 'Agents in parallel, each in its own worktree: you follow their work live, and take over in the editor or a terminal.',
+        points: [
+          {
+            title: 'Subagents and background tasks',
+            text: 'What an agent starts shows in the sidebar: each subagent with its conversation, each background command with its live output.',
+          },
+          {
+            title: 'A plan’s progress',
+            text: 'A banner says where an agent following a plan stands: the tasks done, the subagents at work, the task that is blocked.',
+          },
+          {
+            title: 'Attach any file',
+            text: 'A screenshot of the bug, a PDF, an archive, a 150 MB log: drop them into the message, the agent reads them.',
+          },
+        ],
+      },
+      review: {
+        title: 'Review and test',
+        text: 'Every change gets reviewed before it goes in: diffs, history and branches, then the app started on the ticket’s feature.',
+        points: [
+          {
+            title: 'Branches without commands',
+            text: 'Switch branches, create them, clean up the merged ones, start an agent on a branch that already exists.',
+          },
+          {
+            title: 'Real terminals',
+            text: 'PowerShell, Git Bash and WSL on Windows, zsh, bash and fish elsewhere, with your shell’s autocompletion, to run your tests by hand, even in an agent’s worktree.',
+          },
+          {
+            title: 'Search everything',
+            text: 'Ctrl+K searches the conversations, commands and tool outputs of all your agents.',
+          },
+        ],
+      },
+      ship: {
+        title: 'Ship',
+        text: 'A ticket you approve goes out the way you set it up: commit, merge into the target branch, push or pull request. Escouade makes the moves, the decision stays yours.',
+        points: [
+          {
+            title: 'A commit you review',
+            text: 'Written by the agent, or a proposed message you read before you click, in your team’s language.',
+          },
+          {
+            title: 'Merge, squash or rebase',
+            text: 'An agent’s or a ticket’s worktree goes into its target branch, then gets cleaned up. A conflict goes back to the agent, which resolves it.',
+          },
+          {
+            title: 'Push or pull request',
+            text: 'A ticket’s pull request opens with its description, its progress and its acceptance criteria.',
+          },
+          {
+            title: 'Your .env files stay with you',
+            text: 'The files git ignores are copied into each worktree so the app runs there, and are never committed, pushed or merged.',
+          },
+        ],
+      },
+      steer: {
+        title: 'Steer',
+        text: 'You lead the squad without watching over it: a signal when you are needed, cost and quotas live, and an app your agents can drive too.',
+        points: [
+          {
+            title: 'Several accounts',
+            text: 'Personal, work: each with its own quotas and statistics, and an agent stopped by the usage limit resumes on another account.',
+          },
+          {
+            title: 'An MCP server',
+            text: 'An agent, or your assistant outside Escouade, reads your projects, creates and drives tickets, writes to agents and answers their questions, within autopilot’s safeguards.',
+          },
+          {
+            title: 'The overview',
+            text: 'Every agent of every project on one page, the ones waiting for your answer first.',
+          },
+        ],
+      },
+    },
     items: {
       agents: {
         title: 'Projects in tabs, agents in parallel',
-        text: 'One tab per project, and in each as many Claude Code agents as you like: each with its own conversation, model, effort and, if you want, its own git worktree. Status, tokens, cost and files touched, live.',
+        text: 'One tab per project, and in each as many agents as you like: each with its own conversation, model, effort and, if you want, its own git worktree. Status, tokens, cost and files touched, live.',
         alt: 'Escouade’s window: the projects in tabs, the list of agents and the conversation of one of them',
       },
       chat: {
@@ -93,12 +189,12 @@ export const en: Catalog = {
       },
       lancement: {
         title: 'Launch your project in one click',
-        text: 'The commands that run your project (front end, API, worker…), written by you or suggested by Claude, each in its own terminal with its live status. A crash shows right away, with its exit code.',
+        text: 'The commands that run your project (front end, API, worker…), written by you or suggested from the project, each in its own terminal with its live status. A crash shows right away, with its exit code.',
         alt: 'Three launch commands, one of them crashed, and the dev server’s log',
       },
       stats: {
         title: 'Tokens, cost, quotas: live',
-        text: 'The status bar tracks your 5-hour quota, your weekly quota and the day’s cost, which climbs while Claude works. The breakdown by project, model, agent and ticket is in the statistics.',
+        text: 'The status bar tracks your 5-hour quota, your weekly quota and the day’s cost, which climbs while your agents work. The breakdown by project, model, agent and ticket is in the statistics.',
         alt: 'The statistics page: tokens per day, cost by project and by model',
       },
       remote: {
@@ -110,7 +206,10 @@ export const en: Catalog = {
   },
 
   cards: [
-    { title: 'Real terminals', text: 'PowerShell, Git Bash and WSL, with your shell’s autocompletion.' },
+    {
+      title: 'English and French',
+      text: 'The interface in your language, and a language of its own for commits, pull requests and ticket comments.',
+    },
     { title: 'Usage limit? It resumes', text: 'An agent stopped by its usage limit resumes on its own as soon as your quota is back.' },
     { title: 'Always there', text: 'Window closed, Escouade stays in the notification area and resumes each session on restart.' },
     { title: 'Behind a proxy', text: 'HTTP(S) proxy for Claude, quotas, updates, integrations and, if you want, terminals.' },
@@ -126,7 +225,7 @@ export const en: Catalog = {
     steps: [
       {
         title: 'Install Claude Code',
-        text: 'Escouade drives the Claude Code on your machine: install it and sign in once, with your Claude subscription or an API key.',
+        text: 'Today, Escouade’s agents run on the Claude Code on your machine: install it and sign in once, with your Claude subscription or an API key.',
         link: { label: 'Claude Code documentation', href: 'https://code.claude.com/docs/en/overview' },
       },
       {
@@ -143,20 +242,20 @@ export const en: Catalog = {
 
   roadmap: {
     title: 'What comes next.',
-    lead: 'Escouade will soon drive more than Claude Code. No date promised: the work is planned in detail on GitHub.',
+    lead: 'More engines beside Claude Code, and your code host in the loop. No date promised: the work is planned in detail on GitHub.',
     next: 'Version {version} · in the works',
     items: [
       {
-        title: 'Codex, Copilot CLI and OpenCode',
-        text: 'Each agent runs on the engine you choose: Claude Code, OpenAI’s Codex, GitHub Copilot CLI or OpenCode. Same conversation, same cards, same Kanban, same worktrees.',
+        title: 'Codex, Copilot CLI, Cursor CLI and OpenCode',
+        text: 'Each agent runs on the engine you choose, beside Claude Code: same conversation, same cards, same Kanban, same worktrees, and each engine’s quotas in the status bar.',
       },
       {
         title: 'One engine per project, agent or ticket',
-        text: 'A default engine for each project, another one for an agent or a ticket, and the autopilot follows.',
+        text: 'A default engine for each project, another one for an agent or a ticket, and autopilot follows, down to carrying on with another engine when a quota runs out.',
       },
       {
-        title: 'Each engine’s quotas',
-        text: 'Codex’s quota windows and Copilot’s monthly credits in the status bar, and stats per engine.',
+        title: 'GitHub, GitLab, Bitbucket and Gitea',
+        text: 'Tickets’ pull requests followed through to the merge, with their CI and their deployments, without leaving Escouade.',
       },
     ],
     plan: 'The detailed plan (in French)',
@@ -166,6 +265,18 @@ export const en: Catalog = {
   faq: {
     title: 'Frequently asked questions.',
     items: [
+      {
+        q: 'What is an ADE?',
+        a: 'An agentic development environment: the place where you build software with agents from start to finish, not just where you talk to them. In Escouade, you write the tickets, agents code in parallel, each in its own worktree, and you review, test and ship in the same place: Kanban, conversation, editor, terminals, Git and tests.',
+      },
+      {
+        q: 'Does it replace my editor?',
+        a: 'Not necessarily. Escouade’s editor is enough to review and touch up what the agents do (file tree, tabs, search across files, go to a definition), but it has no language server and no extensions. Keep your IDE for the rest: each worktree is a real folder, which you open wherever you like.',
+      },
+      {
+        q: 'Which engine runs the agents?',
+        a: 'Claude Code, today: Escouade starts the one on your machine, with your Claude subscription or your API key. Codex, Copilot CLI, Cursor CLI and OpenCode come with the next version (see the roadmap).',
+      },
       {
         q: 'Is it free?',
         a: 'Yes, and open source, under the GPL-3.0 license (or later). Escouade uses your own Claude Code: your Claude subscription or your API key, with no middleman.',
@@ -205,7 +316,7 @@ export const en: Catalog = {
     ],
   },
 
-  close: { title: 'Launch your squad.' },
+  close: { title: 'Your next development environment.' },
 
   footer: {
     github: 'GitHub',
@@ -231,7 +342,7 @@ export const en: Catalog = {
     pause: 'Pause the demonstration',
     caption: 'Animated demonstration · made-up data',
     description:
-      ': five Claude Code agents of the demo-api project work in parallel; one asks a question you can answer, and a ticket agent loops on its criteria until “To review”.',
+      ': five agents of the demo-api project work in parallel; one asks a question you can answer, and a ticket agent loops on its criteria until “To review”.',
   },
 
   squad: {
@@ -251,7 +362,7 @@ export const en: Catalog = {
     meta: {
       title: 'Escouade documentation',
       description:
-        'The documentation of Escouade, the cockpit for your Claude Code agents: installation, agents and chat, Git and worktrees, the Kanban and autopilot, integrations, accounts, settings and shortcuts.',
+        'The documentation of Escouade, the agentic development environment: installation, agents and chat, Git and worktrees, the Kanban and autopilot, integrations, accounts, settings and shortcuts.',
     },
     pageTitle: '{title} · Escouade documentation',
     groups: {

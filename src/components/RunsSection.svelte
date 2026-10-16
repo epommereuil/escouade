@@ -1,7 +1,8 @@
 <script lang="ts">
   import { t } from '../lib/i18n';
-  import { launchStatus, restartLaunch, startAll, startLaunch, stopAll, stopLaunch } from '../lib/launch-actions';
-  import { isolaCommand, recipeCommands } from '../lib/recipe';
+  import { launchStatus, restartLaunch, runHere, runIn, startAll, stopAll, stopLaunch } from '../lib/launch-actions';
+  import { menu } from '../lib/menu.svelte';
+  import { inWorktree, isolaCommand, recipeCommands } from '../lib/recipe';
   import { app } from '../lib/state.svelte';
   import type { Project, RunCommand } from '../lib/types';
   import { tip } from '../lib/tip';
@@ -11,15 +12,17 @@
   const cmds = $derived(project.runCommands);
   const running = $derived(cmds.filter((c) => app.launches[c.id]?.status === 'running').length);
   const selected = $derived(app.runCommand?.id ?? null);
-  // Each agent's test launches, under its name, once one of them ran.
+  // Each agent's launches, under its name, once one of them ran: the project's commands run in its worktree,
+  // then its test launches.
   const groups = $derived(
     Object.values(app.agents)
-      .filter((a) => a.projectId === project.id && (a.recipe || a.isola))
+      .filter((a) => a.projectId === project.id)
       .map((a) => {
         const shell = app.shells[0]?.id ?? '';
         const c = recipeCommands(a, shell);
         const isola = a.isola ? [isolaCommand(a, shell)] : [];
-        return { agent: a, cmds: [...isola, ...c.prepare, ...c.processes].filter((x) => app.launches[x.id]) };
+        const inIts = cmds.map((x) => inWorktree(x, a));
+        return { agent: a, cmds: [...inIts, ...isola, ...c.prepare, ...c.processes].filter((x) => app.launches[x.id]) };
       })
       .filter((g) => g.cmds.length > 0),
   );
@@ -38,6 +41,24 @@
     app.modal = { kind: 'settings', tab: 'projects', projectId: project.id, section: 'launch', suggest: true };
   }
   const isRunning = (c: RunCommand) => app.launches[c.id]?.status === 'running';
+
+  /** The agents of the project with a worktree to run a command in (not the archived ones), as the list shows them. */
+  const worktreeAgents = $derived(app.projectAgents.filter((a) => a.projectId === project.id && a.worktree));
+
+  /** ▶ of one of the project's commands: in the project, or in the worktree of one of its agents (a menu, when one has one). */
+  function run(e: Event, c: RunCommand) {
+    e.stopPropagation();
+    const own = project.runCommands.some((x) => x.id === c.id);
+    if (!own || !worktreeAgents.length) {
+      runHere(project, c);
+      return;
+    }
+    menu.showAt(e.currentTarget as HTMLElement, [
+      { label: t('runs.where.project'), onClick: () => runIn(project, c, null) },
+      { label: '', separator: true },
+      ...worktreeAgents.map((a) => ({ label: t('runs.where.worktree', { name: a.name }), onClick: () => runIn(project, c, a.id) })),
+    ]);
+  }
 </script>
 
 {#snippet runRow(c: RunCommand)}
@@ -68,7 +89,8 @@
         class="ctl go"
         use:tip={t('runs.action.run')}
         aria-label={t('runs.action.run')}
-        onclick={(e) => act(e, () => startLaunch(project, c))}>▶</button
+        aria-haspopup={project.runCommands.some((x) => x.id === c.id) && worktreeAgents.length ? 'menu' : undefined}
+        onclick={(e) => run(e, c)}>▶</button
       >
     {/if}
   </div>

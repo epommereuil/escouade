@@ -1,29 +1,28 @@
 # Présentation
 
-Escouade est une application de bureau qui fait travailler plusieurs agents Claude Code en parallèle, dans une seule fenêtre, sous Windows, macOS et Linux. Cette page dit ce qu’elle est, à qui elle sert, les mots qu’elle emploie et où trouver le reste de la documentation.
+Escouade est un environnement de développement agentique (ADE) : une application de bureau, pour Windows, macOS et Linux, où tu développes avec des agents de bout en bout, du ticket au merge. Cette page dit ce qu’elle est, à qui elle sert, les mots qu’elle emploie et où trouver le reste de la documentation.
 
 ## Ce qu’est Escouade
 
-[Claude Code](https://code.claude.com/docs/fr/overview) est l’outil en ligne de commande d’Anthropic pour programmer avec Claude. Escouade en fait tourner autant d’instances que tu veux, chacune dans sa propre conversation, et les réunit dans une seule fenêtre :
+Un ADE réunit tout le cycle de développement au même endroit, fait avec des agents qui travaillent en parallèle, chacun dans sa conversation et, si tu veux, dans son propre worktree git :
 
-- un onglet par projet, avec la liste de ses agents ;
-- pour chaque agent, une conversation lisible : texte en markdown, appels d’outils dépliables, questions et demandes d’autorisation sous forme de cartes sur lesquelles tu cliques ;
-- les fichiers que les agents modifient, leurs diffs et leurs commits, avec si tu le veux un worktree git par agent ;
-- un éditeur de fichiers, des terminaux et des commandes pour lancer le projet ;
-- un Kanban de tickets que des agents prennent seuls, c’est le pilote auto ;
-- des notifications quand un agent attend ta réponse ou a terminé ;
-- les quotas de ton abonnement, le coût et des statistiques de consommation.
+- **planifier** : un Kanban de tickets avec leurs critères d’acceptation, leurs captures et leurs fichiers, importés au besoin de Jira, Trello, GitHub Issues ou Linear, que des agents prennent seuls (c’est le pilote auto) et sur lesquels ils bouclent jusqu’à atteindre les critères ;
+- **coder** : un onglet par projet, autant d’agents que tu veux, chacun avec une conversation lisible (markdown, appels d’outils dépliables, questions et demandes d’autorisation en cartes) ou l’interface de Claude Code elle-même ; ses sous-agents et ses tâches de fond dans la barre latérale, l’avancée de son plan, un éditeur de fichiers et de vrais terminaux ;
+- **relire et tester** : les fichiers modifiés, leurs diffs, le git graph du dépôt et ses branches, « ▶ Tester » sur chaque ticket et les commandes qui lancent le projet ;
+- **livrer** : le commit, le merge, le squash ou le rebase dans la branche cible, le push ou la pull request ;
+- **piloter** : des notifications quand un agent attend ta réponse ou a terminé, la vue d’ensemble de tous les agents, les quotas, le coût et des statistiques, plusieurs comptes, un serveur MCP qui laisse un agent mener Escouade, et le remote control depuis ton téléphone.
 
-Chaque agent est une vraie session de Claude Code : Escouade lance `claude` pour lui et affiche sa conversation. La session reste aussi sur ton disque, dans les fichiers de Claude Code. L’application tourne sur ta machine : tes projets, tes conversations et tes réglages sont dans `~/.escouade/` (voir les [données locales](data)).
+Aujourd’hui, chaque agent est une vraie session de [Claude Code](https://code.claude.com/docs/fr/overview), l’outil en ligne de commande d’Anthropic pour programmer avec Claude : Escouade lance `claude` pour lui et affiche sa conversation. La session reste aussi sur ton disque, dans les fichiers de Claude Code. L’application tourne sur ta machine : tes projets, tes conversations et tes réglages sont dans `~/.escouade/` (voir les [données locales](data)). Elle est gratuite et open source, sous licence GPL-3.0 (ou ultérieure).
 
 ## Ce qu’Escouade n’est pas
 
 - **Un produit d’Anthropic.** C’est un projet indépendant, non affilié à Anthropic. Claude et Claude Code sont des marques d’Anthropic.
-- **Un remplaçant de Claude Code.** Claude Code doit être installé et connecté à ton compte Claude sur la machine : Escouade ne contient ni modèle ni abonnement, elle utilise les tiens. Voir l’[installation](installation).
+- **Un moteur d’agents.** Claude Code doit être installé et connecté à ton compte Claude sur la machine : Escouade ne contient ni modèle ni abonnement, elle utilise les tiens. Voir l’[installation](installation).
+- **Un IDE de plus.** Son éditeur suffit pour relire et retoucher ce que font les agents, mais il n’a ni serveur de langage ni extensions : garde ton IDE pour le reste, chaque worktree est un vrai dossier que tu ouvres où tu veux. Voir [l’éditeur](editor).
 
 ## À qui elle s’adresse
 
-À toute personne qui programme avec Claude Code et veut en faire tourner plusieurs à la fois sans jongler entre des terminaux :
+À toute personne qui développe avec des agents et veut mener tout le cycle au même endroit, sans jongler entre des terminaux, un outil de tickets et un client Git :
 
 - tu travailles sur plusieurs tâches ou plusieurs projets en même temps, et tu veux voir d’un coup d’œil quel agent travaille, lequel attend ta réponse et lequel a fini ;
 - tu veux relire et commiter ce que chaque agent a changé, sans que les agents se marchent dessus ;
