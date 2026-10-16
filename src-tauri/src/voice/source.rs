@@ -282,12 +282,20 @@ impl Source for WavFile {
         let thread = std::thread::spawn(move || {
             let mut chunks = samples.chunks(chunk);
             let silence = vec![0f32; chunk];
+            let started = std::time::Instant::now();
+            let mut sent = 0u32;
             loop {
                 match stop_rx.recv_timeout(Duration::from_millis(20)) {
                     Err(mpsc::RecvTimeoutError::Timeout) => {}
                     _ => return,
                 }
-                (sink.samples)(chunks.next().unwrap_or(&silence));
+                // What the clock says is due, as a microphone would have heard it by now: a
+                // timer that wakes late (a busy machine) is caught up, never fallen behind.
+                let due = (started.elapsed().as_millis() / 20) as u32;
+                while sent < due {
+                    (sink.samples)(chunks.next().unwrap_or(&silence));
+                    sent += 1;
+                }
             }
         });
         Ok(Box::new(Playback {

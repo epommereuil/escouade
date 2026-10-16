@@ -2773,6 +2773,12 @@ async fn in_the_claude_code_view_the_report_of_a_subagent_is_the_last_handback_o
     let (p, _) = h.project(false).await;
     let id = h.core.create_agent(&p.id, None).await.unwrap().meta.id;
     let handle = h.core.agent(&id).unwrap();
+    // The process `create_agent` warms attaches when it is up, and attaching interrupts the rows
+    // the plan has running: it is up before the plan below is made (macOS took longer, ESC-96).
+    h.wait("the warmed process", |h| {
+        h.core.agent(&id).unwrap().lock().proc.is_some()
+    })
+    .await;
     // The agent's transcript, and its subagents' beside it.
     let root = h.dir.join("claude-view");
     let subs = root.join("s9").join("subagents");
@@ -2867,6 +2873,12 @@ async fn agent_with_a_subagent_stopped_in_the_interface(h: &Harness) -> (String,
     let (p, _) = h.project(false).await;
     let id = h.core.create_agent(&p.id, None).await.unwrap().meta.id;
     let handle = h.core.agent(&id).unwrap();
+    // The process `create_agent` warms attaches when it is up, and attaching interrupts the rows
+    // the plan has running: it is up before the plan below is made (macOS took longer, ESC-96).
+    h.wait("the warmed process", |h| {
+        h.core.agent(&id).unwrap().lock().proc.is_some()
+    })
+    .await;
     let root = h.dir.join("claude-view");
     let subs = root.join("s9").join("subagents");
     std::fs::create_dir_all(&subs).unwrap();
