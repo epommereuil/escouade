@@ -482,6 +482,17 @@ pub fn run() {
             commands::voice_download,
             commands::voice_download_cancel,
             commands::voice_delete_model,
+            commands::speech_info,
+            commands::conversation_start,
+            commands::conversation_listen,
+            commands::conversation_hold,
+            commands::conversation_say,
+            commands::conversation_stop,
+            commands::conversation_send,
+            commands::speech_download,
+            commands::speech_download_cancel,
+            commands::speech_delete,
+            commands::speech_preview,
         ])
         .build(tauri::generate_context!())
         .expect("error while building the application")

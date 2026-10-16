@@ -696,3 +696,5 @@ fn called_off_while_the_microphone_opens_it_never_listens() {
     ));
     voice.cancel();
 }
+
+include!("conv_tests.rs");

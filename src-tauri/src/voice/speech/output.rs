@@ -75,7 +75,11 @@ impl Queue {
                     None => *o = 0.0,
                 }
             }
-            let rms = if n == 0 { 0.0 } else { (sum / out.len() as f32).sqrt() };
+            let rms = if n == 0 {
+                0.0
+            } else {
+                (sum / out.len() as f32).sqrt()
+            };
             self.level.store(rms.to_bits(), Ordering::Relaxed);
             if q.buf.is_empty() && q.finished {
                 q.done.take()
@@ -186,7 +190,12 @@ impl Output for Speakers {
                     let config = device.default_output_config().map_err(|e| e.to_string())?;
                     let channels = config.channels() as usize;
                     let device_rate = config.sample_rate();
-                    let queue = Arc::new(Queue::new(rate, device_rate, volume, done.lock().take().unwrap()));
+                    let queue = Arc::new(Queue::new(
+                        rate,
+                        device_rate,
+                        volume,
+                        done.lock().take().unwrap(),
+                    ));
                     let q = queue.clone();
                     let mut mono = Vec::new();
                     let err = |e: cpal::Error| log::warn!("speech: {e}");
@@ -233,7 +242,9 @@ impl Output for Speakers {
                 }
             })
             .map_err(|e| e.to_string())?;
-        let queue = ready_rx.recv().map_err(|_| "sound output thread ended".to_string())??;
+        let queue = ready_rx
+            .recv()
+            .map_err(|_| "sound output thread ended".to_string())??;
         Ok(Arc::new(Handle {
             queue,
             stop: Mutex::new(Some(stop_tx)),
@@ -250,7 +261,9 @@ mod tests {
     #[test]
     fn a_silent_playback_takes_the_time_of_its_sound_and_tells_its_end() {
         let (tx, rx) = mpsc::channel();
-        let p = Silent.open(16_000, 1.0, Box::new(move || tx.send(()).unwrap())).unwrap();
+        let p = Silent
+            .open(16_000, 1.0, Box::new(move || tx.send(()).unwrap()))
+            .unwrap();
         let started = Instant::now();
         p.push(&vec![0.5; 8_000]);
         std::thread::sleep(Duration::from_millis(100));
@@ -259,13 +272,18 @@ mod tests {
         p.finish();
         rx.recv_timeout(Duration::from_secs(5)).unwrap();
         let took = started.elapsed();
-        assert!(took >= Duration::from_millis(950) && took < Duration::from_millis(2500), "{took:?}");
+        assert!(
+            took >= Duration::from_millis(950) && took < Duration::from_millis(2500),
+            "{took:?}"
+        );
     }
 
     #[test]
     fn a_playback_dropped_stops_and_never_tells_its_end() {
         let (tx, rx) = mpsc::channel();
-        let p = Silent.open(16_000, 1.0, Box::new(move || tx.send(()).unwrap())).unwrap();
+        let p = Silent
+            .open(16_000, 1.0, Box::new(move || tx.send(()).unwrap()))
+            .unwrap();
         p.push(&vec![0.5; 16_000]);
         p.finish();
         std::thread::sleep(Duration::from_millis(60));

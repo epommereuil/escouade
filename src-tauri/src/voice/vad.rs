@@ -63,11 +63,6 @@ impl Endpointer {
         }
     }
 
-    /// In a sentence, between its start and its end.
-    pub fn speaking(&self) -> bool {
-        self.speaking
-    }
-
     /// The level over which a frame is speech now.
     pub fn threshold(&self) -> f32 {
         (self.noise * OVER_NOISE).max(FLOOR)
@@ -162,7 +157,9 @@ impl BargeIn {
     /// The level the microphone must pass now to be the user.
     pub fn threshold(&self) -> f32 {
         let loudest = self.played.iter().fold(0f32, |m, x| m.max(*x));
-        (self.coupling * loudest * OVER_ECHO).max(self.noise * OVER_NOISE * 1.5).max(FLOOR * 2.0)
+        (self.coupling * loudest * OVER_ECHO)
+            .max(self.noise * OVER_NOISE * 1.5)
+            .max(FLOOR * 2.0)
     }
 
     /// The next frame: what the microphone heard (`mic`, RMS) and what was played meanwhile (`played`, RMS). True when
@@ -172,8 +169,9 @@ impl BargeIn {
         self.played.truncate(ECHO_FRAMES);
         let loudest = self.played.iter().fold(0f32, |m, x| m.max(*x));
         if self.learnt_ms < LEARN_MS {
-            self.learnt_ms += FRAME_MS;
+            // Learnt from what is played: the first sentence may still be in the making.
             if loudest > 0.01 {
+                self.learnt_ms += FRAME_MS;
                 self.coupling = self.coupling.max(mic / loudest);
             }
             return false;
@@ -200,15 +198,23 @@ mod tests {
 
     /// Frames of a voice-like sound (`amp` peak) for `ms`.
     fn voice(amp: f32, ms: u32) -> Vec<f32> {
-        (0..ms / FRAME_MS).map(|i| amp * (0.55 + 0.15 * ((i as f32) * 0.7).sin())).collect()
+        (0..ms / FRAME_MS)
+            .map(|i| amp * (0.55 + 0.15 * ((i as f32) * 0.7).sin()))
+            .collect()
     }
 
     fn quiet(level: f32, ms: u32) -> Vec<f32> {
-        (0..ms / FRAME_MS).map(|i| level * (1.0 + 0.3 * ((i as f32) * 1.3).sin())).collect()
+        (0..ms / FRAME_MS)
+            .map(|i| level * (1.0 + 0.3 * ((i as f32) * 1.3).sin()))
+            .collect()
     }
 
     fn run(e: &mut Endpointer, frames: &[f32]) -> Vec<(usize, Heard)> {
-        frames.iter().enumerate().filter_map(|(i, l)| e.push(*l).map(|h| (i, h))).collect()
+        frames
+            .iter()
+            .enumerate()
+            .filter_map(|(i, l)| e.push(*l).map(|h| (i, h)))
+            .collect()
     }
 
     #[test]
@@ -220,7 +226,9 @@ mod tests {
         let heard = run(&mut e, &frames);
         assert_eq!(heard.len(), 2, "{heard:?}");
         // Started within 200 ms of the voice (frame 50), knowing how far back it began.
-        assert!(matches!(heard[0], (i, Heard::Started { frames_ago }) if (57..=60).contains(&i) && frames_ago >= 8));
+        assert!(
+            matches!(heard[0], (i, Heard::Started { frames_ago }) if (57..=60).contains(&i) && frames_ago >= 8)
+        );
         // Ended 800 ms after it (frame 125 + 40).
         assert_eq!(heard[1], (124 + 40, Heard::Ended));
     }
@@ -234,7 +242,11 @@ mod tests {
         frames.extend(voice(0.2, 800));
         frames.extend(quiet(0.003, 1200));
         let heard = run(&mut e, &frames);
-        assert_eq!(heard.iter().filter(|(_, h)| *h == Heard::Ended).count(), 1, "{heard:?}");
+        assert_eq!(
+            heard.iter().filter(|(_, h)| *h == Heard::Ended).count(),
+            1,
+            "{heard:?}"
+        );
     }
 
     #[test]
@@ -287,10 +299,25 @@ mod tests {
     }
 
     #[test]
+    fn the_echo_is_learnt_from_the_first_sound_played_not_from_the_wait_for_it() {
+        // The first sentence takes 600 ms to make: nothing is played meanwhile, then the echo comes.
+        let mut played = vec![0.0; 30];
+        played.extend(voice(0.3, 4000));
+        let mut b = BargeIn::new(0.003);
+        for (i, p) in played.iter().enumerate() {
+            let echo = if i >= 5 { played[i - 5] * 0.4 } else { 0.0 };
+            assert!(!b.push(echo + 0.003, *p), "frame {i}");
+        }
+    }
+
+    #[test]
     fn with_headphones_a_low_voice_still_barges_in() {
         let played: Vec<f32> = voice(0.3, 3000);
         let mut b = BargeIn::new(0.003);
-        let heard = played.iter().enumerate().any(|(i, p)| b.push(if i >= 50 { 0.05 } else { 0.003 }, *p));
+        let heard = played
+            .iter()
+            .enumerate()
+            .any(|(i, p)| b.push(if i >= 50 { 0.05 } else { 0.003 }, *p));
         assert!(heard);
     }
 }
@@ -301,7 +328,9 @@ mod wav_tests {
 
     /// The frames of a WAV of speech, a little noise of a room added (a microphone never gives digital silence).
     fn frames(name: &str, noise: f32) -> (Vec<f32>, f32, f32) {
-        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/voice/testdata").join(name);
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src/voice/testdata")
+            .join(name);
         let (samples, rate) = crate::voice::source::read_wav(&path).unwrap();
         let first = samples.iter().position(|s| s.abs() > 0.02).unwrap() as f32 / rate as f32;
         let last = samples.iter().rposition(|s| s.abs() > 0.02).unwrap() as f32 / rate as f32;
@@ -328,13 +357,21 @@ mod wav_tests {
                 .filter_map(|(i, l)| e.push(*l).map(|h| (i as f32 * FRAME_MS as f32 / 1000.0, h)))
                 .collect();
             assert_eq!(heard.len(), 2, "noise {noise}: {heard:?}");
-            let (start, Heard::Started { frames_ago }) = heard[0] else { panic!("{heard:?}") };
+            let (start, Heard::Started { frames_ago }) = heard[0] else {
+                panic!("{heard:?}")
+            };
             let began = start - frames_ago as f32 * FRAME_MS as f32 / 1000.0;
-            assert!((began - first).abs() < 0.3, "noise {noise}: began {began}, first word {first}");
+            assert!(
+                (began - first).abs() < 0.3,
+                "noise {noise}: began {began}, first word {first}"
+            );
             assert_eq!(heard[1].1, Heard::Ended);
             // Its pause between the two clauses (« réglages, puis ») did not end it: the end is the silence's.
             let end = heard[1].0;
-            assert!(end > last + 0.6 && end < last + 1.3, "noise {noise}: ended {end}, last word {last}");
+            assert!(
+                end > last + 0.6 && end < last + 1.3,
+                "noise {noise}: ended {end}, last word {last}"
+            );
         }
     }
 }

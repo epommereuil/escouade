@@ -1981,6 +1981,145 @@ pub fn voice_delete_model(voice: VoiceState, model: String) -> Res<()> {
     voice.delete_model(&model).map_err(err)
 }
 
+// ---------------------------------------------------------------------------------------------
+// The voice conversation (`voice::conversation`, `voice::speech`, ESC-97).
+
+/// The language a conversation is held in: Whisper's, when it is one the voices speak, else the interface's.
+fn speech_lang(settings: &Settings) -> &'static str {
+    match crate::voice::whisper_language(&settings.voice.language, i18n::ui()).as_str() {
+        "fr" => "fr",
+        "en" => "en",
+        _ => match i18n::ui() {
+            i18n::Lang::Fr => "fr",
+            i18n::Lang::En => "en",
+        },
+    }
+}
+
+fn speak_options(settings: &Settings, voice: &str) -> crate::voice::speech::SpeakOptions {
+    let s = &settings.voice.speech;
+    crate::voice::speech::SpeakOptions {
+        speaker: s.speakers.get(voice).copied().unwrap_or(0),
+        rate: if s.rate.is_finite() {
+            s.rate.clamp(0.5, 2.0)
+        } else {
+            1.0
+        },
+    }
+}
+
+/// Réglages › Voix: the conversation's voices (which are downloaded), and whether the app can speak here.
+#[tauri::command(async)]
+pub fn speech_info(voice: VoiceState) -> crate::voice::SpeechInfo {
+    voice.speech_info()
+}
+
+/// Starts a conversation with the settings' microphone, model and voice; or says what is to be downloaded first.
+#[tauri::command(async)]
+pub fn conversation_start(
+    core: CoreState,
+    voice: VoiceState,
+) -> Res<crate::voice::conversation::ConvStarted> {
+    let settings = core.settings.read().clone();
+    let lang = speech_lang(&settings);
+    let id = settings.voice.speech.voice(lang);
+    let choice = crate::voice::conversation::ConvChoice {
+        device: settings.voice.device.clone(),
+        model: settings.voice.model.clone(),
+        language: lang.to_string(),
+        speak: speak_options(&settings, &id),
+        volume: settings.voice.speech.volume.clamp(0.0, 1.0),
+        silence_ms: settings.voice.speech.silence_ms,
+        voice: id.clone(),
+    };
+    let started = voice.conversation_start(choice).map_err(voice_err)?;
+    if matches!(
+        started,
+        crate::voice::conversation::ConvStarted::Listening { .. }
+    ) {
+        core.telemetry
+            .track(Event::VoiceConversation { lang, voice: id });
+    }
+    Ok(started)
+}
+
+#[tauri::command]
+pub fn conversation_listen(voice: VoiceState, session: u64) {
+    voice.conversation_listen(session);
+}
+
+#[tauri::command]
+pub fn conversation_hold(voice: VoiceState, session: u64) {
+    voice.conversation_hold(session);
+}
+
+/// Reads `text` aloud; the number of the reading, which its end and its barge-in carry.
+#[tauri::command]
+pub fn conversation_say(voice: VoiceState, session: u64, text: String) -> Res<u64> {
+    voice.conversation_say(session, &text).map_err(voice_err)
+}
+
+#[tauri::command]
+pub fn conversation_stop(voice: VoiceState) {
+    voice.conversation_stop();
+}
+
+/// A sentence said in the conversation, sent to the agent with the instruction to end with a passage to be read.
+#[tauri::command]
+pub async fn conversation_send(core: CoreState<'_>, id: String, text: String) -> Res<()> {
+    let r = core.send_spoken(&id, text).await.map_err(err);
+    counted(&core, Event::MessageSent, r)
+}
+
+/// Downloads a voice (its progress in `UiEvent::Voice`), through the proxy of the settings.
+#[tauri::command]
+pub async fn speech_download(core: CoreState<'_>, voice: VoiceState<'_>, id: String) -> Res<()> {
+    let client = crate::voice::models::client(&core.settings.read()).map_err(err)?;
+    voice.download_voice(&client, &id).await.map_err(err)
+}
+
+#[tauri::command]
+pub fn speech_download_cancel(voice: VoiceState, id: String) {
+    voice.cancel_voice_download(&id);
+}
+
+#[tauri::command(async)]
+pub fn speech_delete(voice: VoiceState, id: String) -> Res<()> {
+    voice.delete_voice(&id).map_err(err)
+}
+
+/// « Écouter »: a sentence read in the voice `id`, with the settings' pace and volume (and `speaker`, for a voice that
+/// has several). Returns once it is heard.
+#[tauri::command(async)]
+pub fn speech_preview(
+    core: CoreState,
+    voice: VoiceState,
+    id: String,
+    speaker: Option<u32>,
+) -> Res<()> {
+    let settings = core.settings.read().clone();
+    let mut opts = speak_options(&settings, &id);
+    if let Some(s) = speaker {
+        opts.speaker = s;
+    }
+    let lang = crate::voice::speech::catalog::find(&id)
+        .map(|v| v.lang.as_str())
+        .unwrap_or("fr");
+    let text = if lang == "fr" {
+        "Bonjour ! C’est la voix qui te lira les réponses de tes agents dans Escouade."
+    } else {
+        "Hello! This is the voice that will read your agents’ answers to you in Escouade."
+    };
+    voice
+        .preview(
+            &id,
+            text,
+            &opts,
+            settings.voice.speech.volume.clamp(0.0, 1.0),
+        )
+        .map_err(err)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -11,6 +11,9 @@
 //! `scripts/piper-voices.mjs` takes a snapshot of PiperHub's catalog with what the rule needs; the ignored test
 //! `write_the_voice_catalog` applies `admit` to it and writes `voices.json`, which the app reads.
 
+// The snapshot's models are only read by the tests and by the generator of `voices.json`.
+#![cfg_attr(not(test), allow(dead_code))]
+
 use serde::{Deserialize, Serialize};
 
 /// The repository of the official voices (Rhasspy, then the Open Home Foundation).
@@ -20,7 +23,9 @@ pub const OFFICIAL: &str = "rhasspy/piper-voices";
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Licence {
     /// Free to use; `attribution`: the author must be credited (CC BY, CC BY-SA).
-    Permissive { attribution: bool },
+    Permissive {
+        attribution: bool,
+    },
     /// GPL, AGPL, LGPL: compatible with Escouade's, but waiting for a confirmation.
     Copyleft,
     NonCommercial,
@@ -138,10 +143,42 @@ pub struct FileInfo {
 
 /// Names that are a character's, a known person's or a brand's, whatever their licence says.
 const NOT_OURS: &[&str] = &[
-    "glados", "wheatley", "cave_johnson", "cave-johnson", "announcer", "death", "eminem", "picard", "hal-9000", "hal9000",
-    "bender", "jarvis", "huberman", "optimus", "ahsoka", "kronk", "bmo", "rocket", "tiktok", "candycrush", "babymetal",
-    "overwatch", "subnautica", "fedcomp", "unclefred", "scaramouche", "kuroki", "patrick", "fortune", "fuze", "dota",
-    "valorant", "counter-strike", "css-", "data_7024", "mattheo",
+    "glados",
+    "wheatley",
+    "cave_johnson",
+    "cave-johnson",
+    "announcer",
+    "death",
+    "eminem",
+    "picard",
+    "hal-9000",
+    "hal9000",
+    "bender",
+    "jarvis",
+    "huberman",
+    "optimus",
+    "ahsoka",
+    "kronk",
+    "bmo",
+    "rocket",
+    "tiktok",
+    "candycrush",
+    "babymetal",
+    "overwatch",
+    "subnautica",
+    "fedcomp",
+    "unclefred",
+    "scaramouche",
+    "kuroki",
+    "patrick",
+    "fortune",
+    "fuze",
+    "dota",
+    "valorant",
+    "counter-strike",
+    "css-",
+    "data_7024",
+    "mattheo",
 ];
 
 /// Voices of the community checked by hand: whose recordings they are, and that they may be used.
@@ -188,7 +225,11 @@ pub fn dataset_licence(m: &Model) -> Option<&str> {
 
 /// The rule, for `m` among `all` (to tell a copy of an official voice).
 pub fn admit(m: &Model, all: &[Model]) -> Verdict {
-    if !m.usable || m.phoneme_type.as_deref() != Some("espeak") || m.files.onnx.is_none() || m.files.json.is_none() {
+    if !m.usable
+        || m.phoneme_type.as_deref() != Some("espeak")
+        || m.files.onnx.is_none()
+        || m.files.json.is_none()
+    {
         return Verdict::Unusable;
     }
     let official = m.repo == OFFICIAL;
@@ -209,9 +250,9 @@ pub fn admit(m: &Model, all: &[Model]) -> Verdict {
     if !official {
         let sha = m.files.onnx.as_ref().and_then(|f| f.sha256.as_deref());
         if sha.is_some()
-            && all
-                .iter()
-                .any(|o| o.repo == OFFICIAL && o.files.onnx.as_ref().and_then(|f| f.sha256.as_deref()) == sha)
+            && all.iter().any(|o| {
+                o.repo == OFFICIAL && o.files.onnx.as_ref().and_then(|f| f.sha256.as_deref()) == sha
+            })
         {
             return Verdict::Copy;
         }
@@ -259,22 +300,38 @@ pub struct VoiceInfo {
 pub fn voice_info(m: &Model) -> Option<VoiceInfo> {
     let onnx = m.files.onnx.as_ref()?;
     let json = m.files.json.as_ref()?;
-    let stem = m.onnx.rsplit('/').next()?.trim_end_matches(".onnx").to_string();
+    let stem = m
+        .onnx
+        .rsplit('/')
+        .next()?
+        .trim_end_matches(".onnx")
+        .to_string();
     let official = m.repo == OFFICIAL;
-    let locale = official.then(|| stem.split('-').next().map(str::to_string)).flatten();
+    let locale = official
+        .then(|| stem.split('-').next().map(str::to_string))
+        .flatten();
     let id = if official { stem } else { m.slug.clone() };
     let model_lic = model_licence(m).unwrap_or_default().to_string();
     let dataset_lic = dataset_licence(m).map(str::to_string);
     let dataset_url = m.card.as_ref().and_then(|c| c.dataset_url.clone());
     let mut credit = Vec::new();
     if let Licence::Permissive { attribution: true } = licence(Some(&model_lic)) {
-        credit.push(format!("{} — https://huggingface.co/{} ({model_lic})", m.name, m.repo));
+        credit.push(format!(
+            "{} — https://huggingface.co/{} ({model_lic})",
+            m.name, m.repo
+        ));
     }
     if let Some(d) = dataset_lic.as_deref() {
         if let Licence::Permissive { attribution: true } = licence(Some(d)) {
             let src = dataset_url
                 .clone()
-                .or_else(|| m.hub.dataset.as_ref().and_then(|x| x.repo.clone()).map(|r| format!("https://huggingface.co/datasets/{r}")))
+                .or_else(|| {
+                    m.hub
+                        .dataset
+                        .as_ref()
+                        .and_then(|x| x.repo.clone())
+                        .map(|r| format!("https://huggingface.co/datasets/{r}"))
+                })
                 .unwrap_or_else(|| format!("https://huggingface.co/{}", m.repo));
             credit.push(format!("{src} ({d})"));
         }
@@ -302,10 +359,27 @@ pub fn voice_info(m: &Model) -> Option<VoiceInfo> {
     })
 }
 
+/// What the rule still says of a voice of the list as shipped: its licences (the dataset's when known) permissive,
+/// and its name none of a character, a person or a brand. A voice that no longer passes (the rule made stricter) is
+/// not offered, even before the list is written again.
+pub fn allowed(v: &VoiceInfo) -> bool {
+    let lower = format!("{} {} {}", v.id, v.name, v.repo).to_lowercase();
+    matches!(licence(Some(&v.license)), Licence::Permissive { .. })
+        && matches!(
+            licence(v.dataset_license.as_deref()),
+            Licence::Permissive { .. } | Licence::Unknown
+        )
+        && !NOT_OURS.iter().any(|n| lower.contains(n))
+}
+
 /// The voices the app ships.
 pub fn shipped() -> &'static [VoiceInfo] {
     static LIST: std::sync::OnceLock<Vec<VoiceInfo>> = std::sync::OnceLock::new();
-    LIST.get_or_init(|| serde_json::from_str(include_str!("voices.json")).expect("voices.json is valid"))
+    LIST.get_or_init(|| {
+        let all: Vec<VoiceInfo> =
+            serde_json::from_str(include_str!("voices.json")).expect("voices.json is valid");
+        all.into_iter().filter(allowed).collect()
+    })
 }
 
 /// The voice of a first conversation in `lang`, when the settings name none (decided at implementation: an official
@@ -330,7 +404,8 @@ mod tests {
         struct Snapshot {
             models: Vec<Model>,
         }
-        let s: Snapshot = serde_json::from_str(include_str!("testdata/catalog-excerpt.json")).unwrap();
+        let s: Snapshot =
+            serde_json::from_str(include_str!("testdata/catalog-excerpt.json")).unwrap();
         s.models
     }
 
@@ -342,15 +417,26 @@ mod tests {
         assert_eq!(licence(Some("CC0")), p(false));
         assert_eq!(licence(Some("public domain")), p(false));
         assert_eq!(licence(Some("CC-BY 4.0")), p(true));
-        assert_eq!(licence(Some("https://creativecommons.org/licenses/by/4.0/")), p(true));
-        assert_eq!(licence(Some("http://creativecommons.org/licenses/by-sa/4.0/")), p(true));
+        assert_eq!(
+            licence(Some("https://creativecommons.org/licenses/by/4.0/")),
+            p(true)
+        );
+        assert_eq!(
+            licence(Some("http://creativecommons.org/licenses/by-sa/4.0/")),
+            p(true)
+        );
         assert_eq!(licence(Some("CC BY-NC-SA 4.0")), Licence::NonCommercial);
-        assert_eq!(licence(Some("https://creativecommons.org/licenses/by-nc/4.0/")), Licence::NonCommercial);
+        assert_eq!(
+            licence(Some("https://creativecommons.org/licenses/by-nc/4.0/")),
+            Licence::NonCommercial
+        );
         assert_eq!(licence(Some("cc-by-nc-nd-4.0")), Licence::NoDerivatives);
         assert_eq!(licence(Some("AGPLv3")), Licence::Copyleft);
         assert_eq!(licence(Some("gpl-3.0")), Licence::Copyleft);
         assert_eq!(
-            licence(Some("https://www.cstr.ed.ac.uk/projects/blizzard/2013/lessac_blizzard2013/license.html")),
+            licence(Some(
+                "https://www.cstr.ed.ac.uk/projects/blizzard/2013/lessac_blizzard2013/license.html"
+            )),
             Licence::Restricted
         );
         assert_eq!(licence(Some("Valve")), Licence::Restricted);
@@ -376,12 +462,27 @@ mod tests {
             assert_eq!(verdict(ok), Verdict::Admitted, "{ok}");
         }
         // Their datasets: AGPL, non-commercial, Blizzard's licence.
-        assert_eq!(verdict("tom-french-fr-medium"), Verdict::DatasetLicence(Licence::Copyleft));
-        assert_eq!(verdict("ryan-english-us-high"), Verdict::DatasetLicence(Licence::NonCommercial));
-        assert_eq!(verdict("lessac-english-us-medium-1"), Verdict::DatasetLicence(Licence::Restricted));
+        assert_eq!(
+            verdict("tom-french-fr-medium"),
+            Verdict::DatasetLicence(Licence::Copyleft)
+        );
+        assert_eq!(
+            verdict("ryan-english-us-high"),
+            Verdict::DatasetLicence(Licence::NonCommercial)
+        );
+        assert_eq!(
+            verdict("lessac-english-us-medium-1"),
+            Verdict::DatasetLicence(Licence::Restricted)
+        );
         // Their models: NC-ND, GPL (to confirm).
-        assert_eq!(verdict("miro-french-fr-medium-openvoiceos"), Verdict::ModelLicence(Licence::NoDerivatives));
-        assert_eq!(verdict("mei-english-us-high"), Verdict::ModelLicence(Licence::Copyleft));
+        assert_eq!(
+            verdict("miro-french-fr-medium-openvoiceos"),
+            Verdict::ModelLicence(Licence::NoDerivatives)
+        );
+        assert_eq!(
+            verdict("mei-english-us-high"),
+            Verdict::ModelLicence(Licence::Copyleft)
+        );
         // Characters, persons and brands, MIT or CC BY as they may be.
         for c in [
             "glados-portal-1-french-fr-clean",
@@ -392,36 +493,90 @@ mod tests {
             "itsrealfortune-french-fr-high",
             "fuze-french-fr-multi-high",
         ] {
-            assert!(matches!(verdict(c), Verdict::Character(_)), "{c}: {:?}", verdict(c));
+            assert!(
+                matches!(verdict(c), Verdict::Character(_)),
+                "{c}: {:?}",
+                verdict(c)
+            );
         }
         // A copy of Siwis elsewhere: the official one is offered.
         assert_eq!(verdict("siwis-french-medium-piper-voices"), Verdict::Copy);
         // MIT, but whose voice it is nobody says.
-        assert_eq!(verdict("sarah-atlas-english-us-medium"), Verdict::UnknownOrigin);
+        assert_eq!(
+            verdict("sarah-atlas-english-us-medium"),
+            Verdict::UnknownOrigin
+        );
     }
 
     #[test]
     fn hugging_face_s_licence_prevails_over_piperhub_s() {
         let all = excerpt();
-        let mut m = all.iter().find(|m| m.slug == "siwis-french-fr-medium").unwrap().clone();
+        let mut m = all
+            .iter()
+            .find(|m| m.slug == "siwis-french-fr-medium")
+            .unwrap()
+            .clone();
         m.hub.license = Some("SandBlock Studios".into());
         assert_eq!(admit(&m, &all), Verdict::Admitted);
         m.hf.license = Some("cc-by-nc-4.0".into());
-        assert_eq!(admit(&m, &all), Verdict::ModelLicence(Licence::NonCommercial));
+        assert_eq!(
+            admit(&m, &all),
+            Verdict::ModelLicence(Licence::NonCommercial)
+        );
     }
 
     #[test]
     fn a_cc_by_voice_carries_its_attribution() {
         let all = excerpt();
-        let siwis = voice_info(all.iter().find(|m| m.slug == "siwis-french-fr-medium").unwrap()).unwrap();
+        let siwis = voice_info(
+            all.iter()
+                .find(|m| m.slug == "siwis-french-fr-medium")
+                .unwrap(),
+        )
+        .unwrap();
         assert_eq!(siwis.id, "fr_FR-siwis-medium");
         assert_eq!(siwis.locale.as_deref(), Some("fr_FR"));
-        assert!(siwis.attribution.as_deref().unwrap().contains("datashare.is.ed.ac.uk"), "{:?}", siwis.attribution);
+        assert!(
+            siwis
+                .attribution
+                .as_deref()
+                .unwrap()
+                .contains("datashare.is.ed.ac.uk"),
+            "{:?}",
+            siwis.attribution
+        );
         assert!(siwis.attribution.as_deref().unwrap().contains("CC-BY 4.0"));
-        let gilles = voice_info(all.iter().find(|m| m.slug == "gilles-french-fr-low").unwrap()).unwrap();
+        let gilles = voice_info(
+            all.iter()
+                .find(|m| m.slug == "gilles-french-fr-low")
+                .unwrap(),
+        )
+        .unwrap();
         assert_eq!(gilles.attribution, None, "CC0 asks for none");
-        let colin = voice_info(all.iter().find(|m| m.slug == "colin-english-en-high").unwrap()).unwrap();
+        let colin = voice_info(
+            all.iter()
+                .find(|m| m.slug == "colin-english-en-high")
+                .unwrap(),
+        )
+        .unwrap();
         assert!(colin.attribution.unwrap().contains("nardocolin"));
+    }
+
+    #[test]
+    fn a_voice_of_the_list_that_breaks_the_rule_is_not_offered() {
+        let mut v = find("fr_FR-siwis-medium").unwrap().clone();
+        assert!(allowed(&v));
+        v.dataset_license = Some("CC BY-NC 4.0".into());
+        assert!(!allowed(&v));
+        let mut v = find("fr_FR-siwis-medium").unwrap().clone();
+        v.name = "GLaDOS".into();
+        assert!(!allowed(&v));
+        let all: Vec<VoiceInfo> = serde_json::from_str(include_str!("voices.json")).unwrap();
+        assert_eq!(
+            all.len(),
+            shipped().len(),
+            "the list as written passes the rule"
+        );
     }
 
     #[test]
@@ -434,7 +589,11 @@ mod tests {
         for v in list {
             assert_eq!(v.onnx_sha256.len(), 64, "{}", v.id);
             assert_eq!(v.json_sha256.len(), 64, "{}", v.id);
-            assert!(matches!(licence(Some(&v.license)), Licence::Permissive { .. }), "{}", v.id);
+            assert!(
+                matches!(licence(Some(&v.license)), Licence::Permissive { .. }),
+                "{}",
+                v.id
+            );
             let lower = v.id.to_lowercase();
             assert!(!NOT_OURS.iter().any(|n| lower.contains(n)), "{}", v.id);
         }
@@ -449,8 +608,10 @@ mod tests {
             models: Vec<Model>,
         }
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-        let s: Snapshot =
-            serde_json::from_str(&std::fs::read_to_string(root.join("../scripts/piper-voices/snapshot.json")).unwrap()).unwrap();
+        let s: Snapshot = serde_json::from_str(
+            &std::fs::read_to_string(root.join("../scripts/piper-voices/snapshot.json")).unwrap(),
+        )
+        .unwrap();
         let mut out = Vec::new();
         for m in &s.models {
             match admit(m, &s.models) {

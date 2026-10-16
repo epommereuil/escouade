@@ -3389,7 +3389,15 @@ impl<R: Runtime> Core<R> {
         attachments: Vec<Attachment>,
         files: Vec<AttachedFile>,
     ) -> Result<()> {
-        self.send(id, None, text, attachments, files, true).await
+        self.send(id, None, text, attachments, files, true, false)
+            .await
+    }
+
+    /// A sentence said in a conversation (ESC-97): the agent is asked to end its answer with a passage to be read
+    /// aloud (`voice::spoken`).
+    pub async fn send_spoken(self: &Arc<Self>, id: &str, text: String) -> Result<()> {
+        self.send(id, None, text, Vec::new(), Vec::new(), true, true)
+            .await
     }
 
     /// `send_message` of a text someone else wrote than the user at the window: the author's name
@@ -3403,7 +3411,7 @@ impl<R: Runtime> Core<R> {
         text: String,
         attachments: Vec<Attachment>,
     ) -> Result<()> {
-        self.send(id, origin, text, attachments, Vec::new(), true)
+        self.send(id, origin, text, attachments, Vec::new(), true, false)
             .await
     }
 
@@ -3411,14 +3419,16 @@ impl<R: Runtime> Core<R> {
     /// conflicts of the base to resolve): no task of the user's to name the agent after, so it
     /// never does.
     pub(crate) async fn send_by_app(self: &Arc<Self>, id: &str, text: String) -> Result<()> {
-        self.send(id, None, text, Vec::new(), Vec::new(), false)
+        self.send(id, None, text, Vec::new(), Vec::new(), false, false)
             .await
     }
 
     /// Sends the message to the agent; `names`: it may name the agent (`naming_text`). `files` are
     /// the files joined by their path: they are checked again (`checked_files`), the message ends
     /// with a line for each, and the agent may read the ones of the user's own from then on. The
-    /// agent is named from the text alone, never from those lines.
+    /// agent is named from the text alone, never from those lines. `spoken`: said in a conversation, it ends with the
+    /// instruction of `voice::spoken`.
+    #[allow(clippy::too_many_arguments)]
     async fn send(
         self: &Arc<Self>,
         id: &str,
@@ -3427,12 +3437,18 @@ impl<R: Runtime> Core<R> {
         attachments: Vec<Attachment>,
         files: Vec<AttachedFile>,
         names: bool,
+        spoken: bool,
     ) -> Result<()> {
         // Until its turn runs (its process started, the message delivered), it is under way.
         let _working = self.working();
         let delivered = match origin {
             Some(origin) => from_origin(i18n::ui(), origin, &text),
             None => text.clone(),
+        };
+        let delivered = if spoken {
+            crate::voice::spoken::with_instruction(self.lang().claude, &delivered)
+        } else {
+            delivered
         };
         // What the agent's name is made from: nothing, for a message of the app's.
         let naming = if names { text.as_str() } else { "" };

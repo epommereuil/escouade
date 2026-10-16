@@ -76,7 +76,12 @@ impl Engine for Fake {
     fn sentences(&self, text: &str) -> Vec<String> {
         piper::sentences(text)
             .into_iter()
-            .map(|s| s.iter().map(|(c, m)| format!("{c}{m}")).collect::<Vec<_>>().join(" "))
+            .map(|s| {
+                s.iter()
+                    .map(|(c, m)| format!("{c}{m}"))
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            })
             .collect()
     }
 
@@ -87,7 +92,10 @@ impl Engine for Fake {
         self.said.lock().push(sentence.to_string());
         if let Some(log) = &self.log {
             use std::io::Write;
-            let mut f = std::fs::OpenOptions::new().create(true).append(true).open(log)?;
+            let mut f = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(log)?;
             writeln!(f, "{sentence}")?;
         }
         let ms = (sentence.chars().count() as u32 * 50).min(4_000);
@@ -131,7 +139,8 @@ impl VoiceStore {
 
     pub fn has(&self, v: &VoiceInfo) -> bool {
         let size = |p: PathBuf| std::fs::metadata(p).map(|m| m.len()).ok();
-        size(self.model(&v.id)) == Some(v.onnx_size) && size(self.config(&v.id)) == Some(v.json_size)
+        size(self.model(&v.id)) == Some(v.onnx_size)
+            && size(self.config(&v.id)) == Some(v.json_size)
     }
 
     pub fn list(&self) -> Vec<VoiceView> {
@@ -167,13 +176,34 @@ impl VoiceStore {
         cancel: &AtomicBool,
         mut progress: impl FnMut(u64),
     ) -> Result<()> {
-        let url = |file: &str| format!("{}/{}/resolve/main/{}", base.trim_end_matches('/'), v.repo, file);
-        super::models::fetch_checked(client, &url(&v.json), v.json_size, &v.json_sha256, &self.config(&v.id), cancel, |_| {})
-            .await?;
+        let url = |file: &str| {
+            format!(
+                "{}/{}/resolve/main/{}",
+                base.trim_end_matches('/'),
+                v.repo,
+                file
+            )
+        };
+        super::models::fetch_checked(
+            client,
+            &url(&v.json),
+            v.json_size,
+            &v.json_sha256,
+            &self.config(&v.id),
+            cancel,
+            |_| {},
+        )
+        .await?;
         let json = v.json_size;
-        super::models::fetch_checked(client, &url(&v.onnx), v.onnx_size, &v.onnx_sha256, &self.model(&v.id), cancel, |d| {
-            progress(json + d)
-        })
+        super::models::fetch_checked(
+            client,
+            &url(&v.onnx),
+            v.onnx_size,
+            &v.onnx_sha256,
+            &self.model(&v.id),
+            cancel,
+            |d| progress(json + d),
+        )
         .await
     }
 }

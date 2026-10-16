@@ -133,7 +133,8 @@ impl Phonemizer {
         let version = env!("CARGO_PKG_VERSION");
         if std::fs::read_to_string(&mark).ok().as_deref() != Some(version) {
             std::fs::create_dir_all(&self.dir)?;
-            espeak_ng::install_bundled_languages(&self.dir, &["fr", "en"]).context("eSpeak NG's data")?;
+            espeak_ng::install_bundled_languages(&self.dir, &["fr", "en"])
+                .context("eSpeak NG's data")?;
             std::fs::write(&mark, version)?;
         }
         *ready = true;
@@ -146,7 +147,12 @@ impl Phonemizer {
         let mut engines = self.engines.lock();
         if !engines.contains_key(voice) {
             let e = espeak_ng::EspeakNg::with_data_dir(voice, &self.dir)
-                .or_else(|_| espeak_ng::EspeakNg::with_data_dir(voice.split('-').next().unwrap_or(voice), &self.dir))
+                .or_else(|_| {
+                    espeak_ng::EspeakNg::with_data_dir(
+                        voice.split('-').next().unwrap_or(voice),
+                        &self.dir,
+                    )
+                })
                 .map_err(|e| anyhow::anyhow!("eSpeak NG ({voice}): {e:?}"))?;
             engines.insert(voice.to_string(), e);
         }
@@ -154,7 +160,12 @@ impl Phonemizer {
             .text_to_phonemes(clause)
             .map_err(|e| anyhow::anyhow!("eSpeak NG: {e:?}"))?;
         // eSpeak cuts its own clauses with line breaks: one phrase for the voice.
-        Ok(ipa.split('\n').map(str::trim).filter(|l| !l.is_empty()).collect::<Vec<_>>().join(" "))
+        Ok(ipa
+            .split('\n')
+            .map(str::trim)
+            .filter(|l| !l.is_empty())
+            .collect::<Vec<_>>()
+            .join(" "))
     }
 }
 
@@ -209,7 +220,12 @@ impl Engine for Piper {
     fn sentences(&self, text: &str) -> Vec<String> {
         sentences(text)
             .into_iter()
-            .map(|s| s.iter().map(|(c, m)| format!("{c}{m}")).collect::<Vec<_>>().join(" "))
+            .map(|s| {
+                s.iter()
+                    .map(|(c, m)| format!("{c}{m}"))
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            })
             .collect()
     }
 
@@ -263,15 +279,22 @@ impl Engine for Piper {
         let speaker = opts.speaker.min(config.num_speakers.saturating_sub(1)) as i64;
         let outputs = if multi {
             let sid = Tensor::<i64>::from_array(([1usize], vec![speaker].into_boxed_slice()))?;
-            loaded.session.run(ort::inputs![input, lengths, scales, sid])
+            loaded
+                .session
+                .run(ort::inputs![input, lengths, scales, sid])
         } else {
             loaded.session.run(ort::inputs![input, lengths, scales])
         }
         .map_err(|e| anyhow::anyhow!("{e}"))?;
-        let (_, audio) = outputs[0].try_extract_tensor::<f32>().map_err(|e| anyhow::anyhow!("{e}"))?;
+        let (_, audio) = outputs[0]
+            .try_extract_tensor::<f32>()
+            .map_err(|e| anyhow::anyhow!("{e}"))?;
         let mut samples = audio.to_vec();
         normalize(&mut samples);
-        samples.extend(std::iter::repeat_n(0.0, (rate as f32 * SENTENCE_GAP) as usize));
+        samples.extend(std::iter::repeat_n(
+            0.0,
+            (rate as f32 * SENTENCE_GAP) as usize,
+        ));
         Ok(Audio { samples, rate })
     }
 
@@ -299,7 +322,6 @@ impl Engine for Piper {
     fn unload(&self) {}
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -312,7 +334,10 @@ mod tests {
         assert_eq!(flat[0], vec![("Bonjour".to_string(), '!')]);
         assert_eq!(
             flat[1],
-            vec![("J'ai corrigé 3.5 tests".to_string(), ','), ("il en reste deux".to_string(), '.')]
+            vec![
+                ("J'ai corrigé 3.5 tests".to_string(), ','),
+                ("il en reste deux".to_string(), '.')
+            ]
         );
         assert_eq!(flat[2], vec![("Et toi".to_string(), '?')]);
         assert_eq!(flat[3], vec![("Fin".to_string(), '.')]);
@@ -321,12 +346,16 @@ mod tests {
 
     #[test]
     fn phonemes_become_the_voice_s_ids_padded_between_start_and_end() {
-        let map: HashMap<String, Vec<i64>> = [("_", 0), ("^", 1), ("$", 2), ("a", 14), ("b", 15), (" ", 3)]
-            .into_iter()
-            .map(|(k, v)| (k.to_string(), vec![v]))
-            .collect();
+        let map: HashMap<String, Vec<i64>> =
+            [("_", 0), ("^", 1), ("$", 2), ("a", 14), ("b", 15), (" ", 3)]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), vec![v]))
+                .collect();
         // « ʒ » is unknown to this voice: left out.
-        assert_eq!(phoneme_ids(&map, "ab ʒa"), vec![1, 14, 0, 15, 0, 3, 0, 14, 0, 2]);
+        assert_eq!(
+            phoneme_ids(&map, "ab ʒa"),
+            vec![1, 14, 0, 15, 0, 3, 0, 14, 0, 2]
+        );
     }
 
     #[test]
@@ -336,7 +365,10 @@ mod tests {
         assert_eq!(p.phonemes("fr", "bonjour").unwrap(), "bɔ̃ʒˈuʁ");
         assert_eq!(p.phonemes("en-us", "hello world").unwrap(), "həlˈoʊ wˈɜːld");
         // Written once: a second phonemizer reads the same folder.
-        assert!(dir.join("espeak-ng-data").join(".escouade-version").exists());
+        assert!(dir
+            .join("espeak-ng-data")
+            .join(".escouade-version")
+            .exists());
         let again = Phonemizer::new(dir.join("espeak-ng-data"));
         assert_eq!(again.phonemes("en-gb", "dog").unwrap(), "dˈɒɡ");
     }
@@ -351,7 +383,14 @@ mod tests {
         )
         .unwrap();
         let c = read_config(&model).unwrap();
-        assert_eq!((c.audio.sample_rate, c.num_speakers, c.inference.length_scale), (22050, 2, 1.1));
+        assert_eq!(
+            (
+                c.audio.sample_rate,
+                c.num_speakers,
+                c.inference.length_scale
+            ),
+            (22050, 2, 1.1)
+        );
         assert_eq!(c.espeak.voice, "fr");
     }
 
@@ -379,20 +418,32 @@ mod tests {
         let mut all = Vec::new();
         let mut rate = 0;
         for s in piper.sentences(&text) {
-            let a = piper.synthesize(Path::new(&voice), &s, &SpeakOptions::default()).unwrap();
+            let a = piper
+                .synthesize(Path::new(&voice), &s, &SpeakOptions::default())
+                .unwrap();
             rate = a.rate;
             all.extend(a.samples);
         }
-        eprintln!("{:.1} s of speech in {:?}", all.len() as f32 / rate as f32, started.elapsed());
+        eprintln!(
+            "{:.1} s of speech in {:?}",
+            all.len() as f32 / rate as f32,
+            started.elapsed()
+        );
         assert!(all.len() as f32 / rate as f32 > 1.5);
         let wav = dir.join("speech-test.wav");
         let mut w = hound::WavWriter::create(
             &wav,
-            hound::WavSpec { channels: 1, sample_rate: rate, bits_per_sample: 16, sample_format: hound::SampleFormat::Int },
+            hound::WavSpec {
+                channels: 1,
+                sample_rate: rate,
+                bits_per_sample: 16,
+                sample_format: hound::SampleFormat::Int,
+            },
         )
         .unwrap();
         for s in &all {
-            w.write_sample((s.clamp(-1.0, 1.0) * 32767.0) as i16).unwrap();
+            w.write_sample((s.clamp(-1.0, 1.0) * 32767.0) as i16)
+                .unwrap();
         }
         w.finalize().unwrap();
         eprintln!("written to {}", wav.display());
@@ -400,7 +451,12 @@ mod tests {
             use crate::voice::transcribe::Transcriber;
             let pcm = crate::voice::audio::resample(&all, rate, crate::voice::audio::WHISPER_RATE);
             let heard = crate::voice::transcribe::Whisper::default()
-                .transcribe(Path::new(&model), &pcm, "fr", &std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)))
+                .transcribe(
+                    Path::new(&model),
+                    &pcm,
+                    "fr",
+                    &std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+                )
                 .unwrap();
             eprintln!("Whisper heard: {heard}");
             let low = heard.to_lowercase();

@@ -161,6 +161,8 @@ pub struct VoiceSettings {
     /// The shortcut that starts and stops a dictation, held down to talk: "Mod" is Ctrl, Cmd on
     /// macOS (the window reads it, `shortcuts.ts`).
     pub shortcut: String,
+    /// The conversation's voice (ESC-97).
+    pub speech: SpeechSettings,
 }
 
 impl Default for VoiceSettings {
@@ -170,7 +172,47 @@ impl Default for VoiceSettings {
             model: crate::voice::models::DEFAULT_MODEL.into(),
             language: "ui".into(),
             shortcut: "Mod+Shift+Space".into(),
+            speech: SpeechSettings::default(),
         }
+    }
+}
+
+/// How the agent's passages are read aloud in a conversation.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct SpeechSettings {
+    /// The voice of each language (`fr`, `en`) by its id (`voice::speech::catalog`); none: the default one.
+    pub voices: std::collections::BTreeMap<String, String>,
+    /// The speaker of each voice that has several, by the voice's id.
+    pub speakers: std::collections::BTreeMap<String, u32>,
+    /// How fast it reads: 1 is the voice's own pace (0.5 to 2).
+    pub rate: f32,
+    /// How loud (0 to 1).
+    pub volume: f32,
+    /// The silence that ends what the user says, and sends it, in milliseconds.
+    pub silence_ms: u32,
+}
+
+impl Default for SpeechSettings {
+    fn default() -> Self {
+        Self {
+            voices: Default::default(),
+            speakers: Default::default(),
+            rate: 1.0,
+            volume: 1.0,
+            silence_ms: 1200,
+        }
+    }
+}
+
+impl SpeechSettings {
+    /// The voice of `lang`: the one chosen, else the default one.
+    pub fn voice(&self, lang: &str) -> String {
+        self.voices
+            .get(lang)
+            .filter(|id| crate::voice::speech::catalog::find(id).is_some())
+            .cloned()
+            .unwrap_or_else(|| crate::voice::speech::catalog::default_voice(lang).to_string())
     }
 }
 

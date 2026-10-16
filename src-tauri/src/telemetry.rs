@@ -87,6 +87,11 @@ pub enum Event {
         target: &'static str,
         model: &'static str,
     },
+    /// A voice conversation started: the language it is held in and the voice that reads; never what is said.
+    VoiceConversation {
+        lang: &'static str,
+        voice: String,
+    },
 }
 
 impl Event {
@@ -116,6 +121,7 @@ impl Event {
             Event::AccountCreated => "account_created",
             Event::RemoteControlEnabled { .. } => "remote_control_enabled",
             Event::DictationUsed { .. } => "dictation_used",
+            Event::VoiceConversation { .. } => "voice_conversation",
         }
     }
 
@@ -144,6 +150,7 @@ impl Event {
             Event::GitSync { op } => json!({ "op": op }),
             Event::RemoteControlEnabled { from } => json!({ "from": from }),
             Event::DictationUsed { target, model } => json!({ "target": target, "model": model }),
+            Event::VoiceConversation { lang, voice } => json!({ "lang": lang, "voice": voice }),
             Event::IntegrationConnected { service } | Event::TicketsImported { service } => {
                 json!({ "service": service })
             }

@@ -330,11 +330,11 @@ impl AgentRt {
                     b.item_id.clone()
                 });
             match (kind, streamed) {
-                ("text", Some(id)) => self.patch(
-                    &id,
-                    json!({ "text": block["text"], "streaming": false }),
-                    fx,
-                ),
+                ("text", Some(id)) => {
+                    let patch =
+                        final_text(block["text"].as_str().unwrap_or_default(), parent.is_none());
+                    self.patch(&id, patch, fx)
+                }
                 ("thinking", Some(id)) => {
                     let text = block["thinking"].as_str().unwrap_or("");
                     self.patch(&id, json!({ "text": text, "streaming": false }), fx)
@@ -348,7 +348,14 @@ impl AgentRt {
                     let n = self.blocks.get(&mid).map_or(0, Vec::len);
                     let item = match kind {
                         "text" => {
-                            json!({ "kind": "text", "id": format!("{mid}:a{n}"), "text": block["text"], "parent": parent, "streaming": false })
+                            let mut item = final_text(
+                                block["text"].as_str().unwrap_or_default(),
+                                parent.is_none(),
+                            );
+                            item["kind"] = json!("text");
+                            item["id"] = json!(format!("{mid}:a{n}"));
+                            item["parent"] = json!(parent);
+                            item
                         }
                         "thinking" => {
                             json!({ "kind": "thinking", "id": format!("{mid}:a{n}"), "text": block["thinking"].as_str().unwrap_or(""), "parent": parent, "streaming": false })
@@ -898,4 +905,13 @@ fn parse_rate_event(info: &Value) -> (Option<RateWindow>, Option<RateWindow>) {
         })
     };
     (parse("five_hour"), parse("seven_day"))
+}
+
+/// A text of the agent once written whole: its passage to be read aloud (`voice::spoken`), when it has one and is the
+/// agent's own (not a subagent's), apart from the rest.
+fn final_text(text: &str, own: bool) -> Value {
+    match crate::voice::spoken::extract(text).filter(|_| own) {
+        Some((rest, passage)) => json!({ "text": rest, "spoken": passage, "streaming": false }),
+        None => json!({ "text": text, "streaming": false }),
+    }
 }

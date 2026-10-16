@@ -9,9 +9,11 @@
 //! terminal of the Claude Code view); it is never sent by itself.
 
 pub mod audio;
+pub mod conversation;
 pub mod models;
 pub mod source;
 pub mod speech;
+pub mod spoken;
 #[cfg(test)]
 mod tests;
 pub mod transcribe;
@@ -118,6 +120,42 @@ pub enum VoiceEvent {
         done: u64,
         total: u64,
     },
+    /// A voice's download (the conversation's).
+    #[serde(rename_all = "camelCase")]
+    SpeechDownload {
+        voice: String,
+        done: u64,
+        total: u64,
+    },
+    /// The conversation: how loud the microphone is now (0 to 1).
+    #[serde(rename_all = "camelCase")]
+    ConvLevel { session: u64, level: f32 },
+    /// A sentence started.
+    #[serde(rename_all = "camelCase")]
+    ConvSpeech { session: u64 },
+    /// It ended (its silence came): it is being transcribed.
+    #[serde(rename_all = "camelCase")]
+    ConvTranscribing { session: u64 },
+    /// Its text (empty: nothing understood), or why it could not be transcribed. The conversation holds until told.
+    #[serde(rename_all = "camelCase")]
+    ConvHeard {
+        session: u64,
+        text: String,
+        error: Option<String>,
+    },
+    /// The reading `reading` was heard to its end (or could not be made: `error`); it listens again.
+    #[serde(rename_all = "camelCase")]
+    ConvSpoken {
+        session: u64,
+        reading: u64,
+        error: Option<String>,
+    },
+    /// The user spoke over the reading `reading`: it stopped, and the sentence is being listened to.
+    #[serde(rename_all = "camelCase")]
+    ConvBargeIn { session: u64, reading: u64 },
+    /// The microphone was lost: the conversation is over.
+    #[serde(rename_all = "camelCase")]
+    ConvEnded { session: u64, error: Option<String> },
 }
 
 /// What `start` answers.
@@ -169,6 +207,14 @@ pub struct Voice {
     source: Box<dyn Source>,
     transcriber: Arc<dyn Transcriber>,
     pub store: Store,
+    /// The conversation's voice: what speaks, where it is heard, its voices and where they come from.
+    engine: Arc<dyn speech::Engine>,
+    output: Arc<dyn speech::output::Output>,
+    pub voices: speech::VoiceStore,
+    pub voices_url: String,
+    conv: Mutex<Option<conversation::Conversation>>,
+    /// What « Écouter » of the settings plays.
+    preview: Mutex<Option<Arc<dyn speech::output::Playing>>>,
     /// Where the models are downloaded from (`models::MODELS_URL`; a fake server in tests).
     pub models_url: String,
     emit: Emit,
@@ -193,10 +239,23 @@ impl Voice {
         models_url: String,
         emit: Emit,
     ) -> Self {
+        let voices = speech::VoiceStore {
+            dir: store
+                .dir
+                .parent()
+                .map(|p| p.join("voices"))
+                .unwrap_or_else(|| PathBuf::from("voices")),
+        };
         Self {
             source,
             transcriber,
             store,
+            engine: Arc::new(speech::Fake::new(None)),
+            output: Arc::new(speech::output::Silent),
+            voices,
+            voices_url: speech::VOICES_URL.into(),
+            conv: Mutex::new(None),
+            preview: Mutex::new(None),
             models_url,
             emit,
             session: Mutex::new(None),
@@ -207,6 +266,17 @@ impl Voice {
             opening: AtomicBool::new(false),
             called_off: AtomicBool::new(false),
         }
+    }
+
+    /// What speaks and where it is heard.
+    pub fn with_speech(
+        mut self,
+        engine: Arc<dyn speech::Engine>,
+        output: Arc<dyn speech::output::Output>,
+    ) -> Self {
+        self.engine = engine;
+        self.output = output;
+        self
     }
 
     #[cfg(test)]
@@ -236,7 +306,23 @@ impl Voice {
             None => Arc::new(transcribe::Whisper::default()),
         };
         let url = var("ESCOUADE_VOICE_MODELS_URL").unwrap_or_else(|| models::MODELS_URL.into());
-        Self::new(
+        // `ESCOUADE_SPEECH_FAKE`: a fake voice, which writes what it says to that file, heard nowhere.
+        let (engine, output): (Arc<dyn speech::Engine>, Arc<dyn speech::output::Output>) =
+            match var("ESCOUADE_SPEECH_FAKE") {
+                Some(log) => (
+                    Arc::new(speech::Fake::new(Some(log.into()))),
+                    Arc::new(speech::output::Silent),
+                ),
+                None => (
+                    Arc::new(speech::piper::Piper::new(
+                        data.join("voice").join("espeak-ng-data"),
+                    )),
+                    Arc::new(speech::output::Speakers),
+                ),
+            };
+        let voices_url =
+            var("ESCOUADE_SPEECH_VOICES_URL").unwrap_or_else(|| speech::VOICES_URL.into());
+        let mut voice = Self::new(
             source,
             transcriber,
             Store {
@@ -245,6 +331,9 @@ impl Voice {
             url,
             emit,
         )
+        .with_speech(engine, output);
+        voice.voices_url = voices_url;
+        voice
     }
 
     pub fn devices(&self) -> Vec<Device> {
@@ -274,7 +363,10 @@ impl Voice {
         }
         // Not held while the microphone opens (macOS asks the user first): a window closed
         // meanwhile is not kept waiting. `opening` keeps a second start out until then.
-        if self.session.lock().is_some() || self.opening.swap(true, Ordering::AcqRel) {
+        if self.session.lock().is_some()
+            || self.conv.lock().is_some()
+            || self.opening.swap(true, Ordering::AcqRel)
+        {
             return Err(VoiceError::AlreadyListening);
         }
         self.called_off.store(false, Ordering::Release);
@@ -425,6 +517,8 @@ impl Voice {
         if let Some(c) = self.transcribing.lock().as_ref() {
             c.store(true, Ordering::Release);
         }
+        self.conversation_stop();
+        self.preview.lock().take();
     }
 
     /// Everything stops for good: what the app does as it quits, the downloads too.
@@ -493,5 +587,136 @@ impl Voice {
         let path = self.store.path(id);
         self.transcriber.unload(&path);
         self.store.delete(id)
+    }
+}
+
+/// What Réglages › Voix shows of the conversation's voices.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SpeechInfo {
+    /// Whether the app can speak on this machine (not on Intel Macs).
+    pub available: bool,
+    pub voices: Vec<speech::VoiceView>,
+}
+
+impl Voice {
+    pub fn speech_info(&self) -> SpeechInfo {
+        SpeechInfo {
+            available: self.engine.available(),
+            voices: self.voices.list(),
+        }
+    }
+
+    /// Downloads the voice `id` through `client`, its progress told to the window.
+    pub async fn download_voice(&self, client: &reqwest::Client, id: &str) -> anyhow::Result<()> {
+        let Some(v) = speech::catalog::find(id) else {
+            anyhow::bail!("unknown voice {id}");
+        };
+        if self.voices.has(v) {
+            return Ok(());
+        }
+        let key = format!("voice:{id}");
+        let cancel = Arc::new(AtomicBool::new(false));
+        {
+            let mut downloads = self.downloads.lock();
+            if downloads.contains_key(&key) {
+                anyhow::bail!(tr!(
+                    "Cette voix est déjà en cours de téléchargement.",
+                    "This voice is already being downloaded."
+                ));
+            }
+            downloads.insert(key.clone(), cancel.clone());
+        }
+        let emit = self.emit.clone();
+        let total = v.onnx_size + v.json_size;
+        let voice = v.id.clone();
+        let r = self
+            .voices
+            .download(client, &self.voices_url, v, &cancel, |done| {
+                emit(VoiceEvent::SpeechDownload {
+                    voice: voice.clone(),
+                    done,
+                    total,
+                })
+            })
+            .await;
+        self.downloads.lock().remove(&key);
+        match r {
+            Ok(()) => Ok(()),
+            Err(e) if e.is::<models::ChecksumMismatch>() => Err(anyhow::anyhow!(tr!(
+                "Le fichier téléchargé n’est pas la bonne voix (somme de contrôle différente) : il n’est pas gardé. Réessaie ; derrière un proxy qui modifie les fichiers, télécharge-la ailleurs.",
+                "The file downloaded is not the right voice (checksum mismatch): it was not kept. Try again; behind a proxy that alters files, download it elsewhere."
+            ))),
+            Err(e) => Err(e),
+        }
+    }
+
+    pub fn cancel_voice_download(&self, id: &str) {
+        if let Some(flag) = self.downloads.lock().get(&format!("voice:{id}")) {
+            flag.store(true, Ordering::Release);
+        }
+    }
+
+    pub fn delete_voice(&self, id: &str) -> anyhow::Result<()> {
+        if speech::catalog::find(id).is_none() {
+            anyhow::bail!("unknown voice {id}");
+        }
+        self.cancel_voice_download(id);
+        self.preview.lock().take();
+        self.engine.unload();
+        self.voices.delete(id)
+    }
+
+    /// « Écouter »: `text` read in the voice `id`, as the settings would have it. Blocks until it is heard (call it
+    /// off the async runtime); a new one stops the one before.
+    pub fn preview(
+        &self,
+        id: &str,
+        text: &str,
+        opts: &speech::SpeakOptions,
+        volume: f32,
+    ) -> anyhow::Result<()> {
+        let Some(v) = speech::catalog::find(id) else {
+            anyhow::bail!("unknown voice {id}");
+        };
+        if !self.voices.has(v) {
+            anyhow::bail!(tr!(
+                "Cette voix n’est pas téléchargée.",
+                "This voice is not downloaded."
+            ));
+        }
+        self.preview.lock().take();
+        let model = self.voices.model(&v.id);
+        let (tx, rx) = std::sync::mpsc::channel::<()>();
+        let mut playing: Option<Arc<dyn speech::output::Playing>> = None;
+        for sentence in self.engine.sentences(text) {
+            let audio = self.engine.synthesize(&model, &sentence, opts)?;
+            if playing.is_none() {
+                let tx = tx.clone();
+                let p = self
+                    .output
+                    .open(
+                        audio.rate,
+                        volume,
+                        Box::new(move || {
+                            let _ = tx.send(());
+                        }),
+                    )
+                    .map_err(|e| anyhow::anyhow!(e))?;
+                *self.preview.lock() = Some(p.clone());
+                playing = Some(p);
+            }
+            playing.as_ref().unwrap().push(&audio.samples);
+        }
+        drop(tx);
+        let Some(p) = playing else { return Ok(()) };
+        p.finish();
+        // Until heard, or stopped (another preview, the window gone): the sender goes with the playback.
+        let _ = rx.recv_timeout(Duration::from_secs(120));
+        let mut slot = self.preview.lock();
+        if slot.as_ref().is_some_and(|x| Arc::ptr_eq(x, &p)) {
+            slot.take();
+        }
+        Ok(())
     }
 }

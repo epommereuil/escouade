@@ -2842,6 +2842,32 @@ mod tests {
     }
 
     #[test]
+    fn the_passage_to_be_read_aloud_is_kept_apart_from_the_answer() {
+        let mut a = rt();
+        let mut fx = Effects::default();
+        // Streamed, then written whole.
+        start_streaming(&mut a, &mut fx);
+        a.handle_frame(&json!({"type":"assistant","message":{"id":"m9","content":[{"type":"text","text":"J'ai corrigé `a.rs`.\n\n<spoken>C'est corrigé, **les tests passent**.</spoken>"}]},"parent_tool_use_id":null}), &mut fx);
+        let text = a.conv.get("m9:0").unwrap().clone();
+        assert_eq!(text["text"], "J'ai corrigé `a.rs`.");
+        assert_eq!(text["spoken"], "C'est corrigé, les tests passent.");
+        // Written whole at once.
+        a.handle_frame(&json!({"type":"assistant","message":{"id":"m10","content":[{"type":"text","text":"Fini.\n<spoken>Fini !</spoken>"}]},"parent_tool_use_id":null}), &mut fx);
+        let text = a.conv.get("m10:a0").unwrap().clone();
+        assert_eq!(
+            (text["text"].as_str(), text["spoken"].as_str()),
+            (Some("Fini."), Some("Fini !"))
+        );
+        // A subagent's is its own business: left as it is.
+        a.handle_frame(&json!({"type":"assistant","message":{"id":"m11","content":[{"type":"text","text":"<spoken>x</spoken>"}]},"parent_tool_use_id":"tu7"}), &mut fx);
+        assert!(a
+            .conv
+            .items()
+            .iter()
+            .all(|i| i["spoken"].is_null() || i["parent"].is_null()));
+    }
+
+    #[test]
     fn an_interrupted_turn_closes_open_blocks_and_tools() {
         let mut a = rt();
         let mut fx = Effects::default();
