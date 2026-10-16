@@ -59,6 +59,15 @@ cpal = "0.18"
 whisper-rs = { version = "0.16", features = ["log_backend"] }
 # A WAV file as the sound source: the end-to-end tests, which have no microphone.
 hound = "3.5"
+# The conversation (`voice::speech`): Piper's voices read on the machine. The text becomes phonemes through eSpeak NG
+# (its port to Rust, GPL-3.0-or-later, the data of French and English built in), which the voice's VITS model, run by
+# ONNX Runtime, turns into sound.
+espeak-ng = { version = "0.2", default-features = false, features = ["bundled-data-fr", "bundled-data-en"] }
+
+# ONNX Runtime, linked in statically (pyke's builds, downloaded by its build script). None is built for Intel Macs:
+# there the conversation says it is not available.
+[target.'cfg(not(all(target_os = "macos", target_arch = "x86_64")))'.dependencies]
+ort = { version = "=2.0.0-rc.13", default-features = false, features = ["std", "download-binaries", "tls-rustls", "api-22"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.60", features = ["Win32_Media_Audio", "Win32_Foundation", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Diagnostics_ToolHelp", "Win32_System_JobObjects", "Win32_System_ProcessStatus", "Win32_System_Registry", "Win32_System_Threading", "Win32_UI_WindowsAndMessaging"] }

@@ -11,9 +11,11 @@
 pub mod audio;
 pub mod models;
 pub mod source;
+pub mod speech;
 #[cfg(test)]
 mod tests;
 pub mod transcribe;
+pub mod vad;
 
 use crate::i18n::Lang;
 use models::{ModelView, Store};

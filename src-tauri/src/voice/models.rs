@@ -146,59 +146,77 @@ impl Store {
         base: &str,
         m: &ModelInfo,
         cancel: &AtomicBool,
-        mut progress: impl FnMut(u64),
+        progress: impl FnMut(u64),
     ) -> Result<PathBuf> {
-        std::fs::create_dir_all(&self.dir)?;
         let url = format!("{}/ggml-{}.bin", base.trim_end_matches('/'), m.id);
-        let mut res = client
-            .get(&url)
-            .header("User-Agent", "escouade")
-            .send()
-            .await?
-            .error_for_status()?;
-        let part = self.part(m.id);
-        let result: Result<()> = async {
-            let mut file = std::io::BufWriter::new(std::fs::File::create(&part)?);
-            let mut hash = Sha256::new();
-            let mut done = 0u64;
-            let mut told = Instant::now();
-            progress(0);
-            while let Some(chunk) = res.chunk().await? {
-                if cancel.load(Ordering::Acquire) {
-                    bail!(Cancelled);
-                }
-                file.write_all(&chunk)?;
-                hash.update(&chunk);
-                done += chunk.len() as u64;
-                if done > m.size {
-                    bail!("{} bytes and more, {} expected", done, m.size);
-                }
-                if told.elapsed() >= Duration::from_millis(100) {
-                    told = Instant::now();
-                    progress(done);
-                }
-            }
-            file.flush()?;
-            drop(file);
-            if done != m.size {
-                bail!("{done} bytes received, {} expected", m.size);
-            }
-            let got = format!("{:x}", hash.finalize());
-            if got != m.sha256 {
-                bail!(ChecksumMismatch);
-            }
-            progress(done);
-            Ok(())
-        }
-        .await;
-        if let Err(e) = result {
-            let _ = std::fs::remove_file(&part);
-            return Err(e);
-        }
         let path = self.path(m.id);
-        std::fs::rename(&part, &path)?;
+        fetch_checked(client, &url, m.size, m.sha256, &path, cancel, progress).await?;
         Ok(path)
     }
+}
+
+/// Downloads `url` with `client` into `path`, `progress` told the bytes so far (every 100 ms at most, and at the
+/// end), until `cancel` is set. Written to `<path>.part` first: the file is only there once whole, of `size` bytes
+/// and its SHA-256 `sha256`.
+pub async fn fetch_checked(
+    client: &reqwest::Client,
+    url: &str,
+    size: u64,
+    sha256: &str,
+    path: &std::path::Path,
+    cancel: &AtomicBool,
+    mut progress: impl FnMut(u64),
+) -> Result<()> {
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    let mut res = client
+        .get(url)
+        .header("User-Agent", "escouade")
+        .send()
+        .await?
+        .error_for_status()?;
+    let part = PathBuf::from(format!("{}.part", path.display()));
+    let result: Result<()> = async {
+        let mut file = std::io::BufWriter::new(std::fs::File::create(&part)?);
+        let mut hash = Sha256::new();
+        let mut done = 0u64;
+        let mut told = Instant::now();
+        progress(0);
+        while let Some(chunk) = res.chunk().await? {
+            if cancel.load(Ordering::Acquire) {
+                bail!(Cancelled);
+            }
+            file.write_all(&chunk)?;
+            hash.update(&chunk);
+            done += chunk.len() as u64;
+            if done > size {
+                bail!("{} bytes and more, {} expected", done, size);
+            }
+            if told.elapsed() >= Duration::from_millis(100) {
+                told = Instant::now();
+                progress(done);
+            }
+        }
+        file.flush()?;
+        drop(file);
+        if done != size {
+            bail!("{done} bytes received, {} expected", size);
+        }
+        let got = format!("{:x}", hash.finalize());
+        if got != sha256 {
+            bail!(ChecksumMismatch);
+        }
+        progress(done);
+        Ok(())
+    }
+    .await;
+    if let Err(e) = result {
+        let _ = std::fs::remove_file(&part);
+        return Err(e);
+    }
+    std::fs::rename(&part, path)?;
+    Ok(())
 }
 
 /// A download called off by the user.
