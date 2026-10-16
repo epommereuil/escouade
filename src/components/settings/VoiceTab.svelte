@@ -10,6 +10,7 @@
   import Chips from './Chips.svelte';
   import Group from './Group.svelte';
   import Row from './Row.svelte';
+  import SpeechSettings from './SpeechSettings.svelte';
   import { tip } from '../../lib/tip';
 
   // « Voix »: the microphone, the Whisper model (downloaded or deleted at once, chosen with the draft), the language
@@ -146,6 +147,8 @@
     </div>
   </Row>
 </Group>
+
+<SpeechSettings />
 
 <style>
   .input {

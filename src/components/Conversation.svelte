@@ -4,6 +4,7 @@
   import { t } from '../lib/i18n';
   import Rich from '../lib/i18n/Rich.svelte';
   import { api } from '../lib/ipc';
+  import { withoutPassage } from '../lib/conversation';
   import { canSwitchView, switchView } from '../lib/agent-actions';
   import { conversationOf, type ReadingPlace } from '../lib/conversations.svelte';
   import { bgCount } from '../lib/bgtasks';
@@ -480,7 +481,8 @@
 
   /** Items that draw nothing: an empty block of text, the calls whose question or plan has its own card. */
   function shows(item: ConvItem) {
-    if (item.kind === 'text' || item.kind === 'thinking') return !!item.text.trim() || item.streaming;
+    if (item.kind === 'text') return !!item.text.trim() || item.streaming || !!item.spoken;
+    if (item.kind === 'thinking') return !!item.text.trim() || item.streaming;
     if (item.kind === 'tool') return item.name !== 'AskUserQuestion' && item.name !== 'ExitPlanMode';
     return true;
   }
@@ -701,13 +703,20 @@
                 <div class="assistant">
                   {#if !prevIsText(i)}<span class="avatar">C</span>{:else}<span class="avatar ghost"></span>{/if}
                   <div class="blocks">
-                    {#each splitEscouade(item.text) as seg, si (si)}
+                    {#each splitEscouade(item.streaming ? withoutPassage(item.text) : item.text) as seg, si (si)}
                       {#if seg.kind === 'report'}
                         <CriteriaReport report={seg.report} criteria={ticket?.criteria ?? []} {agent} />
                       {:else}
                         <Markdown text={seg.text} streaming={item.streaming} />
                       {/if}
                     {/each}
+                    {#if item.spoken}
+                      <!-- The passage the agent wrote to be read aloud in a voice conversation (ESC-97). -->
+                      <blockquote class="spoken" data-spoken>
+                        <span class="spoken-label">🔊 {t('voice.conversation.read')}</span>
+                        {item.spoken}
+                      </blockquote>
+                    {/if}
                   </div>
                 </div>
               {:else if item.kind === 'thinking'}
@@ -1027,6 +1036,21 @@
     display: flex;
     gap: 12px;
     min-width: 0;
+  }
+  .spoken {
+    margin: 0;
+    padding: 8px 12px;
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--r) var(--r) 0;
+    background: color-mix(in oklch, var(--accent) 8%, transparent);
+    font-size: 13.5px;
+    line-height: 1.55;
+  }
+  .spoken-label {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 11px;
+    color: var(--muted);
   }
   .blocks {
     flex: 1;

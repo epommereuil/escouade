@@ -108,6 +108,7 @@ export default {
     queuedHint: 'Claude en tient compte dès sa prochaine étape',
     remote: 'depuis claude.ai',
     remoteHint: 'Envoyé depuis claude.ai ou l’app Claude (remote control)',
+    saidAloud: 'dit à voix haute',
   },
 
   /** What Claude Code passed on to Claude by itself (a background task, a subagent, another session). */

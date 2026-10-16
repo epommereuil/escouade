@@ -13,6 +13,7 @@ import { bgRow } from './bgtasks';
 import { basename, isAbsPath, relPath } from './format';
 import { setLang, t } from './i18n';
 import { dictation } from './dictation.svelte';
+import { conversation } from './conversation.svelte';
 import { mcp } from './mcp.svelte';
 import { readPref, writePref } from './prefs';
 import { testCommand, worktreeCommand } from './recipe';
@@ -587,6 +588,7 @@ class AppState {
         break;
       case 'voice':
         dictation.take(e.voice);
+        conversation.take(e.voice);
         break;
       case 'boardIssue':
         if (e.issue) this.boardIssues[e.projectId] = e.issue;

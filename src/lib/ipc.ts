@@ -54,6 +54,8 @@ import type {
   UiEvent,
   UiState,
   VoiceInfo,
+  SpeechInfo,
+  ConvStarted,
   VoiceStarted,
   WorktreeSuggestion,
   SetupInfo,
@@ -113,6 +115,21 @@ export const api = {
   voiceDownload: (model: string) => invoke<void>('voice_download', { model }),
   voiceDownloadCancel: (model: string) => invoke<void>('voice_download_cancel', { model }),
   voiceDeleteModel: (model: string) => invoke<void>('voice_delete_model', { model }),
+  // The voice conversation (ESC-97).
+  speechInfo: () => invoke<SpeechInfo>('speech_info'),
+  conversationStart: () => invoke<ConvStarted>('conversation_start'),
+  conversationListen: (session: number) => invoke<void>('conversation_listen', { session }),
+  conversationHold: (session: number) => invoke<void>('conversation_hold', { session }),
+  /** Reads `text` aloud: the number of the reading, which its end (`convSpoken`) and a barge-in carry. */
+  conversationSay: (session: number, text: string) => invoke<number>('conversation_say', { session, text }),
+  conversationStop: () => invoke<void>('conversation_stop'),
+  /** A sentence said, sent to the agent with the instruction to end with a passage to be read aloud. */
+  conversationSend: (id: string, text: string) => invoke<void>('conversation_send', { id, text }),
+  speechDownload: (id: string) => invoke<void>('speech_download', { id }),
+  speechDownloadCancel: (id: string) => invoke<void>('speech_download_cancel', { id }),
+  speechDelete: (id: string) => invoke<void>('speech_delete', { id }),
+  /** « Écouter »: resolves once heard. */
+  speechPreview: (id: string, speaker?: number) => invoke<void>('speech_preview', { id, speaker }),
   /** The settings, but for the Claude accounts (their tab changes them with the `account*` calls below). */
   saveSettings: (settings: Settings) => invoke<ShellInfo[]>('save_settings', { settings }),
   /** Where the `claude` of `path` is (blank: the one found by itself), `wslDistro` the distribution for one of WSL. */

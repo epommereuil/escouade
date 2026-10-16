@@ -31,6 +31,7 @@
   import { insertAt } from '../lib/dictation';
   import type { DictationTarget } from '../lib/dictation.svelte';
   import AttachmentChip from './AttachmentChip.svelte';
+  import ConversationButton from './ConversationButton.svelte';
   import MicButton from './MicButton.svelte';
   import Dropdown from './Dropdown.svelte';
   import { tip } from '../lib/tip';
@@ -628,6 +629,7 @@
           e.currentTarget.value = '';
         }}
       />
+      <ConversationButton {agent} />
       <MicButton target={dictated} />
       <button
         class="icon-btn attach"

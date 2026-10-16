@@ -164,6 +164,7 @@ class Dictation {
       if (this.progress?.model === e.model) this.progress = { model: e.model, done: e.done, total: e.total };
       return;
     }
+    if (e.kind !== 'level' && e.kind !== 'ended') return;
     if (e.session !== this.session) return;
     if (e.kind === 'level') {
       this.level = e.level;

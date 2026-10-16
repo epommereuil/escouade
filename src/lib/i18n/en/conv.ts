@@ -94,6 +94,7 @@ export default defineZone('conv', {
     queuedHint: 'Claude takes it into account at its next step',
     remote: 'from claude.ai',
     remoteHint: 'Sent from claude.ai or the Claude app (remote control)',
+    saidAloud: 'said aloud',
   },
 
   event: {

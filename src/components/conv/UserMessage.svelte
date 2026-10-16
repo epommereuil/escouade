@@ -2,8 +2,11 @@
   import { t } from '../../lib/i18n';
   import type { UserItem } from '../../lib/types';
   import { tip } from '../../lib/tip';
+  import { withoutInstruction } from '../../lib/conversation';
 
   let { item, waiting = false }: { item: UserItem; waiting?: boolean } = $props();
+  // Said in a voice conversation: shown without the instruction Escouade added for the agent (ESC-97).
+  const shown = $derived(withoutInstruction(item.text));
 </script>
 
 <div class="wrap">
@@ -14,7 +17,8 @@
     {#each item.files ?? [] as name, i (i)}
       <span class="chip">📄 {name}</span>
     {/each}
-    <span class="text">{item.text}</span>
+    <span class="text">{shown.text}</span>
+    {#if shown.spoken}<span class="note" data-said-aloud>🎙 {t('conv.user.saidAloud')}</span>{/if}
     <!-- Sent while the worktree is prepared: the backend takes it once that is over. -->
     {#if waiting}<span class="note">{t('conv.user.waiting')}</span>{/if}
     <!-- Sent while Claude worked: the CLI takes it at the turn's next step (after the running tool). -->

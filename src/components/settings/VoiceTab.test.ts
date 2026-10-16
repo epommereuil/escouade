@@ -50,6 +50,7 @@ describe('Réglages › Voix', () => {
       model: 'base',
       language: 'ui',
       shortcut: 'Mod+Shift+Space',
+      speech: { voices: {}, speakers: {}, rate: 1, volume: 1, silenceMs: 1200 },
     });
   });
 

@@ -80,7 +80,57 @@ export interface VoiceSettings {
   language: string;
   /** Starts and stops a dictation, held down to talk: `Mod+Shift+Space` (Mod: Ctrl, Cmd on macOS). */
   shortcut: string;
+  /** The conversation's voice (ESC-97). */
+  speech: SpeechSettings;
 }
+
+/** How the agent's passages are read aloud in a conversation. */
+export interface SpeechSettings {
+  /** The voice of each language (`fr`, `en`) by its id; none: the default one. */
+  voices: Record<string, string>;
+  /** The speaker of each voice that has several, by the voice's id. */
+  speakers: Record<string, number>;
+  /** 1: the voice's own pace (0.5 to 2). */
+  rate: number;
+  /** 0 to 1. */
+  volume: number;
+  /** The silence that ends what the user says, and sends it (ms). */
+  silenceMs: number;
+}
+
+/** A voice of the conversation (`voice::speech::catalog`), as Réglages › Voix lists it. */
+export interface SpeechVoice {
+  id: string;
+  lang: string;
+  locale: string | null;
+  name: string;
+  quality: string;
+  speakers: number;
+  speakerNames: string[];
+  sampleRate: number;
+  repo: string;
+  onnxSize: number;
+  jsonSize: number;
+  license: string;
+  datasetLicense: string | null;
+  datasetUrl: string | null;
+  /** What must be shown with it (CC BY). */
+  attribution: string | null;
+  downloaded: boolean;
+}
+
+export interface SpeechInfo {
+  /** Whether the app can speak on this machine (not on Intel Macs). */
+  available: boolean;
+  voices: SpeechVoice[];
+}
+
+/** What starting a conversation answers. */
+export type ConvStarted =
+  | { kind: 'listening'; session: number }
+  | { kind: 'needsModel'; model: string; size: number }
+  | { kind: 'needsVoice'; voice: string; size: number }
+  | { kind: 'unavailable' };
 
 /** A microphone, as Réglages › Voix lists it. */
 export interface VoiceDevice {
@@ -110,7 +160,15 @@ export type VoiceStarted = { kind: 'listening'; session: number } | { kind: 'nee
 export type VoiceEvent =
   | { kind: 'level'; session: number; level: number; ms: number }
   | { kind: 'ended'; session: number; error: string | null }
-  | { kind: 'download'; model: string; done: number; total: number };
+  | { kind: 'download'; model: string; done: number; total: number }
+  | { kind: 'speechDownload'; voice: string; done: number; total: number }
+  | { kind: 'convLevel'; session: number; level: number }
+  | { kind: 'convSpeech'; session: number }
+  | { kind: 'convTranscribing'; session: number }
+  | { kind: 'convHeard'; session: number; text: string; error: string | null }
+  | { kind: 'convSpoken'; session: number; reading: number; error: string | null }
+  | { kind: 'convBargeIn'; session: number; reading: number }
+  | { kind: 'convEnded'; session: number; error: string | null };
 
 /** A Claude account: Claude Code with a configuration folder of its own (its own sign-in, sessions and quota). */
 export interface Account {
@@ -1134,6 +1192,8 @@ export interface TextItem extends Base {
   kind: 'text';
   text: string;
   streaming: boolean;
+  /** In a voice conversation: the passage the agent wrote to be read aloud, taken out of `text` (ESC-97). */
+  spoken?: string;
 }
 export interface ThinkingItem extends Base {
   kind: 'thinking';

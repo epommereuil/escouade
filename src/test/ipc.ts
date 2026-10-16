@@ -8,6 +8,7 @@ import { fileSearches } from '../lib/editor/search.svelte';
 import { gitSync } from '../lib/git-sync.svelte';
 import { mcp } from '../lib/mcp.svelte';
 import { dictation } from '../lib/dictation.svelte';
+import { conversation } from '../lib/conversation.svelte';
 import { trees } from '../lib/editor/trees.svelte';
 import { app } from '../lib/state.svelte';
 import type { Agent, BoardSettings, BranchInfo, GitInfo, Project, Settings, Ticket } from '../lib/types';
@@ -82,7 +83,13 @@ export const SETTINGS: Settings = {
   uiZoom: 100,
   terminalFontSize: 12.5,
   editorFontSize: 12.5,
-  voice: { device: '', model: 'base', language: 'ui', shortcut: 'Mod+Shift+Space' },
+  voice: {
+    device: '',
+    model: 'base',
+    language: 'ui',
+    shortcut: 'Mod+Shift+Space',
+    speech: { voices: {}, speakers: {}, rate: 1, volume: 1, silenceMs: 1200 },
+  },
 };
 
 export function project(over: Partial<Project> = {}): Project {
@@ -323,6 +330,7 @@ export function resetApp(over: { projects?: Project[]; agents?: Agent[]; tickets
   buffers.reset();
   mcp.reset();
   dictation.clear();
+  conversation.clear();
   trees.reset();
   navHistory.reset();
   recentFiles.reset();
