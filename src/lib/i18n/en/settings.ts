@@ -3,7 +3,7 @@ import { defineZone } from '../types';
 // The settings window and the settings of a project.
 export default defineZone('settings', {
   tabs: {
-    app: { label: 'Application', desc: 'Language of the interface and of texts written by Claude' },
+    app: { label: 'Application', desc: 'Zoom, text size, and languages' },
     claude: { label: 'Claude Code', desc: 'Executable, model, and default permissions' },
     accounts: { label: 'Claude accounts', desc: 'The accounts agents start on, saved as you change them' },
     notifications: { label: 'Notifications', desc: 'Visual and sound alerts' },
@@ -55,6 +55,17 @@ export default defineZone('settings', {
   },
 
   app: {
+    display: 'Display',
+    zoom: 'Interface zoom',
+    zoomDesc: 'Text, spacing, and icons across the whole app grow together, terminals and editor included. Applied and saved right away.',
+    zoomKeys: 'Also from the keyboard: {in} to zoom in, {out} to zoom out, {reset} to go back to 100%.',
+    zoomTooBig: 'Too big for the size of the window',
+    zoomHeld: 'The window is too small for {zoom}: the interface is at {shown} until it grows.',
+    percent: '{n}%',
+    terminalFontSize: 'Terminal text size',
+    editorFontSize: 'Editor text size',
+    fontSizeHint: 'in pixels, {n} by default',
+    fontSizeDesc: 'From 9 to 24, before the interface zoom, which adds to it.',
     language: 'Language',
     uiLanguage: 'Interface language',
     system: 'System ({lang})',

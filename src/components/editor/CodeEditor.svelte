@@ -21,6 +21,7 @@
   import { reloadChange } from '../../lib/editor/reload';
   import { editorTheme, phrases } from '../../lib/editor/theme';
   import { locale } from '../../lib/i18n';
+  import { app } from '../../lib/state.svelte';
   import { observeWidth } from '../../lib/resize';
 
   // `docKey` names the file shown: another one replaces the whole editor state. `version` changes
@@ -148,6 +149,12 @@
     reportCursor(view.state);
   });
   onDestroy(() => view?.destroy());
+
+  // « Taille du texte de l’éditeur » changed (`--editor-font`): its lines and gutters measured again.
+  $effect(() => {
+    void app.settings.editorFontSize;
+    requestAnimationFrame(() => view?.requestMeasure());
+  });
 
   $effect(() => {
     const k = docKey;

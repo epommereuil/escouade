@@ -92,8 +92,59 @@ pub struct Settings {
     /// « Remote control pour tous les agents »: every agent, those of tickets too, is reachable
     /// from claude.ai (`AgentMeta::remote_control`, `RemoteSource::Global`).
     pub remote_control_all: bool,
+    /// « Zoom de l’interface », in percent (`ZOOM_LEVELS`): the whole window's, as the WebView's
+    /// zoom (text, spacing and icons together); Ctrl+= / Ctrl+- / Ctrl+0 change it too.
+    pub ui_zoom: u32,
+    /// « Taille du texte des terminaux », in CSS pixels, before the zoom (`FONT_SIZE_RANGE`).
+    pub terminal_font_size: f64,
+    /// « Taille du texte de l’éditeur », in CSS pixels, before the zoom (`FONT_SIZE_RANGE`).
+    pub editor_font_size: f64,
     /// « Voix »: the dictation (`voice`).
     pub voice: VoiceSettings,
+}
+
+/// The steps of « Zoom de l’interface », in percent: the window's own (`Settings::normalize_display`).
+pub const ZOOM_LEVELS: [u32; 8] = [80, 90, 100, 110, 125, 150, 175, 200];
+/// The font sizes the terminals and the editor may have, in CSS pixels.
+pub const FONT_SIZE_RANGE: (f64, f64) = (9.0, 24.0);
+/// Their font size by default (what they had before it could be set).
+pub const DEFAULT_FONT_SIZE: f64 = 12.5;
+/// The least room the interface is laid out for, in CSS pixels: the window's minimum size.
+pub const MIN_ROOM: (f64, f64) = (1000.0, 600.0);
+
+/// The zoom `zoom` as a window of `width` × `height` logical pixels can show it: the biggest
+/// step up to it that leaves the interface its `MIN_ROOM`, never under 100 % (as the window's
+/// `fitZoom`).
+pub fn fit_zoom(zoom: u32, width: f64, height: f64) -> u32 {
+    let fits = |z: u32| {
+        let f = f64::from(z) / 100.0;
+        width / f >= MIN_ROOM.0 - 0.5 && height / f >= MIN_ROOM.1 - 0.5
+    };
+    ZOOM_LEVELS
+        .iter()
+        .copied()
+        .filter(|&z| z <= zoom && (z <= 100 || fits(z)))
+        .max()
+        .unwrap_or(100)
+}
+
+/// A Claude account: Claude Code with a configuration folder of its own (`accounts`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Account {
+    /// `accounts::PRINCIPAL` for the user's own.
+    pub id: String,
+    pub name: String,
+    /// Its `CLAUDE_CONFIG_DIR`; empty for Principal, launched without one.
+    pub config_dir: String,
+    /// Its own `claude`; empty: the settings' one.
+    pub claude_path: String,
+    /// New agents may go to it.
+    pub active: bool,
+    /// « Réservé aux projets »: the ids of the only projects whose new agents and tickets may go
+    /// to it (a client's account kept to that client's projects); empty: every project. Principal's
+    /// too: a project no active account serves then starts nothing (`accounts::serves_any`).
+    pub projects: Vec<String>,
 }
 
 /// The dictation's settings.
@@ -121,25 +172,6 @@ impl Default for VoiceSettings {
             shortcut: "Mod+Shift+Space".into(),
         }
     }
-}
-
-/// A Claude account: Claude Code with a configuration folder of its own (`accounts`).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", default)]
-pub struct Account {
-    /// `accounts::PRINCIPAL` for the user's own.
-    pub id: String,
-    pub name: String,
-    /// Its `CLAUDE_CONFIG_DIR`; empty for Principal, launched without one.
-    pub config_dir: String,
-    /// Its own `claude`; empty: the settings' one.
-    pub claude_path: String,
-    /// New agents may go to it.
-    pub active: bool,
-    /// « Réservé aux projets »: the ids of the only projects whose new agents and tickets may go
-    /// to it (a client's account kept to that client's projects); empty: every project. Principal's
-    /// too: a project no active account serves then starts nothing (`accounts::serves_any`).
-    pub projects: Vec<String>,
 }
 
 impl Account {
@@ -245,6 +277,24 @@ impl Settings {
         }
     }
 
+    /// What the display settings say that they may not (written by hand, or by a later version):
+    /// a zoom off the steps is the nearest one, a font size out of range its nearest bound (not a
+    /// number: the default), to the half pixel.
+    pub fn normalize_display(&mut self) {
+        let z = self.ui_zoom;
+        self.ui_zoom = *ZOOM_LEVELS
+            .iter()
+            .min_by_key(|l| l.abs_diff(z))
+            .unwrap_or(&100);
+        for size in [&mut self.terminal_font_size, &mut self.editor_font_size] {
+            *size = if size.is_finite() {
+                ((*size * 2.0).round() / 2.0).clamp(FONT_SIZE_RANGE.0, FONT_SIZE_RANGE.1)
+            } else {
+                DEFAULT_FONT_SIZE
+            };
+        }
+    }
+
     /// The network settings of a Claude Code process: its proxy, and its TLS verification off
     /// when asked.
     pub fn claude_env(&self) -> Vec<(String, String)> {
@@ -324,6 +374,9 @@ impl Default for Settings {
             attach_big_text: "path".into(),
             attach_keep_days: 0,
             remote_control_all: false,
+            ui_zoom: 100,
+            terminal_font_size: DEFAULT_FONT_SIZE,
+            editor_font_size: DEFAULT_FONT_SIZE,
             voice: VoiceSettings::default(),
         }
     }
@@ -1745,6 +1798,50 @@ mod tests {
         assert_eq!(v["attachOrigin"], json!(false));
         assert_eq!(v["attachBigText"], json!("refuse"));
         assert_eq!(v["attachKeepDays"], json!(30));
+    }
+
+    #[test]
+    fn the_display_settings_default_to_the_sizes_of_before_and_stay_in_their_range() {
+        let s: Settings = serde_json::from_value(json!({})).unwrap();
+        assert_eq!(
+            (s.ui_zoom, s.terminal_font_size, s.editor_font_size),
+            (100, 12.5, 12.5)
+        );
+        let mut s: Settings = serde_json::from_value(json!({
+            "uiZoom": 133, "terminalFontSize": 3, "editorFontSize": 13.3
+        }))
+        .unwrap();
+        s.normalize_display();
+        assert_eq!(
+            (s.ui_zoom, s.terminal_font_size, s.editor_font_size),
+            (125, 9.0, 13.5)
+        );
+        s.ui_zoom = 1000;
+        s.terminal_font_size = f64::NAN;
+        s.editor_font_size = 40.0;
+        s.normalize_display();
+        assert_eq!(
+            (s.ui_zoom, s.terminal_font_size, s.editor_font_size),
+            (200, 12.5, 24.0)
+        );
+        s.ui_zoom = 0;
+        s.normalize_display();
+        assert_eq!(s.ui_zoom, 80);
+        let v = serde_json::to_value(&s).unwrap();
+        assert_eq!(
+            (v["uiZoom"].clone(), v["editorFontSize"].clone()),
+            (json!(80), json!(24.0))
+        );
+    }
+
+    #[test]
+    fn the_zoom_is_held_to_what_leaves_the_interface_its_room() {
+        assert_eq!(fit_zoom(200, 1440.0, 1080.0), 125);
+        assert_eq!(fit_zoom(200, 1920.0, 1080.0), 175);
+        assert_eq!(fit_zoom(150, 2560.0, 1400.0), 150);
+        assert_eq!(fit_zoom(200, 2560.0, 700.0), 110);
+        assert_eq!(fit_zoom(80, 1000.0, 600.0), 80);
+        assert_eq!(fit_zoom(125, 1000.0, 600.0), 100);
     }
 
     #[test]

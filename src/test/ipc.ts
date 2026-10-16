@@ -79,6 +79,9 @@ export const SETTINGS: Settings = {
   todoTools: true,
   terminalView: false,
   remoteControlAll: false,
+  uiZoom: 100,
+  terminalFontSize: 12.5,
+  editorFontSize: 12.5,
   voice: { device: '', model: 'base', language: 'ui', shortcut: 'Mod+Shift+Space' },
 };
 

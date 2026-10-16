@@ -136,7 +136,7 @@ Le journal d’une commande de lancement est en lecture seule : hors la copie et
 
 ### Ce qui reste au shell
 
-Sous Windows et Linux, un terminal qui a le focus garde pour son shell les touches `Ctrl` suivies d’une lettre, dont `Ctrl+K` (couper la fin de la ligne), `Ctrl+P` (commande précédente), `Ctrl+N` et `Ctrl+T` : pour chercher dans les conversations, ouvrir un fichier, créer un agent ou un terminal, clique d’abord hors du terminal. L’app n’y prend que `Ctrl+Tab` et `Ctrl+Maj+Tab`, `Ctrl+1` … `Ctrl+9`, `Ctrl+J` (pour un shell, ce n’est qu’un saut de ligne, que `Entrée` fait déjà), `Ctrl+,` et `Ctrl+Maj+A`. `Ctrl+Maj` suivi d’une lettre n’envoie rien au shell : `Ctrl+Maj+B` et `Ctrl+Maj+L` marchent aussi dans un terminal, où `Ctrl+Maj+F` cherche dans sa sortie.
+Sous Windows et Linux, un terminal qui a le focus garde pour son shell les touches `Ctrl` suivies d’une lettre, dont `Ctrl+K` (couper la fin de la ligne), `Ctrl+P` (commande précédente), `Ctrl+N` et `Ctrl+T` : pour chercher dans les conversations, ouvrir un fichier, créer un agent ou un terminal, clique d’abord hors du terminal. L’app n’y prend que `Ctrl+Tab` et `Ctrl+Maj+Tab`, `Ctrl+1` … `Ctrl+9`, `Ctrl+J` (pour un shell, ce n’est qu’un saut de ligne, que `Entrée` fait déjà), `Ctrl+,`, `Ctrl+Maj+A`, et le zoom (`Ctrl+=`, `Ctrl+-`, `Ctrl+0`). `Ctrl+Maj` suivi d’une lettre n’envoie rien au shell : `Ctrl+Maj+B` et `Ctrl+Maj+L` marchent aussi dans un terminal, où `Ctrl+Maj+F` cherche dans sa sortie.
 
 Sous macOS, les raccourcis de l’app utilisent `⌘`, que le shell ne reçoit jamais : ils marchent tous dans un terminal, sauf `⌘C`, `⌘V` et `⌘A` (tout sélectionner), qui sont ceux du terminal. Les touches `Ctrl` vont au shell.
 
@@ -167,5 +167,7 @@ Un double-clic sur un séparateur rétablit aussi sa taille.
 | Raccourci | Action | Où |
 |---|---|---|
 | `Ctrl+,` | Ouvrir les réglages. | Partout, terminaux compris |
+| `Ctrl+=` (ou `Ctrl++`) / `Ctrl+-` | Agrandir / réduire toute l’interface d’un palier (voir [« Affichage »](settings-application#affichage)). | Partout, terminaux compris, fenêtre ouverte ou non |
+| `Ctrl+0` | Revenir au zoom de 100 %. | Partout, terminaux compris, fenêtre ouverte ou non |
 | `Échap` | Fermer les réglages. | Réglages ouverts |
 | `Alt+↑` / `Alt+↓` | Monter / descendre une commande de préparation ou de démontage, depuis n’importe quel champ de la commande. | Réglages d’un projet, listes des commandes de worktree |

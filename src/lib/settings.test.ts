@@ -509,7 +509,7 @@ describe('settingsForm', () => {
     setLang('en');
     flushSync();
     expect(names()).toEqual([
-      'Application / Language of the interface and of texts written by Claude',
+      'Application / Zoom, text size, and languages',
       'Claude Code / Executable, model, and default permissions',
       'Claude accounts / The accounts agents start on, saved as you change them',
       'Notifications / Visual and sound alerts',

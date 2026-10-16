@@ -15,6 +15,9 @@ mod agents_tests;
 mod background;
 #[cfg(test)]
 mod background_tests;
+mod files;
+#[cfg(test)]
+mod files_tests;
 mod http;
 mod images;
 #[cfg(test)]

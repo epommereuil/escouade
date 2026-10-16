@@ -29,7 +29,7 @@ const MB: u64 = 1 << 20;
 /// exactly that.
 pub const MAX_CHUNK: u64 = 4 << 20;
 /// The owner of the files joined in the form of a ticket, which has no agent yet.
-const DRAFT: &str = "draft";
+pub(crate) const DRAFT: &str = "draft";
 /// The mark of a copy under way, beside its folder (`<uniq>.part`): a copy is no longer under way
 /// when its window forgot it (a reload) and the mark is still there, so its half file is found.
 const PART: &str = ".part";

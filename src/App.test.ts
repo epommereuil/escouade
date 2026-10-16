@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import App from './App.svelte';
 import { setLang } from './lib/i18n';
 import { app } from './lib/state.svelte';
-import type { Agent, InitialState, Project, Ticket, UiEvent } from './lib/types';
+import type { Agent, InitialState, Project, Settings, Ticket, UiEvent } from './lib/types';
 import { agent, branchInfo, fakeBackend, gitInfo, project, resetApp, SETTINGS, ticket } from './test/ipc';
 
 const DIFF = `diff --git a/src/auth.ts b/src/auth.ts
@@ -21,13 +21,19 @@ const emit = (e: UiEvent) => channel!.onmessage(e);
 
 function start(
   layout: '' | 'split',
-  over: { projects?: Project[]; agents?: Agent[]; tickets?: Ticket[]; handlers?: Record<string, (args: any) => unknown> } = {},
+  over: {
+    projects?: Project[];
+    agents?: Agent[];
+    tickets?: Ticket[];
+    settings?: Partial<Settings>;
+    handlers?: Record<string, (args: any) => unknown>;
+  } = {},
 ) {
   const initial: InitialState = {
     projects: over.projects ?? [project()],
     agents: over.agents ?? [agent()],
     ui: { activeProject: 'p1', view: 'project', selectedAgent: {}, layout },
-    settings: SETTINGS,
+    settings: { ...SETTINGS, ...over.settings },
     usage: { fiveHour: null, sevenDay: null, todayCost: 0, updatedAt: 0, accounts: [], current: 'principal' },
     git: {},
     shells: [],
@@ -53,6 +59,23 @@ function start(
   app.ready = false;
   return Object.assign(render(App), { backend });
 }
+
+describe('the display', () => {
+  const zooms = (b: ReturnType<typeof fakeBackend>) => b.called('plugin:webview|set_webview_zoom').map((c) => c.args.value);
+
+  it('zooms the window as saved once the settings are read, gives the editor its font size, and zooms from the keyboard', async () => {
+    const { backend } = start('', { settings: { uiZoom: 150, editorFontSize: 16 } });
+    await waitFor(() => expect(zooms(backend)).toEqual([1.5]));
+    expect(document.documentElement.style.getPropertyValue('--editor-font')).toBe('16px');
+    await fireEvent.keyDown(window, { key: '=', ctrlKey: true });
+    expect(app.settings.uiZoom).toBe(175);
+    expect(zooms(backend)).toEqual([1.5, 1.75]);
+    await fireEvent.keyDown(window, { key: '0', ctrlKey: true });
+    expect(zooms(backend)).toEqual([1.5, 1.75, 1]);
+    app.settings.editorFontSize = 14;
+    await waitFor(() => expect(document.documentElement.style.getPropertyValue('--editor-font')).toBe('14px'));
+  });
+});
 
 describe('App layout', () => {
   it('shows the uncommitted files and the diff next to the conversation in the split layout', async () => {

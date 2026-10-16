@@ -7,7 +7,12 @@
     options,
     label,
     mono = false,
-  }: { value: T; options: { value: T; label: string; title?: string; lang?: string }[]; label: string; mono?: boolean } = $props();
+  }: {
+    value: T;
+    options: { value: T; label: string; title?: string; lang?: string; disabled?: boolean }[];
+    label: string;
+    mono?: boolean;
+  } = $props();
 </script>
 
 <div class="chips" role="group" aria-label={label}>
@@ -18,6 +23,7 @@
       class:on={value === o.value}
       aria-pressed={value === o.value}
       lang={o.lang}
+      disabled={o.disabled}
       use:tip={o.title}
       onclick={() => (value = o.value)}>{o.label}</button
     >
@@ -45,7 +51,11 @@
     white-space: nowrap;
     cursor: pointer;
   }
-  .chip:hover:not(.on) {
+  .chip:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .chip:hover:not(.on):not(:disabled) {
     color: var(--text);
   }
   .chip.mono {

@@ -7,6 +7,7 @@ import { Unicode11Addon } from '@xterm/addon-unicode11';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { WebglAddon } from '@xterm/addon-webgl';
 import { MAX_TOTAL, base64, clipboardImage, copyToDisk, imageType, planByPath, sizeLabel } from './attachments';
+import { DEFAULT_FONT_SIZE } from './display.svelte';
 import { echoWatch, type InputKind } from './echo-watch';
 import { t } from './i18n';
 import { api } from './ipc';
@@ -150,7 +151,7 @@ function reportRenderer(x: XTerm) {
 function createXTerm(readOnly: boolean, room?: Room | null): XTerm {
   const term = new Terminal({
     fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-    fontSize: 12.5,
+    fontSize: app.settings.terminalFontSize || DEFAULT_FONT_SIZE,
     lineHeight: 1.2,
     cursorBlink: !readOnly,
     cursorInactiveStyle: readOnly ? 'none' : 'outline',
@@ -559,6 +560,24 @@ export function disposeLog(commandId: string) {
   if (!x) return;
   free(x);
   xterms.delete(logKey(commandId));
+}
+
+/**
+ * « Taille du texte des terminaux », for every terminal: those on screen are fitted to their place again at once (their
+ * program told its new size), those parked when they are shown (fitted to the parking lot, a program would be told a
+ * size it never has).
+ */
+export function setTerminalFontSize(size: number) {
+  for (const x of xterms.values()) {
+    if (x.term.options.fontSize === size) continue;
+    x.term.options.fontSize = size;
+    if (!x.host.isConnected || x.host.parentElement === parking) continue;
+    try {
+      x.fit.fit();
+    } catch {
+      /* not measurable yet */
+    }
+  }
 }
 
 export function getXTerm(id: string): XTerm | undefined {

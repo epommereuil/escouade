@@ -1,6 +1,6 @@
 # Settings: Application
 
-This page describes the settings window (its tabs, how to open it, how it saves) and its “Application” tab, which sets the language of the interface and the language of the texts Claude writes.
+This page describes the settings window (its tabs, how to open it, how it saves) and its “Application” tab, which sets the display (the interface zoom, the text size of the terminals and of the editor) and the language of the interface and of the texts Claude writes.
 
 ## The settings window
 
@@ -12,7 +12,7 @@ The left column lists the tabs, with Escouade’s version at the bottom. The nam
 
 | Tab | What it sets |
 |---|---|
-| “Application” | Language of the interface and of texts written by Claude |
+| “Application” | Zoom, text size, and languages |
 | [“Claude Code”](settings-claude-code) | Executable, model, and default permissions |
 | [“Claude accounts”](settings-accounts) | The accounts agents start on, saved as you change them |
 | [“Notifications”](settings-notifications) | Visual and sound alerts |
@@ -35,11 +35,32 @@ Changes go into a draft: nothing applies until you click “Save”. A dot on a 
 
 ### What saves right away
 
-Two places do not wait for the button, because a “Cancel” could not undo what they write to disk: the “Claude accounts” tab, where each change goes through the moment you make it, and the “Claude and the agents can drive Escouade” switch on the “Claude Code” tab.
+Three places do not wait for the button. The “Claude accounts” tab, where each change goes through the moment you make it, and the “Claude and the agents can drive Escouade” switch on the “Claude Code” tab, because a “Cancel” could not undo what they write to disk. And the “Display” group of the “Application” tab, which also changes from the keyboard, settings window open or not: what you pick there shows and saves right away.
 
 ## The “Application” tab
 
-The tab has a single group, “Language”. Both choices take effect as soon as you save, with no restart: the window, the app’s menus, and the texts Escouade writes switch to the new language.
+The tab has two groups, “Display” and “Language”.
+
+### Display
+
+These three settings apply right away, with no “Save” and no restart, and stay from one launch to the next.
+
+| Setting | Effect | Default |
+|---|---|---|
+| “Interface zoom” | Makes the whole window bigger or smaller, like a browser’s zoom: text, spacing, and icons together, terminals and editor included. Steps: 80%, 90%, 100%, 110%, 125%, 150%, 175%, and 200%. | 100% |
+| “Terminal text size” | The font size of the terminals and of the [Claude Code view](claude-code-view), in pixels, from 9 to 24 in half-pixel steps. The zoom adds to it. | 12.5 |
+| “Editor text size” | The font size of the [editor](editor), in pixels, from 9 to 24; the lines grow with it. The zoom adds to it. | 12.5 |
+
+From the keyboard, anywhere, even in a terminal or with a dialog open: `Ctrl+=` (or `Ctrl++`) zooms in one step, `Ctrl+-` zooms out one step, `Ctrl+0` goes back to 100% (`⌘=`, `⌘-`, `⌘0` on macOS). The `+` and `-` keys of the numeric keypad work too.
+
+A terminal whose font changes resizes at once to fit its area, and its program is told its new size in columns and rows: nothing spills over or gets cut.
+
+> [!NOTE]
+> The interface is laid out for at least 1000 × 600 pixels, the window’s minimum size. A step that would not leave that much room is grayed out, with the tooltip “Too big for the size of the window”, and `Ctrl+=` stops before it. If the window shrinks below the chosen step, the interface switches to the biggest step it can hold, and the tab says so; the chosen step comes back as soon as the window is big enough.
+
+### Language
+
+Both choices take effect as soon as you save, with no restart: the window, the app’s menus, and the texts Escouade writes switch to the new language.
 
 | Setting | Effect | Default |
 |---|---|---|

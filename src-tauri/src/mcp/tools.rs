@@ -16,6 +16,7 @@
 //! ```
 //!
 //! `get_ticket_image` answers more than a text (an image block, then a text): `ToolCtx::reply_blocks`.
+//! `get_ticket_file` reads a ticket's other files part by part (`files`).
 //!
 //! A call the router refuses before its tool (unknown, arguments that do not fit the schema) is
 //! logged by `call_tool`. What a tool's arguments name is found by `resolve`; what the reading
@@ -40,6 +41,7 @@
 use super::act;
 use super::activity::{self, Outcome};
 use super::background;
+use super::files;
 use super::images;
 use super::read;
 use super::wait;
@@ -301,6 +303,30 @@ pub struct GetTicketImageArgs {
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct GetTicketFileArgs {
+    #[schemars(
+        description = "The ticket: its key (like ATL-12, in any case) or its id. An agent of Escouade may leave it out to read a file of its own ticket."
+    )]
+    pub ticket: Option<String>,
+    #[schemars(
+        description = "The file's file, as get_ticket gives it (files). Give this or index, not both."
+    )]
+    pub file: Option<String>,
+    #[schemars(
+        description = "The file's rank in the list get_ticket gives (files), from 0. Give this or file, not both."
+    )]
+    pub index: Option<u32>,
+    #[schemars(
+        description = "Where to start reading, in bytes from the start of the file (0 for its start). Leave it out to read its end."
+    )]
+    pub offset: Option<u64>,
+    #[schemars(
+        description = "The most bytes to read: 8192 by default, 1 at least and 65536 at most."
+    )]
+    pub bytes: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct GetAgentSummaryArgs {
     #[schemars(description = "The agent: its id, or its name in any case.")]
     pub agent: String,
@@ -514,6 +540,42 @@ pub struct CreateTicketArgs {
         description = "Images to attach (screenshots, mock-ups; 20 at most, 5 MB each and 18 MB in all: PNG, JPEG, GIF or WebP, read from their content), which the ticket's agent gets with its first message. Leave them out for none."
     )]
     pub images: Option<Vec<ImageArg>>,
+    #[schemars(
+        description = "Other files to attach, of any format (a spreadsheet, an archive, a log, a PDF…; 20 at most, each no bigger than the size the settings allow, Settings › Claude Code › Attachments), whose paths the ticket's agent gets with its first message. Leave them out for none."
+    )]
+    pub files: Option<Vec<FileArg>>,
+}
+
+/// A file to attach to a ticket, as `create_ticket` and `update_ticket` take it.
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+#[schemars(inline)]
+pub struct FileArg {
+    #[schemars(
+        description = "Its name (only what follows the last slash is kept, made safe as the window makes it). Required with data; with path it is the file's name by default."
+    )]
+    pub name: Option<String>,
+    #[schemars(
+        description = "Its content in base64, for a small file (a request weighs 32 MiB at most: give a bigger file by its path). Give this or path, not both."
+    )]
+    pub data: Option<String>,
+    #[schemars(
+        description = "The full path of a file on this computer, which is copied. An agent of Escouade can only give a file of its working folder (a safeguard of the server, not a security boundary). Give this or data, not both."
+    )]
+    pub path: Option<String>,
+}
+
+/// A file of a ticket, as the tools that name one take it.
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+#[schemars(inline)]
+pub struct FileRef {
+    #[schemars(
+        description = "The file's file, as get_ticket gives it (files). Give this or index, not both."
+    )]
+    pub file: Option<String>,
+    #[schemars(
+        description = "The file's rank in the list get_ticket gives (files), from 0. Give this or file, not both."
+    )]
+    pub index: Option<u32>,
 }
 
 /// An image to attach to a ticket, as `create_ticket`, `update_ticket` and the like take it.
@@ -580,6 +642,14 @@ pub struct UpdateTicketArgs {
         description = "Images of the ticket to take away, each named by its file or its rank in the list get_ticket gives. The images you do not name stay. Leave it out to take none away."
     )]
     pub remove_images: Option<Vec<ImageRef>>,
+    #[schemars(
+        description = "Other files to attach, added after the ones the ticket has (same form and limits as create_ticket's files: 20 files in all at most). Leave it out to add none."
+    )]
+    pub add_files: Option<Vec<FileArg>>,
+    #[schemars(
+        description = "Files of the ticket to take away, each named by its file or its rank in the list get_ticket gives (files). The files you do not name stay. Leave it out to take none away."
+    )]
+    pub remove_files: Option<Vec<FileRef>>,
 }
 
 /// Where `move_ticket` puts a ticket.
@@ -871,6 +941,10 @@ pub struct SubTicket {
         description = "The images of your ticket this one gets a copy of, each named by its file or its rank in the list get_ticket gives. Leave it out for all of them, give an empty list for none."
     )]
     pub images: Option<Vec<ImageRef>>,
+    #[schemars(
+        description = "The other files of your ticket this one gets a copy of, each named by its file or its rank in the list get_ticket gives (files). Leave it out for all of them, give an empty list for none."
+    )]
+    pub files: Option<Vec<FileRef>>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -927,7 +1001,7 @@ impl<R: Runtime> Tools<R> {
     }
 
     #[tool(
-        description = "Read a ticket whole: its title, description, acceptance criteria (each with whether it is met and its agent's note), loops (the current one and the most it may run), column, the keys of the tickets it comes after, the features in place so far as its agent listed them, its images (images: for each its index, from 0, its file, name, mediaType and size in bytes, null when its file is gone; get_ticket_image reads one), how many other files are joined to it (files, a number: its agent is given their paths, the tools do not read them), the model and the effort of its agent when start_ticket gave it its own (left out otherwise), the external ticket it was imported from (Jira, Trello, GitHub or Linear; null when none), and where it stands in the board's flow: its agent (id, name, status, and how many requests wait for an answer; null before it starts), its branch and its worktree, those of its agent (null before it starts; kept once the ticket is done, when the worktree may be gone), why it is blocked (blocked) and whether that is a merge conflict (conflict), the validation step running (step: Validation… or Approving…, Tests…, Commit…, Merge…, Push…) and, once it is approved, its outcome (text, the pull request's url, and the commit it made on the target branch). An agent of Escouade may leave out the ticket to read its own.",
+        description = "Read a ticket whole: its title, description, acceptance criteria (each with whether it is met and its agent's note), loops (the current one and the most it may run), column, the keys of the tickets it comes after, the features in place so far as its agent listed them, its images (images: for each its index, from 0, its file, name, mediaType and size in bytes, null when its file is gone; get_ticket_image reads one), its other files, of any format (files: for each its index, from 0, its file, name and size in bytes, null when its file is gone; its agent is given their paths, and get_ticket_file reads one), the model and the effort of its agent when start_ticket gave it its own (left out otherwise), the external ticket it was imported from (Jira, Trello, GitHub or Linear; null when none), and where it stands in the board's flow: its agent (id, name, status, and how many requests wait for an answer; null before it starts), its branch and its worktree, those of its agent (null before it starts; kept once the ticket is done, when the worktree may be gone), why it is blocked (blocked) and whether that is a merge conflict (conflict), the validation step running (step: Validation… or Approving…, Tests…, Commit…, Merge…, Push…) and, once it is approved, its outcome (text, the pull request's url, and the commit it made on the target branch). An agent of Escouade may leave out the ticket to read its own.",
         annotations(read_only_hint = true, open_world_hint = false)
     )]
     async fn get_ticket(
@@ -957,6 +1031,31 @@ impl<R: Runtime> Tools<R> {
         ]);
         let result = images::fetch(&ctx.core, &ctx.caller, args).await;
         ctx.reply_blocks("get_ticket_image", &asked, result)
+    }
+
+    #[tool(
+        description = "Read a file of a ticket other than an image (any format: get_ticket lists them, files), part of it at a time: its end by default, or bytes from offset. Answers the ticket's key and the file's index, file, name and size in bytes, then the part read: offset (where it starts in the file), length (how many bytes of the file it holds), encoding (text when it is UTF-8 text, cut at characters, so offset and length may differ by a few bytes from what was asked; base64 otherwise) and content. bytes: 8192 by default, 65536 at most (Claude Code refuses an answer of more than about 25,000 tokens): read a bigger file in several parts. For Claude outside Escouade, the answer also gives path, where the file is on this computer, to read it whole by its own means; an agent of Escouade is not given it (the ticket's agent has the paths of its files in its first message). Name the file by its file or by its index, from 0, in the list get_ticket gives: one of the two. An agent of Escouade may leave out the ticket to read a file of its own, and can only read the files of the tickets of its own project (get_ticket stays open to all). Fails when the file is gone from the ticket's folder (the purge of the settings, « Conserver les fichiers »).",
+        annotations(read_only_hint = true, open_world_hint = false)
+    )]
+    async fn get_ticket_file(
+        &self,
+        ctx: ToolCtx<R>,
+        Parameters(args): Parameters<GetTicketFileArgs>,
+    ) -> CallToolResult {
+        let (index, offset, bytes) = (
+            args.index.map(|i| i.to_string()),
+            args.offset.map(|o| o.to_string()),
+            args.bytes.map(|b| b.to_string()),
+        );
+        let asked = summary(&[
+            ("ticket", args.ticket.as_deref()),
+            ("file", args.file.as_deref()),
+            ("index", index.as_deref()),
+            ("offset", offset.as_deref()),
+            ("bytes", bytes.as_deref()),
+        ]);
+        let result = files::fetch(&ctx.core, &ctx.caller, args).await;
+        ctx.reply("get_ticket_file", &asked, result)
     }
 
     #[tool(
@@ -1073,7 +1172,7 @@ impl<R: Runtime> Tools<R> {
     }
 
     #[tool(
-        description = "Create a ticket in the To do column of a project's Kanban board, at the end of the column. When the project's autopilot is on, it starts by itself as soon as a place is free and the tickets it comes after are done. The description ends with a line saying who created the ticket. You may attach images (screenshots, mock-ups) with images, each given by its content in base64 (data, with a name) or by the full path of a file on this computer (path; an agent of Escouade can only give a file of its working folder): PNG, JPEG, GIF or WebP, read from their content, 5 MB each, 18 MB in all, 20 at most. The ticket's agent gets them with its first message. An image that is refused refuses the whole call, and nothing is created. Answers the ticket as get_ticket does.",
+        description = "Create a ticket in the To do column of a project's Kanban board, at the end of the column. When the project's autopilot is on, it starts by itself as soon as a place is free and the tickets it comes after are done. The description ends with a line saying who created the ticket. You may attach images (screenshots, mock-ups) with images, each given by its content in base64 (data, with a name) or by the full path of a file on this computer (path; an agent of Escouade can only give a file of its working folder): PNG, JPEG, GIF or WebP, read from their content, 5 MB each, 18 MB in all, 20 at most. The ticket's agent gets them with its first message. You may also attach other files of any format (a spreadsheet, an archive, a log, a PDF…) with files, given the same two ways (by content in base64 for a small one, a request weighing 32 MiB at most; by path otherwise, the file then copied): 20 at most, each no bigger than the size the settings allow (Settings › Claude Code › Attachments, as in the window); the ticket's agent gets their paths with its first message. An image or a file that is refused refuses the whole call, and nothing is created. Answers the ticket as get_ticket does.",
         annotations(
             read_only_hint = false,
             destructive_hint = false,
@@ -1088,18 +1187,20 @@ impl<R: Runtime> Tools<R> {
         let after = args.after.as_ref().map(|a| a.join(", "));
         // How many, never what: no content, no path.
         let images = args.images.as_ref().map(|i| i.len().to_string());
+        let files = args.files.as_ref().map(|f| f.len().to_string());
         let asked = summary(&[
             ("project", Some(&args.project)),
             ("title", Some(&args.title)),
             ("after", after.as_deref()),
             ("images", images.as_deref()),
+            ("files", files.as_deref()),
         ]);
         let result = act::create_ticket(&ctx.core, &ctx.caller, args).await;
         ctx.reply("create_ticket", &asked, result)
     }
 
     #[tool(
-        description = "Edit a ticket of the To do column: the fields you leave out stay as they are. A ticket that has started cannot be edited, and a dependency that would make two tickets wait for each other is refused. When you change the title, the description or the criteria, the description ends with a line saying who edited the ticket, in the place of the one that said who created it. You can attach images with addImages (same form and limits as create_ticket's images, counting the ones the ticket keeps) and take some away with removeImages (each named by its file or its index, from 0, as get_ticket lists them): the images you do not name stay, and images alone leave the title, the description and the criteria as they are (no line saying who edited the ticket). Nothing changes when an image is refused. Answers the ticket as get_ticket does.",
+        description = "Edit a ticket of the To do column: the fields you leave out stay as they are. A ticket that has started cannot be edited, and a dependency that would make two tickets wait for each other is refused. When you change the title, the description or the criteria, the description ends with a line saying who edited the ticket, in the place of the one that said who created it. You can attach images with addImages (same form and limits as create_ticket's images, counting the ones the ticket keeps) and take some away with removeImages (each named by its file or its index, from 0, as get_ticket lists them): the images you do not name stay, and images alone leave the title, the description and the criteria as they are (no line saying who edited the ticket). The other files go the same way, with addFiles (same form and limits as create_ticket's files, counting the ones the ticket keeps) and removeFiles (each named by its file or its index, from 0, as get_ticket lists them in files): the files you do not name stay. Nothing changes when an image or a file is refused. Answers the ticket as get_ticket does.",
         annotations(
             read_only_hint = false,
             destructive_hint = false,
@@ -1114,12 +1215,16 @@ impl<R: Runtime> Tools<R> {
         let after = args.after.as_ref().map(|a| a.join(", "));
         let added = args.add_images.as_ref().map(|i| i.len().to_string());
         let removed = args.remove_images.as_ref().map(|i| i.len().to_string());
+        let added_files = args.add_files.as_ref().map(|f| f.len().to_string());
+        let removed_files = args.remove_files.as_ref().map(|f| f.len().to_string());
         let asked = summary(&[
             ("ticket", Some(&args.ticket)),
             ("title", args.title.as_deref()),
             ("after", after.as_deref()),
             ("addImages", added.as_deref()),
             ("removeImages", removed.as_deref()),
+            ("addFiles", added_files.as_deref()),
+            ("removeFiles", removed_files.as_deref()),
         ]);
         let result = act::update_ticket(&ctx.core, &ctx.caller, args).await;
         ctx.reply("update_ticket", &asked, result)
@@ -1497,7 +1602,7 @@ impl<R: Runtime> Tools<R> {
     }
 
     #[tool(
-        description = "Only for Escouade's own agents (refused to any other client, and to an agent without a ticket). Split the work that remains of your ticket into new To do tickets (10 at most per call), made after it: with chain true (the default) each comes after the one before it, the first after yours; with chain false all come after yours alone and may run in parallel. They start once the tickets they come after are done. Each ends with a line saying who made it. Each also gets its own copies of the images of your ticket: all of them by default, or those you name in its images (by file or index, from 0, as get_ticket lists them), none with an empty list; a reference that fits no image of your ticket, or that names one whose file is gone, refuses the whole call. When the images are left out (images not given), one whose file is gone is skipped, not copied. Answers the keys of the tickets made; when an image was skipped, an object with those keys (tickets) and one sentence for each image skipped (skipped).",
+        description = "Only for Escouade's own agents (refused to any other client, and to an agent without a ticket). Split the work that remains of your ticket into new To do tickets (10 at most per call), made after it: with chain true (the default) each comes after the one before it, the first after yours; with chain false all come after yours alone and may run in parallel. They start once the tickets they come after are done. Each ends with a line saying who made it. Each also gets its own copies of the images of your ticket: all of them by default, or those you name in its images (by file or index, from 0, as get_ticket lists them), none with an empty list; a reference that fits no image of your ticket, or that names one whose file is gone, refuses the whole call. When the images are left out (images not given), one whose file is gone is skipped, not copied. The other files of your ticket go the same way, with files: all of them by default (one whose file is gone, or bigger than the settings now allow, is skipped), those you name, or none with an empty list; one named that cannot be copied refuses the whole call before any ticket is made. Answers the keys of the tickets made; when an image or a file was skipped, an object with those keys (tickets) and one sentence for each one skipped (skipped).",
         annotations(
             read_only_hint = false,
             destructive_hint = false,
@@ -1524,7 +1629,19 @@ impl<R: Runtime> Tools<R> {
                 .sum();
             named.to_string()
         });
-        let asked = summary(&[("tickets", Some(&titles)), ("images", images.as_deref())]);
+        let files = args.tickets.iter().any(|t| t.files.is_some()).then(|| {
+            let named: usize = args
+                .tickets
+                .iter()
+                .map(|t| t.files.as_ref().map_or(0, Vec::len))
+                .sum();
+            named.to_string()
+        });
+        let asked = summary(&[
+            ("tickets", Some(&titles)),
+            ("images", images.as_deref()),
+            ("files", files.as_deref()),
+        ]);
         let result = act::split_ticket(&ctx.core, &ctx.caller, args).await;
         ctx.reply("split_ticket", &asked, result)
     }

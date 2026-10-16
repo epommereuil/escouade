@@ -1,5 +1,6 @@
 // Global keyboard shortcuts, routed in one place.
 
+import { handleZoomKey, zoomKey } from './display.svelte';
 import { findInFiles } from './editor/search.svelte';
 import { DEFAULT_SHORTCUT, matchesShortcut, parseShortcut } from './dictation';
 import { dictation } from './dictation.svelte';
@@ -70,6 +71,8 @@ const overviewKey = (e: KeyboardEvent) => e.shiftKey && e.key.toLowerCase() === 
 export function isAppShortcut(e: KeyboardEvent, mac = IS_MAC): boolean {
   if (e.altKey) return false;
   if (agentCycle(e)) return true;
+  // The zoom of the whole window, as in VS Code's terminal (Ctrl+- would only be readline's undo there).
+  if (zoomKey(e, mac) !== null) return true;
   if (!primaryKey(e, mac)) return false;
   const k = e.key.toLowerCase();
   if (overviewKey(e)) return true;
@@ -124,6 +127,8 @@ export function handleShortcut(e: KeyboardEvent, mac = IS_MAC): boolean {
     openQuickOpen();
     return true;
   }
+  // The zoom too: a dialog grows with the rest.
+  if (handleZoomKey(e, mac)) return true;
   if (app.modal) return false;
   if (agentCycle(e) && app.project) {
     const list = app.projectAgents;

@@ -123,7 +123,18 @@ vi.mock('@xterm/addon-webgl', () => ({
 }));
 
 import { app } from './state.svelte';
-import { disposeTerminal, getXTerm, openAccountLogin, openAgentTerminal, openTerminal, pastedContent, roomOf } from './terminals';
+import {
+  disposeLog,
+  disposeTerminal,
+  getXTerm,
+  launchLog,
+  openAccountLogin,
+  openAgentTerminal,
+  openTerminal,
+  pastedContent,
+  roomOf,
+  setTerminalFontSize,
+} from './terminals';
 
 beforeEach(() => {
   terms.length = 0;
@@ -1821,5 +1832,37 @@ describe('what a terminal tells the log', () => {
       await new Promise((r) => setTimeout(r, 20));
       expect(b.called('term_report')).toEqual([]);
     });
+  });
+});
+
+describe('« Taille du texte des terminaux »', () => {
+  beforeEach(() => resetApp());
+
+  it('is the size a new terminal is made with, 12.5 px by default', () => {
+    launchLog('size-default', () => {});
+    expect(termOptions.at(-1)).toMatchObject({ fontSize: 12.5 });
+    app.settings.terminalFontSize = 15;
+    launchLog('size-set', () => {});
+    expect(termOptions.at(-1)).toMatchObject({ fontSize: 15 });
+    disposeLog('size-default');
+    disposeLog('size-set');
+  });
+
+  it('changes every terminal made, and fits again only those on screen: a parked one is fitted once shown', () => {
+    const shown = launchLog('size-shown', () => {});
+    const parked = launchLog('size-parked', () => {});
+    const box = document.createElement('div');
+    document.body.appendChild(box);
+    box.appendChild(shown.host);
+    fits.length = 0;
+    setTerminalFontSize(18);
+    expect([shown.term.options.fontSize, parked.term.options.fontSize]).toEqual([18, 18]);
+    expect(fits).toHaveLength(1);
+    // The same size again changes nothing.
+    setTerminalFontSize(18);
+    expect(fits).toHaveLength(1);
+    disposeLog('size-shown');
+    disposeLog('size-parked');
+    box.remove();
   });
 });

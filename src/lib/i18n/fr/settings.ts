@@ -4,7 +4,7 @@ import type { Tree } from '../types';
 export default {
   // The tabs of the window: their name and what they set (under the title, in the header).
   tabs: {
-    app: { label: 'Application', desc: 'Langue de l’interface et des textes rédigés par Claude' },
+    app: { label: 'Application', desc: 'Zoom, taille du texte et langues' },
     claude: { label: 'Claude Code', desc: 'Exécutable, modèle et permissions par défaut' },
     accounts: { label: 'Comptes Claude', desc: 'Les comptes sur lesquels partent les agents, enregistrés à chaque changement' },
     notifications: { label: 'Notifications', desc: 'Alertes visuelles et sonores' },
@@ -64,6 +64,21 @@ export default {
 
   // The « Application » tab.
   app: {
+    display: 'Affichage',
+    zoom: 'Zoom de l’interface',
+    zoomDesc:
+      'Le texte, les espacements et les icônes de toute l’application grandissent ensemble, terminaux et éditeur compris. Appliqué et enregistré tout de suite.',
+    /** The shortcuts of the zoom, as written on this system. */
+    zoomKeys: 'Aussi au clavier : {in} pour agrandir, {out} pour réduire, {reset} pour revenir à 100 %.',
+    zoomTooBig: 'Trop grand pour la taille de la fenêtre',
+    /** The zoom chosen is too big for the window as it is now. */
+    zoomHeld: 'La fenêtre est trop petite pour {zoom} : l’interface est à {shown} tant qu’elle ne grandit pas.',
+    /** A step of the zoom: « 125 % ». */
+    percent: '{n} %',
+    terminalFontSize: 'Taille du texte des terminaux',
+    editorFontSize: 'Taille du texte de l’éditeur',
+    fontSizeHint: 'en pixels, {n} par défaut',
+    fontSizeDesc: 'De 9 à 24, avant le zoom de l’interface, qui s’y ajoute.',
     language: 'Langue',
     uiLanguage: 'Langue de l’interface',
     /** The system's language, named in the interface's: « Système (Français) ». */

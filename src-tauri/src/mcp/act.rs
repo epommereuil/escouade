@@ -39,6 +39,7 @@
 //! `split_ticket` are for the agents of Escouade alone.
 
 use super::activity;
+use super::files::{self, Drafted};
 use super::images;
 use super::read::{
     answerable, asked_questions, board_view, json, request_type, ticket_view, todo_keys, TicketView,
@@ -457,6 +458,8 @@ pub(super) async fn create_ticket<R: Runtime>(
 ) -> Result<String, ToolError> {
     let project = resolve::project(core, &a.project)?;
     own_project_only(core, caller, &project.id)?;
+    // The copies of the drafts the core does not move into the ticket go once the call is over.
+    let mut drafted = Drafted::new(core);
     let draft = TicketDraft {
         title: title(&a.title)?,
         description: described(core, caller, a.description.as_deref().unwrap_or_default())?,
@@ -471,8 +474,13 @@ pub(super) async fn create_ticket<R: Runtime>(
             Some(list) => Some(images::drafts(core, caller, list, 0).await?),
             None => None,
         },
-        // The tools do not join files (another ticket's).
-        files: None,
+        // Then the other files, copied into the drafts as the form copies them.
+        files: match a.files {
+            Some(list) if !list.is_empty() => {
+                Some(files::drafts(core, caller, list, 0, &mut drafted).await?)
+            }
+            _ => None,
+        },
     };
     let made = core
         .ticket_create(&project.id, draft)
@@ -495,16 +503,22 @@ pub(super) async fn update_ticket<R: Runtime>(
         a.add_images.unwrap_or_default(),
         a.remove_images.unwrap_or_default(),
     );
+    let (add_files, remove_files) = (
+        a.add_files.unwrap_or_default(),
+        a.remove_files.unwrap_or_default(),
+    );
     if a.title.is_none()
         && a.description.is_none()
         && a.criteria.is_none()
         && a.after.is_none()
         && add.is_empty()
         && remove.is_empty()
+        && add_files.is_empty()
+        && remove_files.is_empty()
     {
         return Err(ToolError::Failed(tr!(
-            "Rien à modifier : donne au moins un des champs title, description, criteria, after, addImages ou removeImages.",
-            "Nothing to change: give at least one of the fields title, description, criteria, after, addImages or removeImages."
+            "Rien à modifier : donne au moins un des champs title, description, criteria, after, addImages, removeImages, addFiles ou removeFiles.",
+            "Nothing to change: give at least one of the fields title, description, criteria, after, addImages, removeImages, addFiles or removeFiles."
         )));
     }
     let project = project_of(core, &t.project_id)?;
@@ -540,18 +554,27 @@ pub(super) async fn update_ticket<R: Runtime>(
         },
         // Not the tools' to change: the ticket keeps the branch the window gave it.
         branch: t.branch.clone(),
-        // Its images stay as they are unless a list is built below.
+        // Its images and its files stay as they are unless a list is built below.
         images: None,
-        // Nor its files: the tools do not join them.
         files: None,
     };
-    if !add.is_empty() || !remove.is_empty() {
-        // The core refuses a ticket that has started too, but only once the files are read: said
-        // first, as the core says it, before a file or a reference is looked at.
-        if t.column != Column::Todo {
-            return Err(refusal(only_todo_is_edited()));
-        }
+    let (images_given, files_given) = (
+        !add.is_empty() || !remove.is_empty(),
+        !add_files.is_empty() || !remove_files.is_empty(),
+    );
+    // The core refuses a ticket that has started too, but only once the files are read: said first,
+    // as the core says it, before a file or a reference is looked at.
+    if (images_given || files_given) && t.column != Column::Todo {
+        return Err(refusal(only_todo_is_edited()));
+    }
+    if images_given {
         draft.images = Some(images::amended(core, caller, &t, add, &remove).await?);
+    }
+    // The copies of the drafts the core does not move into the ticket go once the call is over.
+    let mut drafted = Drafted::new(core);
+    if files_given {
+        draft.files =
+            Some(files::amended(core, caller, &t, add_files, &remove_files, &mut drafted).await?);
     }
     // It writes and removes the images' files: off the async workers, as the window's command does.
     let (c, id) = (core.clone(), t.id.clone());
@@ -1850,12 +1873,20 @@ pub(super) async fn split_ticket<R: Runtime>(
     // images' files, which are read once.
     let mut drafts = Vec::with_capacity(count);
     let mut picks = Vec::with_capacity(count);
+    let mut file_picks = Vec::with_capacity(count);
     for (i, sub) in a.tickets.iter().enumerate() {
         let n = i + 1;
         drafts.push(sub_draft(core, caller, sub, Vec::new()).map_err(|e| of_list(n, e))?);
         picks.push(images::chosen(&own.images, sub.images.as_deref()).map_err(|e| of_list(n, e))?);
+        file_picks
+            .push(files::chosen(&own.files, sub.files.as_deref()).map_err(|e| of_list(n, e))?);
     }
     let handed = images::hand_down(core, &own, &picks)
+        .await
+        .map_err(|(i, e)| of_list(i + 1, e))?;
+    // The other files are looked at once too (there, within the settings), and copied for each
+    // ticket as it is made: they may be big, and a copy is moved into the ticket that takes it.
+    let files_handed = files::hand_down(core, &own, &file_picks)
         .await
         .map_err(|(i, e)| of_list(i + 1, e))?;
     let chain = a.chain.unwrap_or(true);
@@ -1863,7 +1894,14 @@ pub(super) async fn split_ticket<R: Runtime>(
     let mut made: Vec<String> = Vec::with_capacity(count);
     // The images taken by default whose files are gone, said one by one.
     let mut skipped: Vec<String> = Vec::new();
-    for (mut draft, pick) in drafts.into_iter().zip(&picks) {
+    let failed_after = |made: &[String], e: String| {
+        let done = made.join(", ");
+        ToolError::Failed(tr!(
+            "Tickets créés avant l’échec : {done}. Les suivants ne le sont pas : {e}",
+            "Tickets made before the failure: {done}. The next ones are not: {e}"
+        ))
+    };
+    for ((mut draft, pick), file_pick) in drafts.into_iter().zip(&picks).zip(&file_picks) {
         draft.after = vec![if chain {
             previous.clone()
         } else {
@@ -1871,19 +1909,26 @@ pub(super) async fn split_ticket<R: Runtime>(
         }];
         // Copies of its own: the core writes files in its folder.
         draft.images = Some(handed.copies(pick)).filter(|copies| !copies.is_empty());
+        // The copies of the drafts the core does not move go once this ticket is made, or not.
+        let mut drafted = Drafted::new(core);
+        let (copies, missed) = match files_handed
+            .copies(core, &own, file_pick, &mut drafted)
+            .await
+        {
+            Ok(copied) => copied,
+            Err(ToolError::Failed(e) | ToolError::Refused(e)) => {
+                return Err(failed_after(&made, e));
+            }
+        };
+        draft.files = Some(copies).filter(|copies| !copies.is_empty());
         match core.ticket_create(&own.project_id, draft).await {
             Ok(t) => {
                 skipped.extend(handed.left_out(&own, pick, &t.key));
+                skipped.extend(files_handed.left_out(&own, file_pick, &t.key, &missed));
                 previous = t.id;
                 made.push(t.key);
             }
-            Err(e) => {
-                let done = made.join(", ");
-                return Err(ToolError::Failed(tr!(
-                    "Tickets créés avant l’échec : {done}. Les suivants ne le sont pas : {e:#}",
-                    "Tickets made before the failure: {done}. The next ones are not: {e:#}"
-                )));
-            }
+            Err(e) => return Err(failed_after(&made, format!("{e:#}"))),
         }
     }
     // The keys alone when every image went; what was left out is said beside them otherwise.

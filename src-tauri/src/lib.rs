@@ -278,6 +278,21 @@ pub fn run() {
             tauri::async_runtime::spawn_blocking(move || warm.warm_claude());
             updates::watch(app.handle().clone());
             if let Some(w) = app.get_webview_window("main") {
+                // « Zoom de l’interface », before the window shows: never drawn at 100 % first, nor
+                // at a zoom it is too small for (the window holds it to its size from then on).
+                let saved = core.settings.read().ui_zoom;
+                let scale = w.scale_factor().unwrap_or(1.0);
+                let zoom = match w.inner_size() {
+                    Ok(s) if s.width > 0 && s.height > 0 => model::fit_zoom(
+                        saved,
+                        f64::from(s.width) / scale,
+                        f64::from(s.height) / scale,
+                    ),
+                    _ => saved,
+                };
+                if let Err(e) = w.set_zoom(f64::from(zoom) / 100.0) {
+                    log::warn!("zoom not set: {e}");
+                }
                 match window {
                     updates::Window::Front => {
                         let _ = w.show();

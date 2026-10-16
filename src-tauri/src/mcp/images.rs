@@ -72,7 +72,7 @@ pub(super) fn name(raw: &str) -> Result<String, ToolError> {
 }
 
 /// `text` as a refusal repeats it: on one line, cut short.
-fn shown(text: &str) -> String {
+pub(super) fn shown(text: &str) -> String {
     let line = visible_line(text);
     if line.chars().count() <= SHOWN_MAX {
         return line;
@@ -270,15 +270,7 @@ pub(super) async fn drafts<R: Runtime>(
     images: Vec<ImageArg>,
     kept: usize,
 ) -> Result<Vec<DraftImage>, ToolError> {
-    let within = match caller {
-        Caller::External => None,
-        // An agent that is gone has no folder: no file is within it.
-        Caller::Agent(id) => Some(
-            core.agent(id)
-                .map(|h| PathBuf::from(&h.lock().meta.cwd))
-                .unwrap_or_default(),
-        ),
-    };
+    let within = working_folder(core, caller);
     let mut total = kept;
     let mut out = Vec::with_capacity(images.len());
     for (i, image) in images.into_iter().enumerate() {
@@ -292,6 +284,20 @@ pub(super) async fn drafts<R: Runtime>(
         })?);
     }
     Ok(out)
+}
+
+/// The only folder `caller` may give a file from by its path: an agent of Escouade's working folder
+/// (`open_within`); None for Claude outside Escouade, which gives any file of the machine.
+pub(super) fn working_folder<R: Runtime>(core: &Core<R>, caller: &Caller) -> Option<PathBuf> {
+    match caller {
+        Caller::External => None,
+        // An agent that is gone has no folder: no file is within it.
+        Caller::Agent(id) => Some(
+            core.agent(id)
+                .map(|h| PathBuf::from(&h.lock().meta.cwd))
+                .unwrap_or_default(),
+        ),
+    }
 }
 
 /// One image given to a tool, as a draft; `total` is what the list weighs before it.
@@ -404,6 +410,16 @@ pub(super) fn open_file(
     within: Option<&Path>,
     name: &str,
 ) -> Result<(File, u64), ToolError> {
+    let (file, length) = open_within(raw, within)?;
+    if length > MAX_IMAGE as u64 {
+        return Err(too_big(name));
+    }
+    Ok((file, length))
+}
+
+/// `open_file`, whatever the length of the file: the other files of a ticket (`files`) have the
+/// limit of the settings, checked by their caller.
+pub(super) fn open_within(raw: &str, within: Option<&Path>) -> Result<(File, u64), ToolError> {
     let is_slash = |c: char| c == '/' || c == '\\';
     let mut start = raw.chars();
     if let (Some(a), Some(b)) = (start.next(), start.next()) {
@@ -446,9 +462,6 @@ pub(super) fn open_file(
     let meta = file.metadata().map_err(unreadable)?;
     if !meta.is_file() {
         return Err(not_a_file());
-    }
-    if meta.len() > MAX_IMAGE as u64 {
-        return Err(too_big(name));
     }
     Ok((file, meta.len()))
 }

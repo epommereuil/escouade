@@ -107,6 +107,7 @@ describe('the tools of Escouade’s own server', () => {
     expect(toolLabel('mcp__escouade__answer_question')).toBe('Escouade · Répondre à une question');
     expect(toolLabel('mcp__escouade__get_board')).toBe('Escouade · Lire les réglages du Kanban');
     expect(toolLabel('mcp__escouade__get_ticket_image')).toBe('Escouade · Lire une image d’un ticket');
+    expect(toolLabel('mcp__escouade__get_ticket_file')).toBe('Escouade · Lire un fichier d’un ticket');
     expect(toolLabel('mcp__escouade__set_board')).toBe('Escouade · Régler le Kanban');
     // The subagents and background tasks of an agent: list, read, stop, write.
     expect(toolLabel('mcp__escouade__list_background_work')).toBe('Escouade · Lister les sous-agents et tâches de fond d’un agent');
@@ -151,6 +152,7 @@ describe('the tools of Escouade’s own server', () => {
     expect(arg('get_ticket_image', { ticket: 'DEM-4', index: 1 })).toBe('DEM-4');
     // An agent reading an image of its own ticket names no ticket: nothing to sum up.
     expect(arg('get_ticket_image', { file: 'a1b2c3.png' })).toBe('');
+    expect(arg('get_ticket_file', { ticket: 'DEM-4', index: 0, offset: 0 })).toBe('DEM-4');
     // The subagents and background tasks of an agent are summed up by that agent.
     expect(arg('list_background_work', { agent: 'fix-login' })).toBe('fix-login');
     expect(arg('stop_background_work', { agent: 'fix-login', id: 'bg1' })).toBe('fix-login');
@@ -203,6 +205,7 @@ describe('the tools of Escouade’s own server', () => {
     expect(toolLabel('mcp__escouade__create_ticket')).toBe('Escouade · Create a ticket');
     expect(toolLabel('mcp__escouade__create_agent')).toBe('Escouade · Start an agent');
     expect(toolLabel('mcp__escouade__get_ticket_image')).toBe('Escouade · Read a ticket image');
+    expect(toolLabel('mcp__escouade__get_ticket_file')).toBe('Escouade · Read a ticket file');
     expect(toolLabel('mcp__escouade__list_background_work')).toBe('Escouade · List an agent’s subagents and background tasks');
     expect(toolLabel('mcp__escouade__get_background_output')).toBe('Escouade · Read a background task’s output or a subagent’s report');
     expect(toolLabel('mcp__escouade__stop_background_work')).toBe('Escouade · Stop a background task or a subagent');

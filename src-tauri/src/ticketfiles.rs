@@ -52,9 +52,27 @@ pub(crate) fn valid_file(file: &str) -> Option<(&str, &str)> {
 
 /// The ticket's file `file` as a path under the ticket's folder `dir`; None unless it is a valid
 /// one. Made of its names, so that the separators are the system's.
-fn path_of(dir: &Path, file: &str) -> Option<PathBuf> {
+pub(crate) fn path_of(dir: &Path, file: &str) -> Option<PathBuf> {
     let (uniq, name) = valid_file(file)?;
     Some(dir.join(TICKET_FILES).join(uniq).join(name))
+}
+
+/// Where the ticket's file `file` (in the ticket's folder `dir`) really is, when it is there: a
+/// file of the folder, never a link that leaves it nor a name that is not a valid one. None when
+/// it is gone (the purge of `attachKeepDays`).
+pub(crate) fn present(dir: &Path, file: &str) -> Option<PathBuf> {
+    attachfiles::copy_in(&dir.join(TICKET_FILES), &path_of(dir, file)?)
+}
+
+/// The refusal of a list of more than `MAX_FILES` files, for the core and for whatever refuses
+/// one before it copies the files.
+pub(crate) fn too_many(lang: Lang) -> String {
+    tr_in!(
+        lang,
+        "Un ticket prend {max} fichiers au plus.",
+        "A ticket takes {max} files at most.",
+        max = MAX_FILES
+    )
 }
 
 fn outside(lang: Lang, file: &str) -> anyhow::Error {
@@ -65,7 +83,7 @@ fn outside(lang: Lang, file: &str) -> anyhow::Error {
     ))
 }
 
-fn too_big(lang: Lang, name: &str, cap: u64) -> anyhow::Error {
+pub(crate) fn too_big(lang: Lang, name: &str, cap: u64) -> anyhow::Error {
     anyhow!(tr_in!(
         lang,
         "{name} dépasse {max}",
@@ -103,12 +121,7 @@ fn check_in(
     for (n, f) in files.iter().enumerate() {
         // Counted before anything of this one is looked at.
         if n >= MAX_FILES {
-            bail!(tr_in!(
-                lang,
-                "Un ticket prend {max} fichiers au plus.",
-                "A ticket takes {max} files at most.",
-                max = MAX_FILES
-            ));
+            bail!(too_many(lang));
         }
         if !f.file.is_empty() {
             let Some(own) = had.iter().find(|h| h.file == f.file) else {

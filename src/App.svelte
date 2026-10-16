@@ -1,10 +1,12 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
+  import { DEFAULT_FONT_SIZE, watchZoom } from './lib/display.svelte';
   import { t } from './lib/i18n';
   import { api } from './lib/ipc';
   import { app } from './lib/state.svelte';
   import { dictation } from './lib/dictation.svelte';
   import { dictationKey, handleShortcut, holdPrint } from './lib/shortcuts';
+  import { setTerminalFontSize } from './lib/terminals';
   import { watchForUpdates } from './lib/updater';
   import { watchPresence } from './lib/presence';
   import { createWarmer } from './lib/warm';
@@ -58,6 +60,20 @@
     void app.ui.view;
     void app.project?.color;
     app.applyTheme();
+  });
+
+  // « Zoom de l’interface » as saved, held to what the window holds, once the settings are read (the backend zoomed the
+  // window before showing it: this is for a page loaded again, and for a window resized), then the sizes of the
+  // terminals and of the editor, as they change.
+  $effect(() => {
+    if (app.ready) return untrack(() => watchZoom());
+  });
+  $effect(() => {
+    if (app.ready) setTerminalFontSize(app.settings.terminalFontSize || DEFAULT_FONT_SIZE);
+  });
+  $effect(() => {
+    const size = app.settings.editorFontSize || DEFAULT_FONT_SIZE;
+    document.documentElement.style.setProperty('--editor-font', `${size}px`);
   });
 
   const warmSelected = createWarmer((id) => api.warmAgent(id).catch(() => {}));

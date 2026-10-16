@@ -1548,6 +1548,7 @@ impl<R: Runtime> Core<R> {
         log::info!("languages: {lang:?}");
         // Principal named in them, the first time.
         accounts::normalize(&mut settings);
+        settings.normalize_display();
         let mut state: PersistedState = read_json(&data.state_file()).unwrap_or_default();
         // The histories whose file could not be removed at the last run are not read: removed, if
         // they can be now.
@@ -1926,6 +1927,7 @@ impl<R: Runtime> Core<R> {
         // The MCP server's port is the backend's own (`sync_mcp`): the window's copy may be older.
         s.mcp_port = self.settings.read().mcp_port;
         s.normalize_attachments();
+        s.normalize_display();
         accounts::normalize(&mut s);
         accounts::check(&s)?;
         let bytes = serde_json::to_vec_pretty(&s)?;

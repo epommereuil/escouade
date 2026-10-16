@@ -136,7 +136,7 @@ The log of a launch command is read-only: apart from copying and scrolling, all 
 
 ### What stays with the shell
 
-On Windows and Linux, a terminal that has focus keeps `Ctrl` plus a letter for its shell, including `Ctrl+K` (cut to the end of the line), `Ctrl+P` (previous command), `Ctrl+N`, and `Ctrl+T`: to search the conversations, open a file, or create an agent or a terminal, click outside the terminal first. The app only takes `Ctrl+Tab` and `Ctrl+Shift+Tab`, `Ctrl+1` … `Ctrl+9`, `Ctrl+J` (to a shell it is only a line feed, which `Enter` already sends), `Ctrl+,`, and `Ctrl+Shift+A`. `Ctrl+Shift` plus a letter sends nothing to the shell: `Ctrl+Shift+B` and `Ctrl+Shift+L` work in a terminal too, where `Ctrl+Shift+F` searches its output.
+On Windows and Linux, a terminal that has focus keeps `Ctrl` plus a letter for its shell, including `Ctrl+K` (cut to the end of the line), `Ctrl+P` (previous command), `Ctrl+N`, and `Ctrl+T`: to search the conversations, open a file, or create an agent or a terminal, click outside the terminal first. The app only takes `Ctrl+Tab` and `Ctrl+Shift+Tab`, `Ctrl+1` … `Ctrl+9`, `Ctrl+J` (to a shell it is only a line feed, which `Enter` already sends), `Ctrl+,`, `Ctrl+Shift+A`, and the zoom (`Ctrl+=`, `Ctrl+-`, `Ctrl+0`). `Ctrl+Shift` plus a letter sends nothing to the shell: `Ctrl+Shift+B` and `Ctrl+Shift+L` work in a terminal too, where `Ctrl+Shift+F` searches its output.
 
 On macOS, the app’s shortcuts use `⌘`, which the shell never receives: they all work in a terminal, except `⌘C`, `⌘V`, and `⌘A` (select all), which are the terminal’s own. The `Ctrl` keys go to the shell.
 
@@ -167,5 +167,7 @@ A double click on a separator restores its size too.
 | Shortcut | Action | Where |
 |---|---|---|
 | `Ctrl+,` | Open the settings. | Everywhere, terminals included |
+| `Ctrl+=` (or `Ctrl++`) / `Ctrl+-` | Zoom the whole interface in / out one step (see [“Display”](settings-application#display)). | Everywhere, terminals included, dialog open or not |
+| `Ctrl+0` | Go back to a 100% zoom. | Everywhere, terminals included, dialog open or not |
 | `Esc` | Close the settings. | Settings open |
 | `Alt+↑` / `Alt+↓` | Move a setup or teardown command up / down, from any field of the command. | Project settings, worktree command lists |

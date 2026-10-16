@@ -1,6 +1,6 @@
 # Réglages : Application
 
-Cette page décrit la fenêtre des réglages (ses onglets, son ouverture, son enregistrement) et son onglet « Application », qui choisit la langue de l’interface et celle des textes que Claude rédige.
+Cette page décrit la fenêtre des réglages (ses onglets, son ouverture, son enregistrement) et son onglet « Application », qui règle l’affichage (le zoom de l’interface, la taille du texte des terminaux et de l’éditeur) et choisit la langue de l’interface et celle des textes que Claude rédige.
 
 ## La fenêtre des réglages
 
@@ -12,7 +12,7 @@ La colonne de gauche liste les onglets, avec la version d’Escouade en bas. Le 
 
 | Onglet | Ce qu’il règle |
 |---|---|
-| « Application » | Langue de l’interface et des textes rédigés par Claude |
+| « Application » | Zoom, taille du texte et langues |
 | [« Claude Code »](settings-claude-code) | Exécutable, modèle et permissions par défaut |
 | [« Comptes Claude »](settings-accounts) | Les comptes sur lesquels partent les agents, enregistrés à chaque changement |
 | [« Notifications »](settings-notifications) | Alertes visuelles et sonores |
@@ -35,11 +35,32 @@ Les changements se font dans un brouillon : rien ne s’applique avant « Enreg
 
 ### Ce qui s’enregistre tout de suite
 
-Deux endroits n’attendent pas le bouton, parce qu’un « Annuler » ne pourrait pas défaire ce qu’ils écrivent sur le disque : l’onglet « Comptes Claude », où chaque changement part au moment où tu le fais, et l’interrupteur « Claude et les agents peuvent piloter Escouade » de l’onglet « Claude Code ».
+Trois endroits n’attendent pas le bouton. L’onglet « Comptes Claude », où chaque changement part au moment où tu le fais, et l’interrupteur « Claude et les agents peuvent piloter Escouade » de l’onglet « Claude Code », parce qu’un « Annuler » ne pourrait pas défaire ce qu’ils écrivent sur le disque. Et le groupe « Affichage » de l’onglet « Application », qui change aussi au clavier, fenêtre des réglages ouverte ou non : ce que tu y choisis se voit et s’enregistre tout de suite.
 
 ## L’onglet « Application »
 
-L’onglet n’a qu’un groupe, « Langue ». Les deux choix prennent effet dès l’enregistrement, sans redémarrer : la fenêtre, les menus de l’app et les textes qu’Escouade écrit passent dans la nouvelle langue.
+L’onglet a deux groupes, « Affichage » et « Langue ».
+
+### Affichage
+
+Ces trois réglages s’appliquent tout de suite, sans « Enregistrer » ni redémarrage, et restent d’un lancement à l’autre.
+
+| Réglage | Effet | Par défaut |
+|---|---|---|
+| « Zoom de l’interface » | Agrandit ou réduit toute la fenêtre, comme le zoom d’un navigateur : le texte, les espacements et les icônes ensemble, terminaux et éditeur compris. Paliers : 80 %, 90 %, 100 %, 110 %, 125 %, 150 %, 175 % et 200 %. | 100 % |
+| « Taille du texte des terminaux » | La taille de la police des terminaux et de la [vue Claude Code](claude-code-view), en pixels, de 9 à 24 par demi-pixel. Le zoom s’y ajoute. | 12.5 |
+| « Taille du texte de l’éditeur » | La taille de la police de l’[éditeur](editor), en pixels, de 9 à 24 ; les lignes grandissent avec elle. Le zoom s’y ajoute. | 12.5 |
+
+Au clavier, partout, même dans un terminal ou avec une fenêtre ouverte : `Ctrl+=` (ou `Ctrl++`) agrandit d’un palier, `Ctrl+-` réduit d’un palier, `Ctrl+0` revient à 100 % (`⌘=`, `⌘-`, `⌘0` sous macOS). Les touches `+` et `-` du pavé numérique marchent aussi.
+
+Un terminal dont la police change se redimensionne aussitôt dans sa zone, et son programme apprend sa nouvelle taille en colonnes et en lignes : rien ne dépasse ni ne se coupe.
+
+> [!NOTE]
+> L’interface est prévue pour au moins 1000 × 600 pixels, la taille minimale de la fenêtre. Un palier qui ne laisserait pas cette place est grisé, avec l’info-bulle « Trop grand pour la taille de la fenêtre », et `Ctrl+=` s’arrête avant. Si la fenêtre rétrécit sous le palier choisi, l’interface passe au plus grand palier qu’elle peut tenir, et l’onglet le dit ; le palier choisi revient dès que la fenêtre est assez grande.
+
+### Langue
+
+Les deux choix prennent effet dès l’enregistrement, sans redémarrer : la fenêtre, les menus de l’app et les textes qu’Escouade écrit passent dans la nouvelle langue.
 
 | Réglage | Effet | Par défaut |
 |---|---|---|

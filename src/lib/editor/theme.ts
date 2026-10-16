@@ -39,8 +39,9 @@ const highlight = HighlightStyle.define([
 export const editorTheme = [
   EditorView.theme(
     {
-      '&': { height: '100%', backgroundColor: 'var(--term)', color: C.txt, fontSize: '12.5px' },
-      '.cm-scroller': { fontFamily: 'var(--mono)', lineHeight: '20px' },
+      '&': { height: '100%', backgroundColor: 'var(--term)', color: C.txt, fontSize: 'var(--editor-font, 12.5px)' },
+      // « Taille du texte de l’éditeur » (`--editor-font`, set by the window): the lines grow with it, 20 px at 12.5 px.
+      '.cm-scroller': { fontFamily: 'var(--mono)', lineHeight: '1.6' },
       '.cm-content': { caretColor: 'var(--accent)', padding: '12px 0 60px' },
       '&.cm-focused .cm-cursor': { borderLeftColor: 'var(--accent)' },
       '.cm-gutters': { backgroundColor: 'var(--term)', color: 'var(--dim)', border: 'none' },

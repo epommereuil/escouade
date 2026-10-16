@@ -60,6 +60,12 @@ export interface Settings {
   terminalView: boolean;
   /** « Remote control pour tous les agents »: every agent of every project is reachable from claude.ai and the Claude app, unless set apart by hand (`Agent.remoteOff`). */
   remoteControlAll: boolean;
+  /** « Zoom de l’interface », in percent (`ZOOM_LEVELS`): the WebView's zoom, text, spacing and icons together. */
+  uiZoom: number;
+  /** « Taille du texte des terminaux », in CSS pixels before the zoom. */
+  terminalFontSize: number;
+  /** « Taille du texte de l’éditeur », in CSS pixels before the zoom. */
+  editorFontSize: number;
   /** « Voix »: the dictation. */
   voice: VoiceSettings;
 }
