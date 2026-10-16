@@ -11,6 +11,7 @@
   import ClosedProjects from '../settings/ClosedProjects.svelte';
   import IntegrationsTab from '../settings/IntegrationsTab.svelte';
   import ProjectTab from '../settings/ProjectTab.svelte';
+  import VoiceTab from '../settings/VoiceTab.svelte';
   import { tip } from '../../lib/tip';
 
   // All the settings, the app's and each project's, in one place: a tab at a time, saved together.
@@ -153,6 +154,8 @@
           <ApplicationTab />
         {:else if current.id === 'accounts'}
           <AccountsTab />
+        {:else if current.id === 'voice'}
+          <VoiceTab />
         {:else}
           <AppTab tab={current.id} />
         {/if}

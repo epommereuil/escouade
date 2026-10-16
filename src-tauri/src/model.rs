@@ -92,6 +92,35 @@ pub struct Settings {
     /// « Remote control pour tous les agents »: every agent, those of tickets too, is reachable
     /// from claude.ai (`AgentMeta::remote_control`, `RemoteSource::Global`).
     pub remote_control_all: bool,
+    /// « Voix »: the dictation (`voice`).
+    pub voice: VoiceSettings,
+}
+
+/// The dictation's settings.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct VoiceSettings {
+    /// The microphone (its cpal id); empty: the system's default one.
+    pub device: String,
+    /// The Whisper model (`voice::models::CATALOG`), downloaded at the first dictation.
+    pub model: String,
+    /// What Whisper is told the speech is in: "ui" (the interface's language), "auto" (found
+    /// by Whisper), or a language's code ("fr", "en", "de"…).
+    pub language: String,
+    /// The shortcut that starts and stops a dictation, held down to talk: "Mod" is Ctrl, Cmd on
+    /// macOS (the window reads it, `shortcuts.ts`).
+    pub shortcut: String,
+}
+
+impl Default for VoiceSettings {
+    fn default() -> Self {
+        Self {
+            device: String::new(),
+            model: crate::voice::models::DEFAULT_MODEL.into(),
+            language: "ui".into(),
+            shortcut: "Mod+Shift+Space".into(),
+        }
+    }
 }
 
 /// A Claude account: Claude Code with a configuration folder of its own (`accounts`).
@@ -295,6 +324,7 @@ impl Default for Settings {
             attach_big_text: "path".into(),
             attach_keep_days: 0,
             remote_control_all: false,
+            voice: VoiceSettings::default(),
         }
     }
 }
@@ -1472,6 +1502,11 @@ pub enum UiEvent {
     /// Where the server stands in each active account's Claude Code (declared, or why not).
     McpDeclared {
         declared: Vec<crate::mcp::install::Declaration>,
+    },
+    /// The dictation: the level while it listens, a listening that ended by itself, a model's
+    /// download.
+    Voice {
+        voice: crate::voice::VoiceEvent,
     },
 }
 

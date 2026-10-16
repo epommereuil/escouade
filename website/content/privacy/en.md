@@ -40,6 +40,7 @@ Every event carries its name, its time (UTC, to the millisecond), a session id, 
 | `tickets_imported` | Tickets are imported | `service`: `jira`, `trello`, `github` or `linear` |
 | `account_created` | A Claude account is added | — |
 | `remote_control_enabled` | Remote control is turned on, by hand or by a setting | `from`: `agent` (right-click on an agent), `project` (a project’s setting) or `global` (the setting for all agents) |
+| `dictation_used` | A dictation gave text | `target`: `composer` (the message field), `terminal` (the Claude Code view) or `ticket` (a ticket’s description); `model`: the Whisper model (`tiny`, `base`, `small`…) |
 
 An event says that a feature was used, not on what: never the name of the project, the agent or the branch, nor anything that was written.
 
@@ -68,6 +69,7 @@ Every event also carries:
 - Git data: commits, remotes.
 - Tokens and secrets.
 - Anything you type.
+- What you dictate: the microphone’s sound and the text Whisper makes of it stay on your machine. The transcription happens there; only the model is downloaded, once, from Hugging Face (`huggingface.co`), through the proxy of the settings.
 
 ## The tool and where the data lives
 

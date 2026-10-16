@@ -3470,6 +3470,10 @@ impl<R: Runtime> Core<R> {
 
     pub fn shutdown(&self) {
         self.quitting.store(true, Ordering::Release);
+        // The microphone is let go first.
+        if let Some(v) = tauri::Manager::try_state::<Arc<crate::voice::Voice>>(&self.app) {
+            v.shutdown();
+        }
         self.mcp.stop();
         // Setups under way stop, with what they started.
         for (_, s) in self.setups.lock().drain() {

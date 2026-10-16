@@ -1,0 +1,67 @@
+import { defineZone } from '../types';
+
+// The dictation: its button, its panel while it listens, its tab of the settings.
+export default defineZone('voice', {
+  keys: { space: 'Space' },
+  button: {
+    label: 'Dictate',
+    title: 'Dictate ({key}): one click starts and another ends; held down, it dictates while it is pressed',
+    stop: 'End dictation',
+  },
+  panel: {
+    starting: 'Opening the microphone…',
+    listening: 'Listening',
+    hint: 'Click or {key} to end · Esc to cancel',
+    holdHint: 'Let go to end · Esc to cancel',
+    level: 'Microphone level',
+    transcribing: 'Transcribing on your machine…',
+    offerTitle: 'Download the transcription model?',
+    offerBody:
+      'Dictation runs on your machine with Whisper, model “{model}” ({size}). It is downloaded once, then nothing you say leaves your machine.',
+    download: 'Download',
+    downloading: 'Model “{model}”: {done} of {total}',
+    cancel: 'Cancel',
+  },
+  nothingHeard: 'Nothing heard: speak a little closer to the microphone, then try again.',
+  modelReady: 'Model downloaded: click the microphone to dictate.',
+  downloadFailed: 'The model download failed: {error}',
+  deleteFailed: 'The model could not be deleted: {error}',
+  settings: {
+    microphone: 'Microphone',
+    device: 'Microphone used',
+    deviceSystem: 'The system’s',
+    deviceSystemNamed: 'The system’s ({name})',
+    noDevice: 'No microphone found: plug one in, then open the settings again.',
+    transcription: 'Transcription',
+    transcriptionNote:
+      'Whisper transcribes on your machine: nothing you say is sent. Only the model is downloaded, through the proxy of the network settings, and its checksum checked.',
+    model: 'Model',
+    modelDesc: 'A bigger one understands better and transcribes more slowly. The one chosen downloads at the first dictation.',
+    modelSpeed: 'Speed {speed}/5 · quality {quality}/5',
+    downloaded: 'Downloaded',
+    download: 'Download',
+    delete: 'Delete',
+    deleteTitle: 'Delete the model “{model}” ({size}): it downloads again at the next dictation',
+    language: 'Spoken language',
+    languageDesc: 'Naming the language makes the transcription more accurate; automatic detection suits those who speak several.',
+    languageUi: 'The interface’s',
+    languageAuto: 'Automatic detection',
+    use: 'Use',
+    shortcut: 'Shortcut',
+    shortcutDesc:
+      'A short press starts the dictation and another ends it; held down, it dictates while it is pressed. It dictates into the field that has the focus: the message, a ticket’s description, the terminal of the Claude Code view.',
+    change: 'Change',
+    recording: 'Press the shortcut…',
+    recordingHint: 'With Ctrl, Alt or Cmd (or a key F1 to F24); Esc to keep the current one',
+    restore: 'Default',
+  },
+  languages: {
+    fr: 'Français',
+    en: 'English',
+    de: 'Deutsch',
+    es: 'Español',
+    it: 'Italiano',
+    pt: 'Português',
+    nl: 'Nederlands',
+  },
+});

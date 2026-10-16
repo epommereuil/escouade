@@ -16,6 +16,7 @@ export default {
       label: 'Réseau',
       desc: 'Proxy HTTP(S) et certificats TLS pour Claude Code, les intégrations et les mises à jour',
     },
+    voice: { label: 'Voix', desc: 'Dictée des messages : micro, modèle de transcription, langue et raccourci' },
     about: { label: 'À propos', desc: 'Version et données locales' },
   },
 

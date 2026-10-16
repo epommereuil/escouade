@@ -18,7 +18,7 @@ import type {
 import { branchPrefixProblem, worktreesRootProblem } from './worktrees';
 
 export type SettingsTab =
-  'app' | 'claude' | 'accounts' | 'notifications' | 'projects' | 'board' | 'integrations' | 'terminals' | 'network' | 'about';
+  'app' | 'claude' | 'accounts' | 'notifications' | 'voice' | 'projects' | 'board' | 'integrations' | 'terminals' | 'network' | 'about';
 
 interface TabInfo {
   id: SettingsTab;
@@ -49,6 +49,7 @@ export const SETTINGS_TABS: TabInfo[] = [
   // Saved at once, each change (not part of the draft).
   tabInfo('accounts', '◎'),
   tabInfo('notifications', '♪'),
+  tabInfo('voice', '◖'),
   tabInfo('projects', '▤', true),
   tabInfo('board', '▦', true),
   tabInfo('integrations', '⧉', true),
@@ -77,6 +78,7 @@ const SETTINGS_OF: Partial<Record<SettingsTab, (keyof Settings)[]>> = {
     'remoteControlAll',
   ],
   notifications: ['sound', 'osNotifications', 'notifyFor'],
+  voice: ['voice'],
   terminals: ['pwshPath', 'bashPath', 'wslDistro'],
   network: ['proxyUrl', 'noProxy', 'proxyTerminals', 'insecureTls'],
   // The quotas are the account's: one pause for every project's board.

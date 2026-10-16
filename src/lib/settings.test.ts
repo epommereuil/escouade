@@ -505,7 +505,7 @@ describe('settingsForm', () => {
 
   it('names its tabs in the language of the interface, read when asked', () => {
     const names = () => SETTINGS_TABS.map((x) => `${x.label} / ${x.desc}`);
-    expect(names()[4]).toBe('Projets / Réglages propres à chaque projet');
+    expect(names()[5]).toBe('Projets / Réglages propres à chaque projet');
     setLang('en');
     flushSync();
     expect(names()).toEqual([
@@ -513,6 +513,7 @@ describe('settingsForm', () => {
       'Claude Code / Executable, model, and default permissions',
       'Claude accounts / The accounts agents start on, saved as you change them',
       'Notifications / Visual and sound alerts',
+      'Voice / Dictating messages: microphone, transcription model, language and shortcut',
       'Projects / Settings specific to each project',
       'Kanban / Autopilot and approved tickets',
       'Integrations / Jira, Trello, GitHub Issues, and Linear',

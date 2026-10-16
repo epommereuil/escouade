@@ -7,5 +7,8 @@
     <string>en</string>
     <string>fr</string>
   </array>
+  <!-- Dictation (ESC-96): what macOS says when it asks the user for the microphone (French: fr.lproj/InfoPlist.strings). -->
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Escouade listens to the microphone only while you dictate a message, and transcribes it on your Mac: nothing you say leaves it.</string>
 </dict>
 </plist>

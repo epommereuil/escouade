@@ -28,7 +28,10 @@
   import { observeWidth } from '../lib/resize';
   import { app } from '../lib/state.svelte';
   import type { Agent, QuestionItem } from '../lib/types';
+  import { insertAt } from '../lib/dictation';
+  import type { DictationTarget } from '../lib/dictation.svelte';
   import AttachmentChip from './AttachmentChip.svelte';
+  import MicButton from './MicButton.svelte';
   import Dropdown from './Dropdown.svelte';
   import { tip } from '../lib/tip';
 
@@ -56,6 +59,24 @@
   let width = $state(0);
   let fileInput = $state<HTMLInputElement>();
   let reqSeq = 0;
+  let wrap = $state<HTMLDivElement>();
+
+  // The dictation puts its text where the cursor is (the selection, if any, replaced): the button keeps the focus in the
+  // field, and the text stays there to be read, changed and sent by hand.
+  const dictated: DictationTarget = {
+    kind: 'composer',
+    id: `composer-${Math.random().toString(36).slice(2)}`,
+    el: () => wrap,
+    insert: (said) => {
+      const r = insertAt(text, ta?.selectionStart ?? text.length, ta?.selectionEnd ?? text.length, said);
+      text = r.text;
+      queueMicrotask(() => {
+        ta?.focus();
+        ta?.setSelectionRange(r.caret, r.caret);
+        autosize();
+      });
+    },
+  };
 
   const conv = $derived(conversationOf(agent.id));
   const pendingItem = $derived(agent.pending.length ? conv.items.find((i) => i.id === agent.pending[0]) : undefined);
@@ -477,7 +498,7 @@
   }
 </script>
 
-<div class="composer-wrap">
+<div class="composer-wrap" bind:this={wrap}>
   <div
     class="composer"
     class:pending={!!pendingItem}
@@ -607,6 +628,7 @@
           e.currentTarget.value = '';
         }}
       />
+      <MicButton target={dictated} />
       <button
         class="icon-btn attach"
         use:tip={t('composer.attach.title')}

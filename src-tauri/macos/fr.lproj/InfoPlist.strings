@@ -1,0 +1,2 @@
+/* Dictation (ESC-96): what macOS says when it asks for the microphone. */
+"NSMicrophoneUsageDescription" = "Escouade écoute le micro seulement pendant que tu dictes un message, et le transcrit sur ton Mac : rien de ce que tu dis n’en sort.";

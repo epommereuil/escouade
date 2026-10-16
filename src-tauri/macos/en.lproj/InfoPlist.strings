@@ -1,0 +1,2 @@
+/* Dictation (ESC-96): what macOS says when it asks for the microphone. */
+"NSMicrophoneUsageDescription" = "Escouade listens to the microphone only while you dictate a message, and transcribes it on your Mac: nothing you say leaves it.";

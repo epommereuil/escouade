@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { tick } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -29,6 +29,8 @@ const terms = vi.hoisted(() => ({
   /** How many times a terminal was fitted to its box, and whether fitting it throws (a box that is hidden). */
   fits: 0,
   failFit: false,
+  /** What the dictation typed into each terminal. */
+  typed: [] as [string, string][],
 }));
 vi.mock('../lib/terminals', () => ({
   openAgentTerminal: async (agentId: string, room?: Room | null, manual = false) => {
@@ -56,6 +58,9 @@ vi.mock('../lib/terminals', () => ({
         }
       : undefined,
   mountTerminal: (id: string, el: HTMLElement | null) => terms.mounted.push(el ? id : null),
+  typeIntoTerminal: async (id: string, text: string) => {
+    terms.typed.push([id, text]);
+  },
   disposeTerminal: (id: string) => {
     terms.disposed.push(id);
     terms.held.delete(id);
@@ -82,6 +87,7 @@ beforeEach(() => {
   terms.measured = [];
   terms.fits = 0;
   terms.failFit = false;
+  terms.typed = [];
   setLang('fr');
 });
 
@@ -649,5 +655,26 @@ describe('the interface following its box', () => {
     expect(() => observers[0].fire()).not.toThrow();
     // Gone: nothing to fit, so the one count of the failed attempt is all there is.
     expect(terms.fits).toBe(1);
+  });
+});
+
+describe('dictation in Claude Code’s interface', () => {
+  it('types the text dictated into the terminal, as a paste, and never sends it', async () => {
+    const a = agent({ terminal: true });
+    resetApp({ projects: [project()], agents: [a] });
+    const backend = fakeBackend({
+      voice_start: () => ({ kind: 'listening', session: 9 }),
+      voice_stop: () => ' Explique ce test ',
+    });
+    render(AgentTerminal, { agent: a });
+    await waitFor(() => expect(terms.mounted).toContain('t1'));
+    const mic = screen.getByRole('button', { name: 'Dicter' });
+    await fireEvent.pointerDown(mic, { button: 0 });
+    await fireEvent.pointerUp(mic, { button: 0 });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Finir la dictée' })).toBeInTheDocument());
+    await fireEvent.pointerDown(screen.getByRole('button', { name: 'Finir la dictée' }), { button: 0 });
+    await waitFor(() => expect(terms.typed).toEqual([['t1', 'Explique ce test']]));
+    expect(backend.called('voice_stop')[0].args).toEqual({ session: 9, target: 'terminal' });
+    expect(backend.called('term_write')).toHaveLength(0);
   });
 });

@@ -15,6 +15,7 @@ export default defineZone('settings', {
       label: 'Network',
       desc: 'HTTP(S) proxy and TLS certificates for Claude Code, integrations, and updates',
     },
+    voice: { label: 'Voice', desc: 'Dictating messages: microphone, transcription model, language and shortcut' },
     about: { label: 'About', desc: 'Version and local data' },
   },
 

@@ -54,6 +54,8 @@ Escouade’s message field isn’t shown: you write in the terminal, as in Claud
 
 Any other file (an archive, a spreadsheet, a document…) is attached the same way: paste it into the terminal, or drop it onto it (a dashed frame shows the drop zone). Escouade always copies it, and never reads the file at its original location: Claude Code’s interface is launched once, and only the agent’s folder can be read there without asking. It then types the path of the copy (`/mnt/c/…` for a Claude Code in WSL), which Claude reads with its tools. The copy sits in the agent’s folder, with the chat’s copies (see [attachments](chat#attachments)). The maximum size from the [settings](settings-claude-code#attachments) applies; the size warning doesn’t exist here, for lack of a chip.
 
+To dictate rather than type, click the microphone at the top right of the terminal (or press `Ctrl+Shift+Space`, `⇧⌘Space` on macOS): one click starts and another ends, a long press dictates while it is held. The text is typed into Claude Code’s prompt as a paste, at its cursor, and is not submitted: you read it, then press `Enter`. The transcription runs on your machine (see [dictating a message](chat#dictating-a-message)).
+
 A message sent to the agent from elsewhere, for example through the [MCP server](mcp), is typed into its interface. It’s refused while the agent is waiting for an answer in its terminal (“The agent is waiting for an answer in its terminal: answer there first.”). It is also refused for an interface started in the background that nobody has shown yet, as long as it isn’t ready (see [below](#remote-control-in-this-view)). An interruption requested from Escouade becomes the `Esc` key in the interface.
 
 ## Remote control in this view

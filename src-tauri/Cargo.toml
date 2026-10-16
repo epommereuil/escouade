@@ -53,6 +53,12 @@ http-body-util = "0.1"
 subtle = "2.6"
 # Its tokens: 32 bytes from the system's random generator.
 getrandom = "0.4"
+# Dictation (`voice`): the microphone through cpal (WASAPI, CoreAudio, ALSA), transcribed on the
+# machine by whisper.cpp (whisper-rs builds it, with cmake), its model downloaded on demand.
+cpal = "0.18"
+whisper-rs = { version = "0.16", features = ["log_backend"] }
+# A WAV file as the sound source: the end-to-end tests, which have no microphone.
+hound = "3.5"
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.60", features = ["Win32_Media_Audio", "Win32_Foundation", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Diagnostics_ToolHelp", "Win32_System_JobObjects", "Win32_System_ProcessStatus", "Win32_System_Registry", "Win32_System_Threading", "Win32_UI_WindowsAndMessaging"] }
@@ -75,6 +81,8 @@ gtk = "0.18"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 tauri-plugin-notification = "2"
+# Dictation on the GPU (Metal), whisper.cpp's shaders built into the binary.
+whisper-rs = { version = "0.16", features = ["log_backend", "metal"] }
 # The integrations' secrets in the Keychain.
 keyring = { version = "3.6", features = ["apple-native"] }
 

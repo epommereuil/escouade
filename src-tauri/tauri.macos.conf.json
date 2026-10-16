@@ -26,7 +26,12 @@
     "category": "DeveloperTool",
     "macOS": {
       "minimumSystemVersion": "11.0",
-      "signingIdentity": "-"
+      "signingIdentity": "-",
+      "entitlements": "./Entitlements.plist",
+      "files": {
+        "Resources/fr.lproj/InfoPlist.strings": "./macos/fr.lproj/InfoPlist.strings",
+        "Resources/en.lproj/InfoPlist.strings": "./macos/en.lproj/InfoPlist.strings"
+      }
     }
   }
 }

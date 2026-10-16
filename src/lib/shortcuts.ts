@@ -1,6 +1,8 @@
 // Global keyboard shortcuts, routed in one place.
 
 import { findInFiles } from './editor/search.svelte';
+import { DEFAULT_SHORTCUT, matchesShortcut, parseShortcut } from './dictation';
+import { dictation } from './dictation.svelte';
 import { IS_MAC, primaryKey } from './platform';
 import { app } from './state.svelte';
 
@@ -179,4 +181,27 @@ export function handleShortcut(e: KeyboardEvent, mac = IS_MAC): boolean {
     return true;
   }
   return false;
+}
+
+/**
+ * The dictation's keys, taken in the capture phase, before any field (a terminal would type them): its shortcut of the
+ * settings, pressed (it starts, or ends one under way) and let go (after a long press, it ends); Escape while it listens
+ * or transcribes calls it off. Into the field that has the focus, else the composer on screen. Returns true when the
+ * key was the dictation's (the caller stops it there).
+ */
+export function dictationKey(e: KeyboardEvent, mac = IS_MAC): boolean {
+  if (dictation.recording) return false;
+  const spec = app.settings.voice?.shortcut || DEFAULT_SHORTCUT;
+  if (e.type === 'keyup') {
+    if (e.code !== parseShortcut(spec)?.code) return false;
+    dictation.release();
+    return false;
+  }
+  if (e.key === 'Escape' && ['starting', 'listening', 'transcribing'].includes(dictation.phase)) {
+    dictation.cancel();
+    return true;
+  }
+  if (!matchesShortcut(e, spec, mac)) return false;
+  if (!e.repeat) dictation.press(dictation.phase === 'idle' ? dictation.focused() : null);
+  return true;
 }

@@ -29,6 +29,11 @@ jobs:
         working-directory: src-tauri
         run: rustup toolchain install
 
+      # whisper-rs generates its bindings with libclang: the runner's LLVM (cmake is there too).
+      - name: libclang for whisper.cpp
+        shell: bash
+        run: echo "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> "$GITHUB_ENV"
+
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
@@ -126,10 +131,11 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: System libraries (WebKitGTK, tray, AppImage)
+      # libasound2-dev: the microphone (cpal); libclang-dev and cmake: whisper.cpp, built by whisper-rs.
+      - name: System libraries (WebKitGTK, tray, AppImage, sound, whisper.cpp)
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf libasound2-dev libclang-dev cmake
 
       - name: Rust toolchain (pinned in src-tauri/rust-toolchain.toml)
         working-directory: src-tauri
@@ -238,6 +244,14 @@ jobs:
           status=${PIPESTATUS[0]}
           node ../scripts/nextest-annotations.mjs nextest.log target/nextest/ci/junit.xml $status
           exit $status
+
+      # The Release builds one app for Apple Silicon and Intel Macs: whisper.cpp (dictation) is built for Intel
+      # here too, as it is there (a check builds what build scripts build, cmake's whisper.cpp among them).
+      - name: whisper.cpp for Intel Macs (as the universal Release builds it)
+        working-directory: src-tauri
+        run: |
+          rustup target add x86_64-apple-darwin
+          cargo check --lib --target x86_64-apple-darwin
 
       # Without the updater key: only checks that the app and its disk image build.
       - name: Build the app bundle

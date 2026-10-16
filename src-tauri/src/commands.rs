@@ -100,9 +100,12 @@ pub struct InitialState {
 pub fn subscribe(
     core: CoreState,
     updates: State<crate::updates::Updates>,
+    voice: VoiceState,
     channel: Channel<UiEvent>,
 ) -> InitialState {
     core.hub.set_channel(channel);
+    // A page that loads again has no dictation under way: the one of the page before stops.
+    voice.cancel();
     core.reset_unsaved();
     // One lock at a time, each guard ending with its statement: in a struct literal the guards
     // would live together (the lock order is projects before tickets, see `Core`).
@@ -1791,6 +1794,104 @@ pub fn mcp_declare_status(core: CoreState) -> Vec<crate::mcp::install::Declarati
 #[tauri::command(async)]
 pub fn mcp_manual_command(core: CoreState, account: String) -> Res<String> {
     core.mcp_manual_command(&account).map_err(err)
+}
+
+// ---------------------------------------------------------------------------------------------
+// Dictation (`voice`).
+
+type VoiceState<'a> = State<'a, Arc<crate::voice::Voice>>;
+
+/// What Réglages › Voix lists: the microphones and the models (which are downloaded).
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VoiceInfo {
+    devices: Vec<crate::voice::source::Device>,
+    models: Vec<crate::voice::models::ModelView>,
+}
+
+#[tauri::command(async)]
+pub fn voice_info(voice: VoiceState) -> VoiceInfo {
+    VoiceInfo {
+        devices: voice.devices(),
+        models: voice.models(),
+    }
+}
+
+/// The settings' choice for a dictation: microphone, model, and the language Whisper is told.
+fn voice_choice(settings: &Settings) -> crate::voice::Choice {
+    crate::voice::Choice {
+        device: settings.voice.device.clone(),
+        model: settings.voice.model.clone(),
+        language: crate::voice::whisper_language(&settings.voice.language, i18n::ui()),
+    }
+}
+
+fn voice_err(e: crate::voice::VoiceError) -> String {
+    e.message(i18n::ui(), std::env::consts::OS)
+}
+
+/// Starts listening, on the microphone and with the model of the settings; or says the model is
+/// to be downloaded first. Off the main thread: macOS asks the user for the microphone the first
+/// time, and the answer waits for them.
+#[tauri::command(async)]
+pub fn voice_start(core: CoreState, voice: VoiceState) -> Res<crate::voice::Started> {
+    let choice = voice_choice(&core.settings.read());
+    voice.start(&choice).map_err(voice_err)
+}
+
+/// Stops listening and gives the text heard (empty when nothing was said), transcribed on a
+/// thread of its own. `target`, where it goes ("composer", "terminal", "ticket"), only for the
+/// usage statistics, which never hold the text.
+#[tauri::command]
+pub async fn voice_stop(
+    core: CoreState<'_>,
+    voice: VoiceState<'_>,
+    session: u64,
+    target: String,
+) -> Res<String> {
+    let v = voice.inner().clone();
+    let text = tauri::async_runtime::spawn_blocking(move || v.stop(session))
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(voice_err)?;
+    if !text.is_empty() {
+        let target = match target.as_str() {
+            "terminal" => "terminal",
+            "ticket" => "ticket",
+            _ => "composer",
+        };
+        let model = core.settings.read().voice.model.clone();
+        let model = crate::voice::models::find(&model)
+            .map(|m| m.id)
+            .unwrap_or(crate::voice::models::DEFAULT_MODEL);
+        core.telemetry.track(Event::DictationUsed { target, model });
+    }
+    Ok(text)
+}
+
+/// Escape, or the field dictated into gone: the listening and the transcription stop, nothing
+/// given.
+#[tauri::command]
+pub fn voice_cancel(voice: VoiceState) {
+    voice.cancel();
+}
+
+/// Downloads a model (its progress in `UiEvent::Voice`), through the proxy of the settings.
+#[tauri::command]
+pub async fn voice_download(core: CoreState<'_>, voice: VoiceState<'_>, model: String) -> Res<()> {
+    let client = crate::voice::models::client(&core.settings.read()).map_err(err)?;
+    voice.download(&client, &model).await.map_err(err)
+}
+
+#[tauri::command]
+pub fn voice_download_cancel(voice: VoiceState, model: String) {
+    voice.cancel_download(&model);
+}
+
+/// « Effacer le modèle »: its file goes (it is downloaded again at the next dictation).
+#[tauri::command(async)]
+pub fn voice_delete_model(voice: VoiceState, model: String) -> Res<()> {
+    voice.delete_model(&model).map_err(err)
 }
 
 #[cfg(test)]

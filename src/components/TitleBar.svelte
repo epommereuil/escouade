@@ -2,6 +2,7 @@
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { openPath } from '@tauri-apps/plugin-opener';
   import { untrack } from 'svelte';
+  import { dictation } from '../lib/dictation.svelte';
   import { t } from '../lib/i18n';
   import { api } from '../lib/ipc';
   import { menu } from '../lib/menu.svelte';
@@ -392,7 +393,16 @@
           >
         {/if}
       </button>
-      <button class="ctl close" use:tip={t('nav.titleBar.closeWindow')} aria-label={t('common.close')} onclick={() => win.hide()}>
+      <button
+        class="ctl close"
+        use:tip={t('nav.titleBar.closeWindow')}
+        aria-label={t('common.close')}
+        onclick={() => {
+          // Closed to the tray: no one sees a dictation under way any more.
+          dictation.cancel();
+          void win.hide();
+        }}
+      >
         <svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor" stroke-width="1" /></svg>
       </button>
     </div>

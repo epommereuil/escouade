@@ -87,6 +87,34 @@ Un fichier envoyé par chemin est soit le fichier d’origine, soit une copie.
 - Escouade n’efface jamais un fichier d’origine.
 - Pour chaque agent, Escouade garde, avec lui, la liste des fichiers d’origine qu’elle l’a autorisé à lire (200 au plus, les plus récents). L’interface ne montre pas encore cette liste et ne permet pas d’en retirer un fichier ; supprimer l’agent l’efface.
 
+### Dicter un message
+
+Le micro, à côté du trombone, dicte le message au lieu de le taper. Deux façons de parler :
+
+- **un clic** commence la dictée, **un second** la finit ;
+- **un appui long** dicte tant que le bouton reste enfoncé : le relâcher la finit.
+
+Le raccourci `Ctrl+Maj+Espace` (`⇧⌘Espace` sous macOS) fait la même chose, appui bref ou maintenu, dans le champ qui a le focus. Pendant l’écoute, un panneau montre le niveau du micro et la durée ; `Échap` annule sans rien écrire.
+
+Le texte dicté est **inséré à l’endroit du curseur** (il remplace la sélection s’il y en a une), séparé des mots voisins par une espace. Il n’est **jamais envoyé tout seul** : tu le relis, le corriges, puis tu l’envoies avec `Entrée`. On dicte de la même façon la description d’un ticket (le micro est à côté de « Joindre ») et, en [vue Claude Code](claude-code-view), le prompt de Claude Code : le micro est en haut à droite du terminal, et le texte y est tapé comme un collage, sans être validé.
+
+La transcription se fait **sur ta machine**, par Whisper (whisper.cpp), dans un fil à part : rien de ce que tu dis ne quitte ta machine. À la première dictée, Escouade propose de télécharger le modèle « base » (148 Mo), une seule fois, depuis Hugging Face, par le proxy des [réglages réseau](settings-network) ; sa somme de contrôle est vérifiée avant qu’il soit gardé, dans `~/.escouade/voice/models`. Ensuite, une phrase se transcrit en une à deux secondes.
+
+Dans **Réglages › Voix** :
+
+- « Micro utilisé » : celui du système par défaut, ou un autre ;
+- « Modèle » : tiny (78 Mo, le plus rapide), base (148 Mo, par défaut), small (488 Mo), large-v3-turbo-q5_0 (574 Mo), medium (1,5 Go) ou large-v3-turbo (1,6 Go, le plus juste). Chacun se télécharge ou s’efface depuis sa ligne ; celui choisi se télécharge à la première dictée ;
+- « Langue parlée » : celle de l’interface par défaut, la détection automatique, ou une langue précise ;
+- « Raccourci » : « Changer », puis appuie sur le raccourci voulu (avec `Ctrl`, `Alt` ou `Cmd`, ou une touche `F1` à `F24`).
+
+Si le micro est refusé ou absent, Escouade le dit avec la marche à suivre :
+
+- **macOS** demande la permission à la première dictée. Si tu l’as refusée, coche Escouade dans Réglages Système › Confidentialité et sécurité › Microphone, puis relance l’app ;
+- **Windows** : Paramètres › Confidentialité et sécurité › Microphone, « Accès au microphone » puis « Autoriser les applications de bureau à accéder à votre microphone » ;
+- **Linux** : PulseAudio ou PipeWire doit tourner, et le micro ne doit pas être coupé (pavucontrol ou les réglages du son).
+
+La dictée s’arrête d’elle-même après dix minutes, quand le micro est débranché (ce qui a été dit est transcrit), quand la fenêtre est fermée ou rechargée, et quand l’app quitte.
+
 ### Mentionner un fichier avec @
 
 Tape `@` au début d’un message ou après une espace, puis une partie du nom : Escouade liste jusqu’à 12 fichiers du dossier de l’agent (son worktree s’il en a un), avec leur dossier. `↑` et `↓` choisissent, `Entrée` ou `Tab` (ou un clic) insèrent `@chemin/du/fichier`, `Échap` ferme la liste. La recherche est approximative : quelques lettres du nom suffisent. Elle porte sur les fichiers que git connaît (suivis, ou non suivis mais pas ignorés) ; hors d’un dépôt git, le dossier est parcouru sans les dossiers de dépendances et de build.

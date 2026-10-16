@@ -53,6 +53,8 @@ import type {
   TranscriptCursor,
   UiEvent,
   UiState,
+  VoiceInfo,
+  VoiceStarted,
   WorktreeSuggestion,
 } from './types';
 
@@ -99,6 +101,17 @@ export const api = {
   mcpManualCommand: (account: string) => invoke<string>('mcp_manual_command', { account }),
   /** The answer to « Statistiques d’usage », saved at once. */
   telemetrySet: (consent: boolean) => invoke<void>('telemetry_set', { consent }),
+  /** The dictation (Réglages › Voix): the microphones and the models. */
+  voiceInfo: () => invoke<VoiceInfo>('voice_info'),
+  /** Starts listening with the settings' microphone and model, or says the model is to be downloaded first. */
+  voiceStart: () => invoke<VoiceStarted>('voice_start'),
+  /** Stops listening and gives the text heard (empty: nothing said). `target`: where it goes, for the usage statistics. */
+  voiceStop: (session: number, target: string) => invoke<string>('voice_stop', { session, target }),
+  voiceCancel: () => invoke<void>('voice_cancel'),
+  /** Its progress comes as `voice` events; resolves once the model is on the disk, its checksum checked. */
+  voiceDownload: (model: string) => invoke<void>('voice_download', { model }),
+  voiceDownloadCancel: (model: string) => invoke<void>('voice_download_cancel', { model }),
+  voiceDeleteModel: (model: string) => invoke<void>('voice_delete_model', { model }),
   /** The settings, but for the Claude accounts (their tab changes them with the `account*` calls below). */
   saveSettings: (settings: Settings) => invoke<ShellInfo[]>('save_settings', { settings }),
   /** Where the `claude` of `path` is (blank: the one found by itself), `wslDistro` the distribution for one of WSL. */

@@ -3,7 +3,8 @@
   import { t } from './lib/i18n';
   import { api } from './lib/ipc';
   import { app } from './lib/state.svelte';
-  import { handleShortcut, holdPrint } from './lib/shortcuts';
+  import { dictation } from './lib/dictation.svelte';
+  import { dictationKey, handleShortcut, holdPrint } from './lib/shortcuts';
   import { watchForUpdates } from './lib/updater';
   import { watchPresence } from './lib/presence';
   import { createWarmer } from './lib/warm';
@@ -76,9 +77,28 @@
   function onKeydown(e: KeyboardEvent) {
     if (handleShortcut(e)) e.preventDefault();
   }
+
+  // Before any field: the dictation's keys are never typed (a terminal would send them to its program).
+  function onKeyCapture(e: KeyboardEvent) {
+    if (dictationKey(e)) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    if (e.type === 'keydown') holdPrint(e);
+  }
 </script>
 
-<svelte:window onkeydowncapture={(e) => holdPrint(e)} onkeydown={onKeydown} onfocus={() => app.markSeen()} />
+<!-- The window left while a press held dictates: its key will not be seen let go. -->
+<svelte:window
+  onkeydowncapture={onKeyCapture}
+  onkeyupcapture={onKeyCapture}
+  onkeydown={onKeydown}
+  onfocus={() => app.markSeen()}
+  onblur={() => dictation.release()}
+/>
+<!-- The window hidden (to the tray, by the app's own button or the system's): the dictation stops. -->
+<svelte:document onvisibilitychange={() => document.hidden && dictation.cancel()} />
 
 <div class="root">
   <TitleBar />

@@ -12,6 +12,7 @@ import { trees } from './editor/trees.svelte';
 import { bgRow } from './bgtasks';
 import { basename, isAbsPath, relPath } from './format';
 import { setLang, t } from './i18n';
+import { dictation } from './dictation.svelte';
 import { mcp } from './mcp.svelte';
 import { readPref, writePref } from './prefs';
 import { testCommand } from './recipe';
@@ -578,6 +579,9 @@ class AppState {
       case 'mcpDeclared':
       case 'mcpActivity':
         mcp.take(e);
+        break;
+      case 'voice':
+        dictation.take(e.voice);
         break;
       case 'boardIssue':
         if (e.issue) this.boardIssues[e.projectId] = e.issue;

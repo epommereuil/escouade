@@ -66,6 +66,7 @@ mod tui;
 mod tui_tests;
 mod updates;
 mod usage;
+mod voice;
 mod which;
 mod worktrees;
 mod wsl;
@@ -84,6 +85,10 @@ struct FileLogger {
 
 impl log::Log for FileLogger {
     fn enabled(&self, m: &log::Metadata) -> bool {
+        // whisper.cpp tells every step of a model's loading: only its warnings and errors.
+        if m.target().starts_with("whisper_rs") {
+            return m.level() <= log::Level::Warn;
+        }
         m.level() <= log::Level::Info
             || (cfg!(debug_assertions) && m.target().starts_with("escouade"))
     }
@@ -247,6 +252,16 @@ pub fn run() {
                 paths::DataDir::new(paths::default_data_dir()),
             );
             app.manage(core.clone());
+            // The dictation: its events to the window, as the core's.
+            let hub = std::sync::Arc::downgrade(&core);
+            app.manage(Arc::new(voice::Voice::for_app(
+                core.data.root().to_path_buf(),
+                Arc::new(move |e| {
+                    if let Some(core) = hub.upgrade() {
+                        core.hub.emit(model::UiEvent::Voice { voice: e });
+                    }
+                }),
+            )));
             app.manage(updates::Updates::started(after_update));
             build_tray(app)?;
             // In place of Tauri's default, in English. Should it fail, the default stays: its Edit
@@ -285,6 +300,10 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
+                // Closed to the tray: no one sees the dictation any more, it stops.
+                if let Some(v) = window.try_state::<Arc<voice::Voice>>() {
+                    v.cancel();
+                }
                 let core = window.state::<Arc<Core>>();
                 if !core.quitting.load(Ordering::Acquire) {
                     api.prevent_close();
@@ -436,6 +455,13 @@ pub fn run() {
             commands::telemetry_set,
             commands::mcp_declare_status,
             commands::mcp_manual_command,
+            commands::voice_info,
+            commands::voice_start,
+            commands::voice_stop,
+            commands::voice_cancel,
+            commands::voice_download,
+            commands::voice_download_cancel,
+            commands::voice_delete_model,
         ])
         .build(tauri::generate_context!())
         .expect("error while building the application")

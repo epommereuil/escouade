@@ -30,7 +30,9 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { t } from '../lib/i18n';
-  import { mountTerminal, roomOf } from '../lib/terminals';
+  import type { DictationTarget } from '../lib/dictation.svelte';
+  import { mountTerminal, roomOf, typeIntoTerminal } from '../lib/terminals';
+  import MicButton from './MicButton.svelte';
   import { app } from '../lib/state.svelte';
   import type { Agent } from '../lib/types';
 
@@ -108,6 +110,16 @@
     };
   });
 
+  // Dictated text is typed into Claude Code's prompt, as a paste: it is never sent by itself.
+  const dictated: DictationTarget = {
+    kind: 'terminal',
+    id: 'terminal-' + Math.random().toString(36).slice(2),
+    el: () => box?.parentElement,
+    insert: (said) => {
+      if (term) void typeIntoTerminal(term, said.trim());
+    },
+  };
+
   /** The old interface is being stopped: the new one is not started before, or the backend would attach to the old one. */
   let restarting = false;
 
@@ -166,6 +178,9 @@
 
 <div class="tui">
   <div class="box" bind:this={box} aria-label={t('conv.header.toTerminal')}></div>
+  {#if term && !exited}
+    <div class="voice"><MicButton target={dictated} below /></div>
+  {/if}
   {#if error}
     <div class="note err" role="alert">
       {t('conv.terminal.failed', { error })}
@@ -205,6 +220,17 @@
     flex: 1;
     min-height: 0;
     padding: 8px 4px 4px 12px;
+  }
+  /* Over the top right corner of the terminal, above its layers. */
+  .voice {
+    position: absolute;
+    top: 8px;
+    right: 14px;
+    z-index: 5;
+  }
+  .voice :global(.mic) {
+    background: var(--panel);
+    border: 1px solid var(--line);
   }
   .note {
     position: absolute;

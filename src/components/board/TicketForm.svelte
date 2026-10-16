@@ -11,7 +11,10 @@
   import { ariaEnter } from '../../lib/shortcuts';
   import { app, type TicketFormDraft } from '../../lib/state.svelte';
   import type { Ticket, TicketDraft } from '../../lib/types';
+  import { insertAt } from '../../lib/dictation';
+  import type { DictationTarget } from '../../lib/dictation.svelte';
   import AttachmentChip from '../AttachmentChip.svelte';
+  import MicButton from '../MicButton.svelte';
   import BranchPicker from '../branches/BranchPicker.svelte';
   import Modal from '../modals/Modal.svelte';
   import { tip } from '../../lib/tip';
@@ -89,6 +92,23 @@
   let imageList = $state<HTMLUListElement>();
   let fileList = $state<HTMLUListElement>();
   let descriptionField = $state<HTMLTextAreaElement>();
+
+  // Dictated into the description, at its cursor: the shortcut too, while the focus is in the form.
+  const dictated: DictationTarget = {
+    kind: 'ticket',
+    id: `ticket-${Math.random().toString(36).slice(2)}`,
+    el: () => form,
+    insert: (said) => {
+      const f = descriptionField;
+      const at = f && document.activeElement === f ? [f.selectionStart, f.selectionEnd] : [description.length, description.length];
+      const r = insertAt(description, at[0], at[1], said);
+      description = r.text;
+      void tick().then(() => {
+        descriptionField?.focus();
+        descriptionField?.setSelectionRange(r.caret, r.caret);
+      });
+    },
+  };
   let busy = $state(false);
   const ready = $derived(title.trim().length > 0 && !busy && !reading && !copying);
   const changed = $derived(
@@ -465,20 +485,23 @@
             e.currentTarget.value = '';
           }}
         />
-        <button class="attach" use:tip={t('board.form.attachTitle')} onclick={() => fileInput?.click()}>
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-            ><path d="M21.4 11.1l-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5" /></svg
-          >{t('board.form.attach')}
-        </button>
+        <div class="lab-tools">
+          <MicButton target={dictated} below />
+          <button class="attach" use:tip={t('board.form.attachTitle')} onclick={() => fileInput?.click()}>
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              ><path d="M21.4 11.1l-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5" /></svg
+            >{t('board.form.attach')}
+          </button>
+        </div>
       </div>
       <textarea
         bind:this={descriptionField}
@@ -630,6 +653,15 @@
     font-size: 12px;
     font-weight: 600;
     color: var(--muted);
+  }
+  .lab-tools {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .lab-tools :global(.mic) {
+    width: 24px;
+    height: 22px;
   }
   /* The description's label, and on its right what attaches an image to the ticket. */
   .lab-row {

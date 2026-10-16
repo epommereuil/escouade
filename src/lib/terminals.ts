@@ -416,6 +416,19 @@ async function pastedPath(f: File, agentId: string): Promise<string | null> {
  */
 const BRACKETED_WAIT = 5000;
 
+/**
+ * Text dictated into the terminal `id` (the Claude Code view): pasted as the user's own paste, bracketed once the
+ * program asks for it, so that Claude Code takes it into its prompt without running it (a line break in it is not Enter).
+ */
+export async function typeIntoTerminal(id: string, text: string) {
+  const x = xterms.get(id);
+  if (!x) return;
+  await bracketed(x.term);
+  x.pasteAt = performance.now();
+  x.term.paste(text);
+  x.term.focus();
+}
+
 /** Once `term` takes pastes bracketed, or after `BRACKETED_WAIT` (a program that never asks). */
 async function bracketed(term: Terminal) {
   const until = Date.now() + BRACKETED_WAIT;

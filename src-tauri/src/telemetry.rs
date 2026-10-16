@@ -81,6 +81,12 @@ pub enum Event {
     RemoteControlEnabled {
         from: &'static str,
     },
+    /// A dictation gave text: where it went ("composer", "terminal", "ticket") and with which
+    /// model; never what was said.
+    DictationUsed {
+        target: &'static str,
+        model: &'static str,
+    },
 }
 
 impl Event {
@@ -109,6 +115,7 @@ impl Event {
             Event::TicketsImported { .. } => "tickets_imported",
             Event::AccountCreated => "account_created",
             Event::RemoteControlEnabled { .. } => "remote_control_enabled",
+            Event::DictationUsed { .. } => "dictation_used",
         }
     }
 
@@ -136,6 +143,7 @@ impl Event {
             }
             Event::GitSync { op } => json!({ "op": op }),
             Event::RemoteControlEnabled { from } => json!({ "from": from }),
+            Event::DictationUsed { target, model } => json!({ "target": target, "model": model }),
             Event::IntegrationConnected { service } | Event::TicketsImported { service } => {
                 json!({ "service": service })
             }

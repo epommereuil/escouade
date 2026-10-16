@@ -87,6 +87,34 @@ A file sent by path is either the original file or a copy.
 - Escouade never deletes an original file.
 - For each agent, Escouade keeps, with it, the list of original files it has allowed that agent to read (200 at most, the most recent). The interface doesn’t show this list yet and doesn’t let you remove a file from it; deleting the agent erases it.
 
+### Dictating a message
+
+The microphone, next to the paperclip, dictates the message instead of typing it. Two ways to talk:
+
+- **one click** starts the dictation, **another** ends it;
+- **a long press** dictates while the button is held down: letting go ends it.
+
+The shortcut `Ctrl+Shift+Space` (`⇧⌘Space` on macOS) does the same, short or held, in the field that has the focus. While it listens, a panel shows the microphone’s level and the time; `Esc` cancels without writing anything.
+
+The dictated text is **inserted at the cursor** (it replaces the selection, if any), spaced from the words around it. It is **never sent by itself**: you read it, fix it, then send it with `Enter`. A ticket’s description is dictated the same way (the microphone is next to “Attach”), and so is Claude Code’s prompt in the [Claude Code view](claude-code-view): the microphone is at the top right of the terminal, and the text is typed there as a paste, not submitted.
+
+The transcription happens **on your machine**, by Whisper (whisper.cpp), on a thread of its own: nothing you say leaves your machine. At the first dictation, Escouade offers to download the “base” model (148 MB), once, from Hugging Face, through the proxy of the [network settings](settings-network); its checksum is checked before it is kept, in `~/.escouade/voice/models`. After that, a sentence is transcribed in one or two seconds.
+
+In **Settings › Voice**:
+
+- “Microphone used”: the system’s by default, or another one;
+- “Model”: tiny (78 MB, the fastest), base (148 MB, the default), small (488 MB), large-v3-turbo-q5_0 (574 MB), medium (1.5 GB) or large-v3-turbo (1.6 GB, the most accurate). Each one downloads or is deleted from its row; the one chosen downloads at the first dictation;
+- “Spoken language”: the interface’s by default, automatic detection, or a given language;
+- “Shortcut”: “Change”, then press the shortcut you want (with `Ctrl`, `Alt` or `Cmd`, or a key `F1` to `F24`).
+
+When the microphone is refused or missing, Escouade says so, with what to do:
+
+- **macOS** asks for permission at the first dictation. If you refused it, tick Escouade in System Settings › Privacy & Security › Microphone, then restart the app;
+- **Windows**: Settings › Privacy & security › Microphone, “Microphone access”, then “Let desktop apps access your microphone”;
+- **Linux**: PulseAudio or PipeWire must be running, and the microphone not muted (pavucontrol or the sound settings).
+
+The dictation stops by itself after ten minutes, when the microphone is unplugged (what was said is transcribed), when the window is closed or reloaded, and when the app quits.
+
 ### Mentioning a file with @
 
 Type `@` at the start of a message or after a space, then part of the name: Escouade lists up to 12 files from the agent’s folder (its worktree if it has one), with their folder. `↑` and `↓` choose, `Enter` or `Tab` (or a click) insert `@path/to/file`, `Esc` closes the list. The search is approximate: a few letters of the name are enough. It covers the files git knows (tracked, or untracked but not ignored); outside a git repository, the folder is walked without dependency and build folders.
