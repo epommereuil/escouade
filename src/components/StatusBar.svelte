@@ -116,79 +116,81 @@
 {/snippet}
 
 <footer class="bar mono">
-  <span class="it"
-    ><span class="dot" style="width:7px;height:7px;background:var(--ok)"></span>{t('shell.status.active', { count: running })}</span
-  >
-  <button
-    class="it link"
-    style:color={waiting ? 'var(--wait)' : 'var(--muted)'}
-    onclick={() => app.nextWaiting()}
-    use:tip={t('shell.status.nextWaiting', { key: keyLabel('Ctrl+J') })}
-  >
-    {#if waiting}<span class="pulse" style="width:7px;height:7px"></span>{:else}<span
-        class="dot"
-        style="width:7px;height:7px;background:var(--dim)"
-      ></span>{/if}
-    {t('shell.status.waiting', { n: waiting })}
-  </button>
-  <span class="it"><span style="color:var(--ok)">✓</span>{t('shell.status.done', { count: done })}</span>
-  {#if procs.instances}
-    <span class="vsep"></span>
-    <span class="it" use:tip={procsTitle}
-      ><Rich k="shell.status.procs" instances={procs.instances}
-        >{#snippet memory()}<span class="v">{fBytes(procs.memory)}</span>{/snippet}{#snippet cpu()}<span class="v">{fPct(procs.cpu)}</span
-          >{/snippet}</Rich
-      ></span
+  <!-- What the bar tells, which gives way when the window is narrow; the buttons on the right always stay whole. -->
+  <div class="main">
+    <span class="it"
+      ><span class="dot" style="width:7px;height:7px;background:var(--ok)"></span>{t('shell.status.active', { count: running })}</span
     >
-  {/if}
-  <span class="vsep"></span>
-  {#if several}
-    <!-- The panel's button: its bars are only seen here (their values are in the panel, which the keyboard opens). -->
     <button
-      class="it link group"
-      bind:this={quotaButton}
-      aria-haspopup="dialog"
-      aria-expanded={panelOpen}
-      aria-controls="accounts-panel"
-      aria-label={t('accounts.panel.open', { name: currentName })}
-      aria-describedby="quota-description"
-      use:tip={panelOpen ? null : { text: quotaLines.join('\n'), aria: false }}
-      onclick={() => (panelOpen = !panelOpen)}
+      class="it link"
+      style:color={waiting ? 'var(--wait)' : 'var(--muted)'}
+      onclick={() => app.nextWaiting()}
+      use:tip={t('shell.status.nextWaiting', { key: keyLabel('Ctrl+J') })}
     >
-      {@render quotas(false)}
+      {#if waiting}<span class="pulse" style="width:7px;height:7px"></span>{:else}<span
+          class="dot"
+          style="width:7px;height:7px;background:var(--dim)"
+        ></span>{/if}
+      {t('shell.status.waiting', { n: waiting })}
     </button>
-    <span id="quota-description" hidden>{quotaLines.join('. ')}</span>
-  {:else}
-    <span class="it group">{@render quotas(true)}</span>
-  {/if}
-  <span class="vsep"></span>
-  <span class="it" use:tip={app.liveCost > 0 ? estimateHint() : undefined}
-    >{t('shell.status.today')}
-    <span class="v strong">{fSpentUsd({ cost: app.usage.todayCost + app.liveCost, estimated: app.liveCost > 0 })}</span></span
-  >
-  {#if repo}
+    <span class="it"><span style="color:var(--ok)">✓</span>{t('shell.status.done', { count: done })}</span>
+    {#if procs.instances}
+      <span class="vsep"></span>
+      <span class="it procs" use:tip={procsTitle}
+        ><Rich k="shell.status.procs" instances={procs.instances}
+          >{#snippet memory()}<span class="v">{fBytes(procs.memory)}</span>{/snippet}{#snippet cpu()}<span class="v">{fPct(procs.cpu)}</span
+            >{/snippet}</Rich
+        ></span
+      >
+    {/if}
     <span class="vsep"></span>
-    <button
-      class="it link sync"
-      bind:this={branchButton}
-      disabled={!!busy}
-      aria-haspopup="dialog"
-      aria-expanded={pickerOpen}
-      onclick={() => (pickerOpen = !pickerOpen)}
-      use:tip={branchTitle}
+    {#if several}
+      <!-- The panel's button: its bars are only seen here (their values are in the panel, which the keyboard opens). -->
+      <button
+        class="it link group"
+        bind:this={quotaButton}
+        aria-haspopup="dialog"
+        aria-expanded={panelOpen}
+        aria-controls="accounts-panel"
+        aria-label={t('accounts.panel.open', { name: currentName })}
+        aria-describedby="quota-description"
+        use:tip={panelOpen ? null : { text: quotaLines.join('\n'), aria: false }}
+        onclick={() => (panelOpen = !panelOpen)}
+      >
+        {@render quotas(false)}
+      </button>
+      <span id="quota-description" hidden>{quotaLines.join('. ')}</span>
+    {:else}
+      <span class="it group">{@render quotas(true)}</span>
+    {/if}
+    <span class="vsep"></span>
+    <span class="it" use:tip={app.liveCost > 0 ? estimateHint() : undefined}
+      >{t('shell.status.today')}
+      <span class="v strong">{fSpentUsd({ cost: app.usage.todayCost + app.liveCost, estimated: app.liveCost > 0 })}</span></span
     >
-      <span class="v">⎇ {repo.detached ? t('branches.picker.detached') : repo.git.branch}</span>
-      {#if busy}
-        <span>{runningLabel(busy)}</span>
-      {:else if sync?.tracked}
-        <span style:color={sync.ahead ? 'var(--text)' : 'var(--dim)'}>↑{sync.ahead}</span>
-        <span style:color={sync.behind ? 'var(--wait)' : 'var(--dim)'}>↓{sync.behind}</span>
-      {:else if sync}
-        <span class="d">{sync.upstream ? t('shell.status.sync.goneShort') : t('shell.status.sync.unpublishedShort')}</span>
-      {/if}
-    </button>
-  {/if}
-  <div style="flex:1"></div>
+    {#if repo}
+      <span class="vsep"></span>
+      <button
+        class="it link sync branch"
+        bind:this={branchButton}
+        disabled={!!busy}
+        aria-haspopup="dialog"
+        aria-expanded={pickerOpen}
+        onclick={() => (pickerOpen = !pickerOpen)}
+        use:tip={branchTitle}
+      >
+        <span class="v name">⎇ {repo.detached ? t('branches.picker.detached') : repo.git.branch}</span>
+        {#if busy}
+          <span>{runningLabel(busy)}</span>
+        {:else if sync?.tracked}
+          <span style:color={sync.ahead ? 'var(--text)' : 'var(--dim)'}>↑{sync.ahead}</span>
+          <span style:color={sync.behind ? 'var(--wait)' : 'var(--dim)'}>↓{sync.behind}</span>
+        {:else if sync}
+          <span class="d">{sync.upstream ? t('shell.status.sync.goneShort') : t('shell.status.sync.unpublishedShort')}</span>
+        {/if}
+      </button>
+    {/if}
+  </div>
   {#if restartIn !== null}
     <span class="it v">{t('shell.status.restartIn', { seconds: restartIn })}</span>
     <button class="small" onclick={postpone}>{t('common.later')}</button>
@@ -236,6 +238,49 @@
     user-select: none;
     white-space: nowrap;
     overflow: hidden;
+    container: status / inline-size;
+  }
+  /* Past its width, what it tells is cut at its edge rather than pushing the buttons out of the window: the activity, the
+     processes, the quotas, the day's cost and the branch. Its height is the bar's, so a focus ring is not cut. */
+  .main {
+    flex: 1;
+    min-width: 0;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    overflow: hidden;
+  }
+  .main > * {
+    flex: none;
+  }
+  /* The processes and the branch give way first, cut short (the tooltip of the processes says them whole, the picker the
+     branch opens names it). */
+  .main > .procs {
+    display: block;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .main > .branch {
+    flex: 0 1 auto;
+    min-width: 6em;
+  }
+  .branch .name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* A narrow window (the interface is laid out for 1000 pixels): tighter, and the quotas without their countdown, which
+     their tooltips give. */
+  @container status (max-width: 1199px) {
+    .main {
+      gap: 10px;
+    }
+    .main :global(.q .d) {
+      display: none;
+    }
   }
   .it {
     display: flex;

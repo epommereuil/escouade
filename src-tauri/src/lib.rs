@@ -211,17 +211,21 @@ pub fn run() {
     let mut builder = tauri::Builder::default();
     // Sandboxed runs (end-to-end tests, demos) must not hand over to an instance the user
     // already has open.
+    // Nor take the size and place of the user's window, or save their own over it (the file is the
+    // app's, not the data folder's): a sandboxed window opens at the size of tauri.conf.json, as
+    // big as the screen allows, whatever window the user last had.
     if paths::sandbox_dir().is_none() {
-        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            notify::show_main(app)
-        }));
+        builder = builder
+            .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+                notify::show_main(app)
+            }))
+            .plugin(
+                tauri_plugin_window_state::Builder::default()
+                    .with_state_flags(StateFlags::all() & !StateFlags::VISIBLE)
+                    .build(),
+            );
     }
     let builder = builder
-        .plugin(
-            tauri_plugin_window_state::Builder::default()
-                .with_state_flags(StateFlags::all() & !StateFlags::VISIBLE)
-                .build(),
-        )
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())

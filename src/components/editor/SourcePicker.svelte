@@ -1,6 +1,7 @@
 <script lang="ts">
   import { fInt } from '../../lib/format';
   import { t } from '../../lib/i18n';
+  import { tip } from '../../lib/tip';
   import type { Agent, GitInfo, Project } from '../../lib/types';
   import { worktreeLabel } from '../../lib/worktrees';
   import StatusDot from '../StatusDot.svelte';
@@ -40,7 +41,7 @@
     onclick={() => (open = !open)}
   >
     {#if current}<StatusDot status={current.status} size={7} />{:else}<span class="glyph mono">⎇</span>{/if}
-    <span class="nm">{current ? current.name : branch}</span>
+    <span class="nm" use:tip={{ text: current ? current.name : branch, cut: true }}>{current ? current.name : branch}</span>
     <span class="kind mono">{current ? t('editor.source.kindWorktree') : t('editor.source.kindBranch')}</span>
     <span class="chev">▾</span>
   </button>
@@ -77,17 +78,27 @@
 </div>
 
 <style>
+  /* In a narrow window, the name gives way (cut short, whole in its tooltip) rather than pushing what follows it out. */
   .picker {
     position: relative;
+    min-width: 0;
   }
   .src {
     height: 36px;
+    max-width: 100%;
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 0 10px 0 12px;
   }
+  .src > * {
+    flex: none;
+  }
   .src .nm {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-size: 13.5px;
     font-weight: 700;
   }

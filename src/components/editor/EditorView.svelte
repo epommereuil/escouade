@@ -53,6 +53,12 @@
   const place = $derived(st?.places[source]);
   const tree = $derived(trees.get(project.id, source));
   const srcAgent = $derived(source === 'project' ? null : (app.agents[source] ?? null));
+  /** What the status line says the files are of: the agent's worktree, or the project's branch. */
+  const sourceLabel = $derived(
+    srcAgent
+      ? t('editor.source.worktree', { name: srcAgent.name })
+      : t('editor.source.branch', { name: app.git[project.id]?.branch || t('editor.source.noBranch') }),
+  );
   const activePath = $derived(place?.active ?? null);
   const activeKey = $derived(activePath ? buffers.key(project.id, source, activePath) : null);
   const buf = $derived(activeKey ? buffers.all[activeKey] : undefined);
@@ -944,11 +950,7 @@
             <span>{buf.eol === 'crlf' ? 'CRLF' : 'LF'}</span>
             <span>{indent.tabs ? t('editor.status.tabs') : t('editor.status.spaces', { size: indent.size })}</span>
             <div style="flex:1"></div>
-            <span
-              >{srcAgent
-                ? t('editor.source.worktree', { name: srcAgent.name })
-                : t('editor.source.branch', { name: app.git[project.id]?.branch || t('editor.source.noBranch') })}</span
-            >
+            <span class="source" use:tip={{ text: sourceLabel, cut: true }}>{sourceLabel}</span>
           </div>
         {/if}
       {/if}
@@ -1188,5 +1190,16 @@
     font-size: 10.5px;
     color: var(--muted);
     white-space: nowrap;
+    overflow: hidden;
+  }
+  .status > span {
+    flex: none;
+  }
+  /* A long branch or agent name is cut short, whole in its tooltip. */
+  .status > .source {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 </style>

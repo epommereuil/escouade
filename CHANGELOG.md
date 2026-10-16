@@ -16,6 +16,10 @@ Les changements visibles d'Escouade, version par version. Les notes de chaque re
 
 - Le site, le README et la documentation présentent Escouade pour ce qu'elle est devenue : un environnement de développement agentique (ADE), « L'environnement de développement pensé pour les agents », plus seulement le poste de pilotage de sessions Claude Code. La page d'accueil suit le cycle de développement en cinq chapitres (Planifier, Coder, Relire et tester, Livrer, Piloter), avec ce qui manquait (sous-agents et tâches de fond, fichiers joints, images et fichiers des tickets, plusieurs comptes, serveur MCP, vue d'ensemble, branches), la FAQ répond à « Qu'est-ce qu'un ADE ? » et « Ça remplace mon éditeur ? », et la feuille de route de la 1.8 nomme Cursor CLI et les hébergeurs de code (GitHub, GitLab, Bitbucket, Gitea : PR, CI, déploiements) (ESC-86).
 
+### Corrections
+
+- Dans une fenêtre étroite (un écran de 1024 pixels de large, ou une fenêtre réduite vers 1000 pixels), la barre d'état ne coupe plus ses boutons « ♪ » et « ⚙ » (Réglages) au bord droit : elle se resserre, les quotas y perdent leur compte à rebours (toujours dans leur infobulle), et les processus et la branche s'abrègent en « … ». Un nom de branche long ne pousse plus non plus « Enregistrer » hors de la fenêtre dans l'éditeur, ni ne déborde de sa ligne d'état : il s'abrège, entier dans son infobulle.
+
 ## [1.7.10] — 2026-10-16
 
 ### Ajouts
