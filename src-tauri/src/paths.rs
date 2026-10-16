@@ -679,8 +679,31 @@ pub(crate) fn strip_base(base: &str, path: &str) -> Option<String> {
 #[cfg(test)]
 static TESTS_START: std::sync::OnceLock<std::time::SystemTime> = std::sync::OnceLock::new();
 
+/// Cargo puts in the `PATH` of a test every folder a build script gives the linker, and that of
+/// whisper-rs-sys gives each folder of whisper.cpp's cmake tree (46 of them): the `PATH` then
+/// passes the 8191 characters cmd.exe reads, and the fake `claude.cmd` no longer finds `node`.
+/// Those folders hold no program: they go, once, before a test starts anything.
+#[cfg(all(test, windows))]
+fn trim_test_path() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        let Some(path) = std::env::var_os("PATH") else {
+            return;
+        };
+        let kept: Vec<PathBuf> = std::env::split_paths(&path)
+            .filter(|p| !p.to_string_lossy().contains("whisper-rs-sys-"))
+            .collect();
+        if let Ok(joined) = std::env::join_paths(kept) {
+            // Edition 2021: safe; done once, before the test spawns anything.
+            std::env::set_var("PATH", joined);
+        }
+    });
+}
+
 #[cfg(test)]
 pub fn test_dir(name: &str) -> PathBuf {
+    #[cfg(windows)]
+    trim_test_path();
     let start = *TESTS_START.get_or_init(std::time::SystemTime::now);
     let dir = std::env::temp_dir().join(format!("ccm-test-{}-{name}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
