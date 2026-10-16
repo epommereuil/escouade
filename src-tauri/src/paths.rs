@@ -684,7 +684,7 @@ static TESTS_START: std::sync::OnceLock<std::time::SystemTime> = std::sync::Once
 /// passes the 8191 characters cmd.exe reads, and the fake `claude.cmd` no longer finds `node`.
 /// Those folders hold no program: they go, once, before a test starts anything.
 #[cfg(all(test, windows))]
-fn trim_test_path() {
+pub(crate) fn trim_test_path() {
     static ONCE: std::sync::Once = std::sync::Once::new();
     ONCE.call_once(|| {
         let Some(path) = std::env::var_os("PATH") else {

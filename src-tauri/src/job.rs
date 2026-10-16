@@ -711,6 +711,7 @@ mod tests {
     async fn a_program_the_process_started_before_it_joined_the_job_is_held_too() {
         // What a `.cmd` shim does: `cmd` starts its program at once, maybe before the job exists.
         // The program says it runs, by a file; `cmd` waits for it to end.
+        crate::paths::trim_test_path();
         let up = std::env::temp_dir().join(format!("ccm-job-adopt-{}", std::process::id()));
         let _ = std::fs::remove_file(&up);
         let mut cmd = tokio::process::Command::new("cmd");
