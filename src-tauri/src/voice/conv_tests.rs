@@ -183,11 +183,19 @@ fn speaking_over_the_agent_stops_its_reading_and_the_sentence_is_heard() {
     hear(h, 0.3, 0.0);
     let reading = h
         .voice
-        .conversation_say(session, "Une première phrase assez longue. Une deuxième phrase. Une troisième phrase.")
+        .conversation_say(
+            session,
+            "Une première phrase assez longue pour durer quatre secondes entières à la lecture.              Une deuxième phrase tout aussi longue, qui dure elle aussi ses quatre secondes.              Une troisième phrase, la dernière, aussi longue que les deux autres réunies.",
+        )
         .unwrap();
+    // Some echo while the coupling is learnt (the clock of the test may be slow: macOS's coalesced timers).
     hear(h, 0.8, 0.05);
-    // The user, close to the microphone.
-    hear(h, 0.6, 0.4);
+    // The user, close to the microphone, until the agent stops (12 s of reading at most).
+    let end = Instant::now() + Duration::from_secs(8);
+    while !h.events.lock().iter().any(|e| matches!(e, VoiceEvent::ConvBargeIn { .. })) {
+        assert!(Instant::now() < end, "no barge-in: {:?}", conv_events(h));
+        hear(h, 0.1, 0.4);
+    }
     let barge = wait_for(h, |e| matches!(e, VoiceEvent::ConvBargeIn { .. }));
     assert_eq!(barge, VoiceEvent::ConvBargeIn { session, reading });
     hear(h, 0.6, 0.4);

@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Escouade — conversation vocale plein fenêtre (aperçu ESC-97)</title>
+    <link rel="stylesheet" href="../../node_modules/@fontsource/hanken-grotesk/400.css" />
+    <link rel="stylesheet" href="../../node_modules/@fontsource/hanken-grotesk/600.css" />
+    <link rel="stylesheet" href="../../node_modules/@fontsource/hanken-grotesk/700.css" />
+    <link rel="stylesheet" href="../../node_modules/@fontsource/jetbrains-mono/400.css" />
+    <style>
+      /* The app's tokens (src/app.css). ?d=a|b|c la direction, ?s=listening|speaking|working|transcribing l'état,
+         ?t=<s> fige l'animation à cet instant (captures). Sans ?t, elle tourne. */
+      :root {
+        --bg: #1b1917; --panel: #211f1c; --elev: #2a2724; --line: rgba(255,236,214,.08); --line2: rgba(255,236,214,.15);
+        --text: #ede7df; --muted: #a8a095; --dim: #6f685f; --accent: oklch(0.72 0.12 48); --del: oklch(0.72 0.14 25);
+        --info: oklch(0.74 0.12 235); --ui: 'Hanken Grotesk', system-ui, sans-serif; --mono: 'JetBrains Mono', monospace;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 13px var(--ui); -webkit-font-smoothing: antialiased; overflow: hidden; }
+      /* The app beneath, blurred: the panel covers the window, not the screen. */
+      .app { position: absolute; inset: 0; background: linear-gradient(#1f1d1a 0 34px, var(--bg) 34px); filter: blur(6px); opacity: .5; }
+      .app .side { position: absolute; left: 0; top: 34px; bottom: 0; width: 250px; background: var(--panel); border-right: 1px solid var(--line); }
+      .app .msg { position: absolute; left: 300px; right: 120px; height: 14px; border-radius: 7px; background: var(--elev); }
+      .veil { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 42%, rgba(27,25,23,.82), rgba(14,12,11,.97)); }
+      .top { position: absolute; top: 18px; left: 24px; right: 24px; display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12.5px; }
+      .top .who { color: var(--text); font-weight: 600; }
+      .top .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+      .top .esc { margin-left: auto; color: var(--dim); }
+      .top kbd { font: 11px var(--mono); padding: 1px 6px; border: 1px solid var(--line2); border-radius: 5px; color: var(--muted); }
+      canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+      .state { position: absolute; left: 0; right: 0; top: calc(50% + 150px); text-align: center; color: var(--muted); font-size: 13px; letter-spacing: .01em; }
+      .subs { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); width: min(860px, 80%); text-align: center; }
+      .line { font-size: 22px; line-height: 1.42; font-weight: 400; color: var(--text); text-wrap: balance; text-shadow: 0 2px 18px rgba(0,0,0,.6); }
+      .speaker { display: block; margin-bottom: 6px; font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+      .line.user { color: color-mix(in oklch, var(--text) 78%, var(--muted)); }
+      .bar { position: absolute; left: 0; right: 0; bottom: 28px; display: flex; justify-content: center; gap: 10px; }
+      .btn { height: 36px; padding: 0 18px; border-radius: 18px; border: 1px solid var(--line2); background: rgba(42,39,36,.8); color: var(--text); font: 600 13px var(--ui); display: inline-flex; align-items: center; gap: 8px; }
+      .btn.stop { background: var(--text); color: #1b1512; border-color: transparent; }
+      .btn .sq { width: 9px; height: 9px; border-radius: 2px; background: currentColor; }
+      .label { position: absolute; right: 24px; bottom: 30px; color: var(--dim); font: 11px var(--mono); }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div class="side"></div>
+      <div class="msg" style="top: 120px; width: 40%"></div>
+      <div class="msg" style="top: 160px"></div>
+      <div class="msg" style="top: 200px; width: 55%"></div>
+      <div class="msg" style="top: 280px; left: 60%"></div>
+    </div>
+    <div class="veil"></div>
+    <canvas id="c"></canvas>
+    <div class="top"><span class="dot"></span><span class="who">Alice</span><span>· web-shop · conversation vocale</span><span class="esc"><kbd>Échap</kbd> pour quitter</span></div>
+    <div class="state" id="state"></div>
+    <div class="subs" id="subs"></div>
+    <div class="bar"><button class="btn stop"><span class="sq"></span>Arrêter</button></div>
+    <div class="label" id="label"></div>
+    <script>
+      // ?d=a|b|c la direction ; ?s=<état> et ?t=<s> figent un état (captures) ; ?play rejoue le scénario (vidéo :
+      // window.render(t) dessine l'instant t, en secondes).
+      const q = new URLSearchParams(location.search);
+      const D = q.get('d') || 'a';
+      const NAMES = { a: 'A · Orbe', b: 'B · Anneaux', c: 'C · Barres' };
+      const STATE = {
+        listening: 'À l’écoute : parle quand tu veux',
+        transcribing: 'Transcription sur ta machine…',
+        working: 'Alice travaille…',
+        speaking: 'Alice te répond',
+      };
+      const SAID = 'Ajoute un test pour la page des réglages, puis lance la suite.';
+      const READ = ['C’est fait : j’ai ajouté le test de la page des réglages.', 'Toute la suite passe, rien d’autre à signaler.'];
+      // The scenario of a turn, in seconds: what is shown at t.
+      function scene(t) {
+        if (q.has('s')) {
+          const s = q.get('s');
+          const sub = s === 'speaking' ? ['Alice', READ[0]] : s === 'listening' ? ['Toi', 'Ajoute un test pour la page des…'] : ['Toi', SAID];
+          return { s, sub };
+        }
+        if (t < 3.2) {
+          const words = SAID.split(' ');
+          const n = Math.max(1, Math.floor((t / 3.0) * words.length));
+          return { s: 'listening', sub: t < 0.5 ? null : ['Toi', words.slice(0, n).join(' ') + (n < words.length ? '…' : '')] };
+        }
+        if (t < 3.9) return { s: 'transcribing', sub: ['Toi', SAID] };
+        if (t < 5.2) return { s: 'working', sub: ['Toi', SAID] };
+        if (t < 7.6) return { s: 'speaking', sub: ['Alice', READ[0]] };
+        return { s: 'speaking', sub: ['Alice', READ[1]] };
+      }
+      // A speech-like level: syllables over a phrase envelope (the app reads it from the samples played, or the microphone).
+      function level(s, t) {
+        if (s === 'working' || s === 'transcribing') return 0;
+        if (!q.has('s') && s === 'listening' && (t < 0.4 || t > 3.0)) return 0.02;
+        const syl = Math.max(0, Math.sin(t * 9.1) * 0.55 + Math.sin(t * 13.7 + 1) * 0.35);
+        const phrase = 0.55 + 0.45 * Math.sin(t * 1.3);
+        const v = syl * phrase;
+        return s === 'listening' ? v * 0.7 : v;
+      }
+      const cv = document.getElementById('c');
+      const ctx = cv.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      function size() { cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+      size(); addEventListener('resize', size);
+      const warm = [232, 148, 92], cool = [120, 170, 235], red = [228, 112, 98];
+      const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+      let S = 'speaking', tint = warm, smooth = 0;
+
+      function orb(cx, cy, t, l) {
+        const r0 = 92 + l * 26 + (S === 'working' ? 4 * Math.sin(t * 1.6) : 0);
+        const g = ctx.createRadialGradient(cx, cy, r0 * 0.2, cx, cy, r0 * 2.6);
+        g.addColorStop(0, rgba(tint, 0.22 + l * 0.2)); g.addColorStop(1, rgba(tint, 0));
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r0 * 2.6, 0, 7); ctx.fill();
+        ctx.beginPath();
+        for (let i = 0; i <= 96; i++) {
+          const a = (i / 96) * Math.PI * 2;
+          const w = 1 + (0.05 + l * 0.09) * Math.sin(a * 3 + t * 1.7) + (0.03 + l * 0.06) * Math.sin(a * 5 - t * 2.3);
+          const x = cx + Math.cos(a) * r0 * w, y = cy + Math.sin(a) * r0 * w;
+          i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+        }
+        const b = ctx.createRadialGradient(cx - r0 * 0.35, cy - r0 * 0.45, r0 * 0.1, cx, cy, r0 * 1.1);
+        b.addColorStop(0, rgba([255, 236, 214], 0.95)); b.addColorStop(0.35, rgba(tint, 0.95)); b.addColorStop(1, rgba(tint.map((v) => v * 0.35), 1));
+        ctx.fillStyle = b; ctx.fill();
+        if (S === 'working' || S === 'transcribing') {
+          ctx.strokeStyle = rgba([255, 236, 214], 0.3); ctx.lineWidth = 2; ctx.beginPath();
+          ctx.arc(cx, cy, r0 + 26, t * 2, t * 2 + 1.2); ctx.stroke();
+        }
+      }
+
+      function rings(cx, cy, t, l) {
+        ctx.lineWidth = 1.5;
+        for (let i = 0; i < 5; i++) {
+          const p = (t * (S === 'working' ? 0.25 : 0.45) + i / 5) % 1;
+          const r = 70 + p * 150 + l * 30 * (1 - p);
+          ctx.strokeStyle = rgba(tint, (1 - p) * (0.2 + l * 0.6));
+          ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.stroke();
+        }
+        const r = 58 + l * 22;
+        ctx.strokeStyle = rgba(tint, 0.95); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.stroke();
+        ctx.fillStyle = rgba(tint, 0.12 + l * 0.25); ctx.beginPath(); ctx.arc(cx, cy, r - 1, 0, 7); ctx.fill();
+        if (S === 'working' || S === 'transcribing') { ctx.strokeStyle = rgba([255, 236, 214], 0.85); ctx.beginPath(); ctx.arc(cx, cy, r, t * 3, t * 3 + 0.9); ctx.stroke(); }
+      }
+
+      function bars(cx, cy, t, l) {
+        const n = 5, w = 26, gap = 16;
+        for (let i = 0; i < n; i++) {
+          const x = cx + (i - (n - 1) / 2) * (w + gap);
+          const k = [0.55, 0.85, 1, 0.8, 0.6][i];
+          const wob = 0.5 + 0.5 * Math.sin(t * (7 + i * 1.9) + i * 1.3);
+          let h = w + l * 150 * k * (0.55 + 0.45 * wob);
+          let y = cy;
+          if (S === 'working' || S === 'transcribing') { h = w; y = cy - 18 * Math.max(0, Math.sin(t * 5 - i * 0.6)); }
+          const g = ctx.createLinearGradient(0, y - h / 2, 0, y + h / 2);
+          g.addColorStop(0, rgba([255, 236, 214], 0.95)); g.addColorStop(1, rgba(tint, 0.95));
+          ctx.fillStyle = g;
+          ctx.beginPath(); ctx.roundRect(x - w / 2, y - h / 2, w, h, w / 2); ctx.fill();
+        }
+      }
+
+      let shown = '';
+      window.render = (t, still = false) => {
+        const sc = scene(t);
+        S = sc.s;
+        tint = S === 'listening' ? red : S === 'speaking' ? warm : cool;
+        document.getElementById('state').textContent = STATE[S];
+        document.getElementById('label').textContent = `${NAMES[D]} · ${S}`;
+        const html = sc.sub ? `<span class="speaker">${sc.sub[0]}</span><div class="line${sc.sub[0] === 'Toi' ? ' user' : ''}">${sc.sub[1]}</div>` : '';
+        if (html !== shown) document.getElementById('subs').innerHTML = shown = html;
+        const target = level(S, t);
+        smooth = still ? target : smooth + (target - smooth) * 0.35;
+        ctx.clearRect(0, 0, innerWidth, innerHeight);
+        const cx = innerWidth / 2, cy = innerHeight / 2 - 30;
+        ({ a: orb, b: rings, c: bars })[D](cx, cy, t, smooth);
+      };
+      const T = q.has('t') ? Number(q.get('t')) : null;
+      document.fonts.ready.then(() => {
+        if (T !== null) return window.render(T, true);
+        if (q.has('frames')) return;
+        const t0 = performance.now();
+        const loop = (ms) => { window.render(((ms - t0) / 1000) % 10); requestAnimationFrame(loop); };
+        requestAnimationFrame(loop);
+      });
+    </script>
+  </body>
+</html>
