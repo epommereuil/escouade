@@ -105,7 +105,7 @@ export default {
     none: 'Aucune commande : ajoute-en une, ou laisse Claude lire le projet.',
   },
   account: {
-    remoteAll: 'Déjà allumé pour tous les agents (Réglages › Claude Code).',
+    remoteAll: 'Déjà allumé pour tous les agents (Réglages › Harness).',
   },
   integrations: {
     none: 'Aucun compte Jira, Trello, GitHub ou Linear n’est connecté : connecte-en un dans Réglages › Intégrations, après la création.',
@@ -154,10 +154,10 @@ export default {
       desc: 'Rien ne démarre : active un compte, ou retire sa réservation à d’autres projets, dans Réglages › Comptes Claude.',
     },
     noClaude: {
-      title: 'Claude Code est introuvable',
-      desc: 'Installe-le (npm install -g @anthropic-ai/claude-code), ou indique son chemin dans Réglages › Claude Code.',
+      title: 'Aucun harness trouvé',
+      desc: 'Installe un harness (Claude Code : npm install -g @anthropic-ai/claude-code), ou indique son chemin dans Réglages › Harness.',
     },
-    ok: 'Claude Code trouvé · un compte sert le projet · dépôt prêt',
+    ok: 'Harness trouvé · un compte sert le projet · dépôt prêt',
   },
   /** Réglages › Projets: the assistant opened again on the project. */
   reopen: {

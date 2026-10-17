@@ -43,9 +43,9 @@
       <span class="sub mono" use:tip={{ text: sub, cut: true }}>{sub}</span>
     </div>
     <div style="flex:1"></div>
-    {#if !app.claudeFound}
-      <!-- No place is worth showing: nothing starts without Claude Code. -->
-      <span class="places missing" use:tip={{ text: t('board.header.claudeMissing'), cut: true }}>{t('board.header.claudeMissing')}</span>
+    {#if !app.enginesFound.length}
+      <!-- No place is worth showing: nothing starts without a harness. -->
+      <span class="places missing" use:tip={{ text: t('board.header.noEngine'), cut: true }}>{t('board.header.noEngine')}</span>
     {:else if issue}
       <!-- Nor while the target branch cannot start a ticket. -->
       <span class="places missing" use:tip={{ text: issue, cut: true }}>{issue}</span>

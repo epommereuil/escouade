@@ -5,7 +5,7 @@ import { setLang } from '../../lib/i18n';
 import { app, type TicketFormDraft } from '../../lib/state.svelte';
 import { menu } from '../../lib/menu.svelte';
 import type { AttachedFile, Ticket, TicketDraft } from '../../lib/types';
-import { branchInfo, fakeBackend, resetApp, ticket } from '../../test/ipc';
+import { BARE_ENGINE, branchInfo, CLAUDE_ENGINE, fakeBackend, resetApp, ticket } from '../../test/ipc';
 import TicketForm from './TicketForm.svelte';
 
 interface Props {
@@ -93,6 +93,7 @@ describe('TicketForm', () => {
         maxLoops: 5,
         after: [],
         branch: 'feat/login',
+        engine: null,
       });
     });
 
@@ -427,6 +428,7 @@ describe('TicketForm', () => {
       criteria: ['Le fichier existe', 'Tests verts', 'Un de plus'],
       maxLoops: 5,
       after: [],
+      engine: null,
     });
   });
 
@@ -904,6 +906,7 @@ describe('TicketForm, its files', () => {
         maxLoops: 5,
         after: [],
         files: [{ name: 'sources.zip', file: '', path: copyOf('sources.zip').path }],
+        engine: null,
       });
     });
 
@@ -1498,5 +1501,45 @@ describe('TicketForm in English', () => {
     show({ ticket: ticket() });
     await userEvent.click(within(screen.getByRole('group', { name: 'After' })).getByRole('checkbox', { name: /^DEM-2 / }));
     expect(screen.getByRole('alert')).toBeInTheDocument();
+  });
+});
+
+describe('TicketForm: its harness (ESC-29)', () => {
+  beforeEach(() => {
+    resetApp();
+    app.engines = [CLAUDE_ENGINE, BARE_ENGINE];
+  });
+  const field = () => screen.queryByRole('button', { name: /^Harness/ });
+
+  it('has no « Harness » field while a single harness is found', () => {
+    fakeBackend();
+    show();
+    expect(field()).toBeNull();
+  });
+
+  it('runs on the project’s harness by default, and sends the one chosen with the ticket', async () => {
+    fakeBackend();
+    app.enginesFound = ['claude', 'codex'];
+    const { onsubmit } = show();
+    expect(field()).toHaveAccessibleName('Harness Celui du projet (Claude Code)');
+    await userEvent.click(field()!);
+    expect(menu.open!.items.map((i) => i.label)).toEqual(['Celui du projet (Claude Code)', 'Claude Code', 'Harness nu']);
+    menu.open!.items[2].onClick!();
+    menu.close();
+    await waitFor(() => expect(field()).toHaveAccessibleName('Harness Harness nu'));
+    await userEvent.type(screen.getByRole('textbox', { name: 'Titre du ticket' }), 'Sur un autre{Enter}');
+    expect(onsubmit).toHaveBeenCalledWith(expect.objectContaining({ title: 'Sur un autre', engine: 'codex' }));
+  });
+
+  it('shows the harness of an edited ticket, and gives it back to the project’s', async () => {
+    fakeBackend();
+    app.enginesFound = ['claude', 'codex'];
+    const { onsubmit } = show({ ticket: ticket({ engine: 'codex' }) });
+    expect(field()).toHaveAccessibleName('Harness Harness nu');
+    await userEvent.click(field()!);
+    menu.open!.items[0].onClick!();
+    menu.close();
+    await userEvent.type(screen.getByRole('textbox', { name: 'Titre du ticket' }), '{Enter}');
+    expect(onsubmit).toHaveBeenCalledWith(expect.objectContaining({ engine: null }));
   });
 });

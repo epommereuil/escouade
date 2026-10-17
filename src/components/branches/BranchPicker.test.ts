@@ -401,7 +401,12 @@ describe('BranchPicker', () => {
       menu.open!.items[0].onClick!();
       expect(onclose).toHaveBeenCalled();
       await waitFor(() => expect(backend.called('create_agent_on_branch')).toHaveLength(1));
-      expect(backend.called('create_agent_on_branch')[0].args).toEqual({ projectId: 'p1', branch: 'origin/hotfix', model: null });
+      expect(backend.called('create_agent_on_branch')[0].args).toEqual({
+        projectId: 'p1',
+        branch: 'origin/hotfix',
+        model: null,
+        engine: null,
+      });
       await waitFor(() => expect(app.ui.selectedAgent.p1).toBe('a9'));
     });
 

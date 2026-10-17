@@ -41,7 +41,7 @@ describe('AccountsTab', () => {
     render(SettingsModal, { tab: 'accounts' });
     const tabs = screen.getAllByRole('tab');
     const at = tabs.indexOf(screen.getByRole('tab', { name: 'Comptes Claude' }));
-    expect(tabs[at - 1]).toBe(screen.getByRole('tab', { name: 'Claude Code' }));
+    expect(tabs[at - 1]).toBe(screen.getByRole('tab', { name: 'Harness' }));
     expect(tabs[at]).toHaveAttribute('aria-selected', 'true');
     expect(names()).toEqual(['Principal', 'Pro']);
     expect(await within(row('Principal')).findByText('Connecté · ada@atlas.dev')).toBeInTheDocument();

@@ -13,8 +13,8 @@ use crate::agent::{AgentRt, Waiting};
 use crate::core::Core;
 use crate::git;
 use crate::model::{
-    AgentMeta, AgentStatus, Column, Criterion, PauseReason, PendingView, Project, RateWindow,
-    RemoteSource, Service, Ticket, MAX_PENDING_FIELD, MAX_PENDING_ITEMS,
+    AgentMeta, AgentStatus, Column, Criterion, EngineId, PauseReason, PendingView, Project,
+    RateWindow, RemoteSource, Service, Ticket, MAX_PENDING_FIELD, MAX_PENDING_ITEMS,
 };
 use crate::plan::PlanState;
 use serde::Serialize;
@@ -211,6 +211,8 @@ struct AgentRow {
     requests: usize,
     /// Its ticket's key.
     ticket: Option<String>,
+    /// The harness it runs on (`claude`, `codex`, `copilot`, `cursor`, `opencode`).
+    engine: EngineId,
     model: String,
     /// Its Claude account's name.
     account: String,
@@ -257,6 +259,7 @@ pub(super) fn agents<R: Runtime>(
             cost: dollars(v.meta.cost + v.live_cost),
             project_id: v.meta.project_id,
             status: v.meta.status,
+            engine: v.meta.engine,
             model: v.meta.model,
             name: v.meta.name,
             id: v.meta.id,
@@ -700,6 +703,8 @@ struct Summary {
     id: String,
     name: String,
     status: AgentStatus,
+    /// The harness it runs on, as `list_agents` says it.
+    engine: EngineId,
     /// Its ticket's key.
     ticket: Option<String>,
     /// Its latest reply, `LAST_MESSAGE_MAX` characters at most: a longer one by its start and
@@ -746,6 +751,7 @@ pub(super) fn agent_summary<R: Runtime>(
             id: rt.meta.id.clone(),
             name: rt.meta.name.clone(),
             status: rt.meta.status,
+            engine: rt.meta.engine,
             ticket: None,
             last_message,
             touched_files: files[from..].to_vec(),

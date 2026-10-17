@@ -10,11 +10,11 @@ The problems Escouade runs into most often, each with its symptom, its cause, an
 
 **Cause.** Escouade looks for `claude` in this order:
 
-1. The path in Settings › Claude Code, “Executable path” field, when it is filled in. If it is filled in, it decides alone: a wrong path gives “not found”, even if `claude` is in the `PATH`.
+1. The path in Settings › Harness, “Executable path” field, when it is filled in. If it is filled in, it decides alone: a wrong path gives “not found”, even if `claude` is in the `PATH`.
 2. Otherwise, the `PATH`, then the usual installer locations. On Windows: `%USERPROFILE%\.local\bin\claude.exe`, `%USERPROFILE%\.claude\local\claude.exe`, and `%USERPROFILE%\AppData\Roaming\npm\claude.cmd`. On macOS and Linux: `~/.local/bin/claude`, `~/.claude/local/claude`, `/opt/homebrew/bin/claude`, and `/usr/local/bin/claude`.
 3. On Windows, failing that, a Claude Code installed in WSL (see below).
 
-**Fix.** Install Claude Code and sign in, or give its path in Settings › Claude Code (see the [Claude Code settings](settings-claude-code)). The field accepts `~` for your home folder, and on Windows you can leave out `.exe` or `.cmd`. The line under the field answers right away: “Found: …” with the path it picked, or “Not found. Give the path to claude.exe, …”. Clear the field to go back to automatic detection (“blank = detect automatically”).
+**Fix.** Install Claude Code and sign in, or give its path in Settings › Harness (see the [Claude Code settings](settings-claude-code)). The field accepts `~` for your home folder, and on Windows you can leave out `.exe` or `.cmd`. The line under the field answers right away: “Found: …” with the path it picked, or “Not found. Give the path to claude.exe, …”. Clear the field to go back to automatic detection (“blank = detect automatically”).
 
 A Claude account can have its own executable (Settings › Claude accounts, “Executable” field, “The one in the settings” by default). A path that exists but won’t run gives “can’t start” followed by that path.
 
@@ -24,7 +24,7 @@ A Claude account can have its own executable (Settings › Claude accounts, “E
 
 **Cause.** macOS gives apps launched from the Finder or the Dock a minimal `PATH`, not your terminal’s. At startup, Escouade completes it with your login shell’s (it asks the shell with `$SHELL -ilc`), then adds `/opt/homebrew/bin`, `/usr/local/bin`, and `~/.local/bin`. It waits for the shell for only five seconds: a profile that asks for input, or takes longer, cancels that step. The same goes for a desktop launcher on Linux.
 
-**Fix.** Give the full path of `claude` in Settings › Claude Code (`which claude` in a terminal prints it), or lighten your shell profile so that it answers quickly.
+**Fix.** Give the full path of `claude` in Settings › Harness (`which claude` in a terminal prints it), or lighten your shell profile so that it answers quickly.
 
 ### Claude Code is installed in WSL
 
@@ -32,7 +32,7 @@ A Claude account can have its own executable (Settings › Claude accounts, “E
 
 **Cause.** On Windows, Escouade only looks in WSL when Windows has no `claude`. It looks in the distribution set in Settings › Terminals (“WSL distribution” field, “blank = default distribution”), at `~/.local/bin/claude`, `~/.claude/local/claude`, `/usr/local/bin/claude`, and `/usr/bin/claude`. That search can start the distribution and take a few seconds.
 
-**Fix.** Give the path in Settings › Claude Code, in one of these forms:
+**Fix.** Give the path in Settings › Harness, in one of these forms:
 
 - `~/.local/bin/claude`
 - `/home/<user>/.local/bin/claude`
@@ -42,7 +42,7 @@ The line under the field confirms it: “Found in WSL (Ubuntu): /home/ada/.local
 
 ### MCP tools and the Claude Code view tracking don’t work from WSL
 
-**Symptom.** Under the path field, Settings › Claude Code shows: “WSL’s network is NAT: Escouade’s MCP server and the tracking of the Claude Code view can’t reach the app.”
+**Symptom.** Under the path field, Settings › Harness shows: “WSL’s network is NAT: Escouade’s MCP server and the tracking of the Claude Code view can’t reach the app.”
 
 **Cause.** In NAT mode, WSL isn’t on Windows’ network: Escouade’s MCP server and the Claude Code view’s hooks, which listen on Windows’ `127.0.0.1`, are out of its reach.
 
@@ -113,9 +113,9 @@ Then, in a Windows terminal, run `wsl --shutdown` and restart Escouade.
 
 **Fix.** What the app does depends on your settings:
 
-- **Auto-resume.** The “Auto-resume after the usage limit” setting (Settings › Claude Code, on by default) sends “continue” once the quota has reset. When Claude Code tells the reset time, the card says “Auto-resume” followed by the time, with a “Cancel auto-resume” button.
+- **Auto-resume.** The “Auto-resume after the usage limit” setting (Settings › Harness, on by default) sends “continue” once the quota has reset. When Claude Code tells the reset time, the card says “Auto-resume” followed by the time, with a “Cancel auto-resume” button.
 - **Another account.** With several accounts, the “Resume on Pro” button (with the name of another account), and its “Resume on another account” menu, restart the agent with its session on another account. Accounts that are inactive, not signed in, or above “Pause above quota” aren’t listed.
-- **Ticket agents** wait for their account to reset, unless you turn on “Resume a ticket’s agent stopped by the usage limit on another account” (Settings › Claude Code, with several accounts).
+- **Ticket agents** wait for their account to reset, unless you turn on “Resume a ticket’s agent stopped by the usage limit on another account” (Settings › Harness, with several accounts).
 
 To avoid reaching the limit, the [autopilot](autopilot) pauses before, at the “Pause above quota” threshold.
 
@@ -127,7 +127,7 @@ To avoid reaching the limit, the [autopilot](autopilot) pauses before, at the �
 
 **Cause.** The agent’s Claude Code process ended on its own. The message it left usually says why (sign-in, proxy, version…).
 
-**Fix.** Send a message: Escouade restarts Claude on the same session. A process stopped on purpose isn’t an error: Escouade stops idle processes after a delay (Settings › Claude Code, “Stop idle Claude processes after”, 30 minutes by default, 0 for never) and restarts them at the next action.
+**Fix.** Send a message: Escouade restarts Claude on the same session. A process stopped on purpose isn’t an error: Escouade stops idle processes after a delay (Settings › Harness, “Stop idle Claude processes after”, 30 minutes by default, 0 for never) and restarts them at the next action.
 
 ### Claude session not found
 

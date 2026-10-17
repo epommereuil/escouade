@@ -19,7 +19,7 @@ export default {
       one: '{name} · {count} ticket · {looping} en boucle',
       other: '{name} · {count} tickets · {looping} en boucle',
     },
-    claudeMissing: 'Claude Code introuvable — aucun ticket ne démarre',
+    noEngine: 'Aucun harness trouvé — aucun ticket ne démarre',
     importTitle: 'Importer des tickets de Jira, Trello, GitHub Issues ou Linear',
     settingsTitle: 'Réglages du Kanban — {summary}',
     afterApproval: 'Après validation :',
@@ -94,6 +94,9 @@ export default {
   // The form of a ticket, new or edited, in its window.
   form: {
     newTitle: 'Nouveau ticket',
+    /** « Harness » of the ticket, from two harnesses found on: the project's by default, which the autopilot follows. */
+    engine: 'Harness',
+    engineProject: 'Celui du projet ({engine})',
     editTitle: 'Modifier {key}',
     addHint: '{key} pour ajouter',
     saveHint: '{key} pour enregistrer',

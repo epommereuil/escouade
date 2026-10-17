@@ -5,7 +5,7 @@ import App from './App.svelte';
 import { setLang } from './lib/i18n';
 import { app } from './lib/state.svelte';
 import type { Agent, InitialState, Project, Settings, Ticket, UiEvent } from './lib/types';
-import { agent, branchInfo, fakeBackend, gitInfo, project, resetApp, SETTINGS, ticket } from './test/ipc';
+import { agent, CLAUDE_ENGINE, branchInfo, fakeBackend, gitInfo, project, resetApp, SETTINGS, ticket } from './test/ipc';
 
 const DIFF = `diff --git a/src/auth.ts b/src/auth.ts
 --- a/src/auth.ts
@@ -42,6 +42,7 @@ function start(
     claudeFound: true,
     version: '0.1.0',
     models: [],
+    engines: [CLAUDE_ENGINE],
   };
   const backend = fakeBackend({
     subscribe: (args: any) => {

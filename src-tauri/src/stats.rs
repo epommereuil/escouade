@@ -16,7 +16,8 @@ PRAGMA synchronous=NORMAL;
 CREATE TABLE IF NOT EXISTS turns (
   id INTEGER PRIMARY KEY, ts INTEGER NOT NULL, agent_id TEXT NOT NULL, project_id TEXT NOT NULL,
   model TEXT NOT NULL, input INTEGER NOT NULL, cache INTEGER NOT NULL, output INTEGER NOT NULL, cost REAL NOT NULL,
-  account TEXT NOT NULL DEFAULT 'principal'
+  account TEXT NOT NULL DEFAULT 'principal',
+  engine TEXT NOT NULL DEFAULT 'claude'
 );
 CREATE INDEX IF NOT EXISTS turns_ts ON turns(ts);
 CREATE TABLE IF NOT EXISTS prompts (
@@ -26,20 +27,28 @@ CREATE TABLE IF NOT EXISTS prompts (
 CREATE INDEX IF NOT EXISTS prompts_ts ON prompts(ts);
 ";
 
-/// What an older database lacks to be read as `SCHEMA` says. Before the Claude accounts (1.7) its
-/// tables had no `account`: every line they hold was written on the only account there was,
-/// Principal (`accounts::PRINCIPAL`, the column's default). A table that has the column is left
-/// alone, so this is done once, and no line is lost: `ADD COLUMN` rewrites nothing.
+/// What an older database lacks to be read as `SCHEMA` says, with the default its lines take.
+/// Before the Claude accounts (1.7) its tables had no `account`: every line they hold was written
+/// on the only account there was, Principal (`accounts::PRINCIPAL`). Before the harnesses (1.8)
+/// the turns had no `engine`: every one was run by Claude Code.
+const ADDED_COLUMNS: [(&str, &str, &str); 3] = [
+    ("turns", "account", "principal"),
+    ("prompts", "account", "principal"),
+    ("turns", "engine", "claude"),
+];
+
+/// Adds to an older database the columns it lacks (`ADDED_COLUMNS`). A table that has a column
+/// is left alone, so this is done once, and no line is lost: `ADD COLUMN` rewrites nothing.
 fn migrate(c: &Connection) -> rusqlite::Result<()> {
-    for table in ["turns", "prompts"] {
-        let has_account: i64 = c.query_row(
-            &format!("SELECT COUNT(*) FROM pragma_table_info('{table}') WHERE name = 'account'"),
+    for (table, column, default) in ADDED_COLUMNS {
+        let has: i64 = c.query_row(
+            &format!("SELECT COUNT(*) FROM pragma_table_info('{table}') WHERE name = '{column}'"),
             [],
             |r| r.get(0),
         )?;
-        if has_account == 0 {
+        if has == 0 {
             c.execute_batch(&format!(
-                "ALTER TABLE {table} ADD COLUMN account TEXT NOT NULL DEFAULT 'principal'"
+                "ALTER TABLE {table} ADD COLUMN {column} TEXT NOT NULL DEFAULT '{default}'"
             ))?;
         }
     }
@@ -62,7 +71,7 @@ pub struct Bucket {
     pub prompts: u64,
 }
 
-#[derive(Debug, Clone, Serialize, Default)]
+#[derive(Debug, Clone, Serialize, Default, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Share {
     pub key: String,
@@ -140,6 +149,8 @@ pub struct StatsView {
     pub prompts: u64,
     pub by_project: Vec<Share>,
     pub by_model: Vec<Share>,
+    /// By harness (`claude`, `codex`…): the one that ran each turn.
+    pub by_engine: Vec<Share>,
     pub by_agent: Vec<AgentShare>,
     pub by_ticket: Vec<TicketShare>,
     /// Every account side by side, whichever one the view is for.
@@ -195,8 +206,8 @@ impl Stats {
         let Some(c) = guard.as_ref() else { return };
         for r in rows {
             let res = c.execute(
-                "INSERT INTO turns (ts, agent_id, project_id, model, input, cache, output, cost, account) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
-                params![ts, agent_id, project_id, r.model, r.input as i64, r.cache as i64, r.output as i64, r.cost, account],
+                "INSERT INTO turns (ts, agent_id, project_id, model, input, cache, output, cost, account, engine) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
+                params![ts, agent_id, project_id, r.model, r.input as i64, r.cache as i64, r.output as i64, r.cost, account, r.engine.as_str()],
             );
             if let Err(e) = res {
                 log::warn!("stats insert failed: {e}");
@@ -280,8 +291,11 @@ impl Stats {
         let guard = self.conn.lock();
         let Some(c) = guard.as_ref() else { return view };
 
-        let (mut by_project, mut by_model): (HashMap<String, Share>, HashMap<String, Share>) =
-            Default::default();
+        let (mut by_project, mut by_model, mut by_engine): (
+            HashMap<String, Share>,
+            HashMap<String, Share>,
+            HashMap<String, Share>,
+        ) = Default::default();
         let mut by_agent: HashMap<String, AgentShare> = HashMap::new();
         // The accounts side by side take every turn of the period, whichever account the view is
         // for. A turn is what a reply wrote together: the lines of one agent at one moment (one
@@ -289,11 +303,11 @@ impl Stats {
         let mut by_account: HashMap<String, AccountShare> = HashMap::new();
         let mut turns_seen: HashSet<(String, i64)> = HashSet::new();
         let mut agents_seen: HashSet<(String, String)> = HashSet::new();
-        if let Ok(mut stmt) = c.prepare("SELECT ts, project_id, model, input, cache, output, cost, agent_id, account FROM turns WHERE ts >= ?1 AND ts < ?2") {
+        if let Ok(mut stmt) = c.prepare("SELECT ts, project_id, model, input, cache, output, cost, agent_id, account, engine FROM turns WHERE ts >= ?1 AND ts < ?2") {
             let rows = stmt.query_map([prev, end], |r| {
-                Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?, r.get::<_, i64>(3)?, r.get::<_, i64>(4)?, r.get::<_, i64>(5)?, r.get::<_, f64>(6)?, r.get::<_, String>(7)?, r.get::<_, String>(8)?))
+                Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?, r.get::<_, i64>(3)?, r.get::<_, i64>(4)?, r.get::<_, i64>(5)?, r.get::<_, f64>(6)?, r.get::<_, String>(7)?, r.get::<_, String>(8)?, r.get::<_, String>(9)?))
             });
-            for (ts, project, model, input, cache, output, cost, agent, line_account) in rows.into_iter().flatten().flatten() {
+            for (ts, project, model, input, cache, output, cost, agent, line_account, engine) in rows.into_iter().flatten().flatten() {
                 let tokens = (input + cache + output) as u64;
                 let wanted = account.is_none_or(|a| a == line_account);
                 if ts < first {
@@ -328,7 +342,7 @@ impl Stats {
                 });
                 a.tokens += tokens;
                 a.cost += cost;
-                for (map, key) in [(&mut by_project, project), (&mut by_model, model)] {
+                for (map, key) in [(&mut by_project, project), (&mut by_model, model), (&mut by_engine, engine)] {
                     let s = map.entry(key.clone()).or_insert_with(|| Share { key, ..Default::default() });
                     s.tokens += tokens;
                     s.cost += cost;
@@ -361,6 +375,7 @@ impl Stats {
         };
         view.by_project = sort(by_project);
         view.by_model = sort(by_model);
+        view.by_engine = sort(by_engine);
         (view.by_agent, view.by_ticket) = agent_lists(by_agent, names);
         let mut accounts: Vec<AccountShare> = by_account.into_values().collect();
         // The id breaks ties, as for the agents.
@@ -504,6 +519,7 @@ mod tests {
             cache: 100,
             output: 10,
             cost,
+            ..Default::default()
         }
     }
 
@@ -1138,5 +1154,119 @@ mod tests {
         assert!((today["pro"] - 0.25).abs() < 1e-9);
         assert!((s.today_cost() - 1.75).abs() < 1e-9);
         assert!(Stats::memory().today_by_account().is_empty());
+    }
+
+    // ---------- harnesses ----------
+
+    /// The turns table as 1.7 made it: with its accounts, without the harnesses.
+    const SCHEMA_BEFORE_THE_ENGINES: &str = "
+    CREATE TABLE turns (
+      id INTEGER PRIMARY KEY, ts INTEGER NOT NULL, agent_id TEXT NOT NULL, project_id TEXT NOT NULL,
+      model TEXT NOT NULL, input INTEGER NOT NULL, cache INTEGER NOT NULL, output INTEGER NOT NULL, cost REAL NOT NULL,
+      account TEXT NOT NULL DEFAULT 'principal'
+    );
+    CREATE INDEX turns_ts ON turns(ts);
+    CREATE TABLE prompts (
+      id INTEGER PRIMARY KEY, ts INTEGER NOT NULL, agent_id TEXT NOT NULL, project_id TEXT NOT NULL,
+      account TEXT NOT NULL DEFAULT 'principal'
+    );
+    CREATE INDEX prompts_ts ON prompts(ts);
+    ";
+
+    /// A database file as 1.7 left it: a1 on Principal (1.0) and a2 on Pro (0.5), at `ts`.
+    fn database_before_the_engines(name: &str, ts: i64) -> std::path::PathBuf {
+        let path = test_dir(name).join("stats.db");
+        let c = Connection::open(&path).unwrap();
+        c.execute_batch(SCHEMA_BEFORE_THE_ENGINES).unwrap();
+        for (agent, account, cost) in [("a1", "principal", 1.0), ("a2", "pro", 0.5)] {
+            c.execute(
+                "INSERT INTO turns (ts, agent_id, project_id, model, input, cache, output, cost, account) VALUES (?1,?2,'p1','claude-opus-5-5',50,100,10,?3,?4)",
+                params![ts, agent, cost, account],
+            )
+            .unwrap();
+        }
+        path
+    }
+
+    /// The column of each turn, in the order they were written.
+    fn column_of_turns(s: &Stats, column: &str) -> Vec<String> {
+        let guard = s.conn.lock();
+        let c = guard.as_ref().expect("a database");
+        let mut stmt = c
+            .prepare(&format!("SELECT {column} FROM turns ORDER BY id"))
+            .unwrap();
+        let rows = stmt.query_map([], |r| r.get(0)).unwrap();
+        rows.map(Result::unwrap).collect()
+    }
+
+    fn engine_columns(s: &Stats) -> i64 {
+        let guard = s.conn.lock();
+        let c = guard.as_ref().expect("a database");
+        c.query_row(
+            "SELECT COUNT(*) FROM pragma_table_info('turns') WHERE name = 'engine'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap()
+    }
+
+    fn share(key: &str, tokens: u64, cost: f64) -> Share {
+        Share {
+            key: key.into(),
+            tokens,
+            cost,
+        }
+    }
+
+    #[test]
+    fn a_database_from_before_the_engines_keeps_its_turns_and_gives_them_to_claude() {
+        let today = NaiveDate::from_ymd_opt(2026, 9, 27).unwrap();
+        let noon = local_ms(today) + 12 * 3600 * 1000;
+        let s = Stats::open(&database_before_the_engines(
+            "esc27-stats-before-engines",
+            noon,
+        ));
+        assert_eq!(column_of_turns(&s, "engine"), ["claude", "claude"]);
+        // Their accounts are as they were.
+        assert_eq!(column_of_turns(&s, "account"), ["principal", "pro"]);
+        let v = s.query_at("day", today, None, &Labels::default());
+        assert!((v.cost - 1.5).abs() < 1e-9);
+        assert_eq!(v.by_engine, vec![share("claude", 320, 1.5)]);
+        // A turn written from now on keeps the harness that ran it.
+        let codex = TurnRow {
+            engine: crate::model::EngineId::Codex,
+            ..row("gpt-5.5", 50, 2.0)
+        };
+        s.record_turns_at(noon, "principal", "a3", "p1", &[codex]);
+        assert_eq!(column_of_turns(&s, "engine"), ["claude", "claude", "codex"]);
+        let v = s.query_at("day", today, None, &Labels::default());
+        assert_eq!(
+            v.by_engine,
+            vec![share("claude", 320, 1.5), share("codex", 160, 2.0)]
+        );
+        // With an account asked for, its turns alone.
+        let pro = s.query_at("day", today, Some("pro"), &Labels::default());
+        assert_eq!(pro.by_engine, vec![share("claude", 160, 0.5)]);
+    }
+
+    #[test]
+    fn the_engine_column_is_added_once_whatever_the_age_of_the_database() {
+        let noon = local_ms(NaiveDate::from_ymd_opt(2026, 9, 27).unwrap()) + 12 * 3600 * 1000;
+        // From 1.7 (accounts, no engine) and from before the accounts (neither).
+        let paths = [
+            database_before_the_engines("esc27-stats-replayed-17", noon),
+            database_before_the_accounts("esc27-stats-replayed-16", noon),
+        ];
+        for path in paths {
+            for _ in 0..3 {
+                let s = Stats::open(&path);
+                assert_eq!(engine_columns(&s), 1);
+                assert_eq!(account_columns(&s, "turns"), 1);
+                assert_eq!(column_of_turns(&s, "engine"), ["claude", "claude"]);
+            }
+        }
+        // A new database has it from the start.
+        let s = Stats::open(&test_dir("esc27-stats-new").join("stats.db"));
+        assert_eq!(engine_columns(&s), 1);
     }
 }

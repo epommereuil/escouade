@@ -4,7 +4,7 @@ import { defineZone } from '../types';
 export default defineZone('settings', {
   tabs: {
     app: { label: 'Application', desc: 'Zoom, text size, and languages' },
-    claude: { label: 'Claude Code', desc: 'Executable, model, and default permissions' },
+    claude: { label: 'Harness', desc: 'Executables, versions, sign-in, and agent defaults' },
     accounts: { label: 'Claude accounts', desc: 'The accounts agents start on, saved as you change them' },
     notifications: { label: 'Notifications', desc: 'Visual and sound alerts' },
     projects: { label: 'Projects', desc: 'Settings specific to each project' },
@@ -77,6 +77,18 @@ export default defineZone('settings', {
   },
 
   claude: {
+    state: 'State',
+    states: {
+      absent: 'Not found',
+      tooOld: 'Too old',
+      notConnected: 'Not signed in',
+      untested: 'Untested version',
+      ready: 'Ready',
+    },
+    signIn: 'Sign in…',
+    signInDesc: 'Opens a built-in terminal to sign in, on the account new agents go to ({account}).',
+    install: 'Installation',
+    installDesc: 'Not found on this machine: install it with this command, then set its path here if it isn’t on the PATH.',
     executable: 'Executable',
     path: 'Executable path',
     pathHint: 'blank = detect automatically',
@@ -89,6 +101,11 @@ export default defineZone('settings', {
     notLocated:
       'Not found. Give the path to claude.exe, or to Claude Code installed in WSL: ~/.local/bin/claude, /home/<user>/…, or \\\\wsl.localhost\\<distribution>\\….',
     notLocatedHere: 'Not found. Give the path to claude.',
+    /** The version found of the saved path, and where it stands against the versions Escouade was tested with. */
+    version: 'Version',
+    versionTested: 'Tested with Escouade (from {oldest} to {newest}).',
+    versionUnknown: 'Unknown version: claude didn’t tell it.',
+    versionNotConnected: 'No account signed in: sign in from the Claude accounts tab.',
     newAgents: 'New agents',
     defaultModel: 'Default model',
     defaultEffort: 'Default effort',
@@ -179,8 +196,8 @@ export default defineZone('settings', {
     credits: 'Credits and licences',
     creditsDesc: 'Piper, eSpeak NG, ONNX Runtime, whisper.cpp, and the licence and credit of each voice',
     creditsOpen: 'Open',
-    claudeFound: 'Claude Code detected',
-    claudeMissing: 'Claude Code not found',
+    enginesFound: 'Harnesses detected: {list}',
+    noEngine: 'No harness found',
     checking: 'Checking…',
     check: 'Check for updates',
     noUpdate: 'No update available.',
@@ -196,12 +213,14 @@ export default defineZone('settings', {
   project: {
     identity: 'Identity',
     nameLabel: 'Project name',
+    engine: 'Default harness',
+    engineDesc: 'The one the project’s new agents and tickets run on, unless they choose another.',
     colorN: 'Color {n}',
     remoteTitle: 'Remote control',
     remote: 'Remote control for this project’s agents',
     remoteDesc:
       'Every agent of this project, existing or new (ticket agents included), is reachable from claude.ai and the Claude app. Escouade starts each one’s claude process right away, and it stays running. The session appears on claude.ai as “project · agent” (for a ticket agent, the name comes from the ticket). In Claude Code view, an interface that is already open only picks it up at its next launch. To set an agent apart: right-click, “Turn off remote control”.',
-    remoteGlobal: 'On for all projects in Settings › Claude Code',
+    remoteGlobal: 'On for all projects in Settings › Harness',
     worktreePerAgent: 'One worktree per agent',
     worktreePerAgentDesc: 'Keeps each new agent’s changes in its own branch.',
     worktreeDir: 'Worktrees folder',

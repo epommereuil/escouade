@@ -481,6 +481,8 @@ pub(super) async fn create_ticket<R: Runtime>(
             }
             _ => None,
         },
+        // The tools do not name a harness: the project's.
+        engine: None,
     };
     let made = core
         .ticket_create(&project.id, draft)
@@ -557,6 +559,8 @@ pub(super) async fn update_ticket<R: Runtime>(
         // Its images and its files stay as they are unless a list is built below.
         images: None,
         files: None,
+        // Not the tools' to change either: the ticket keeps its harness.
+        engine: None,
     };
     let (images_given, files_given) = (
         !add.is_empty() || !remove.is_empty(),
@@ -1818,6 +1822,8 @@ fn sub_draft<R: Runtime>(
         branch: String::new(),
         images: None,
         files: None,
+        // The harness of the tickets of the list: their project's.
+        engine: None,
     })
 }
 

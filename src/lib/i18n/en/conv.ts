@@ -53,7 +53,7 @@ export default defineZone('conv', {
   empty: {
     title: 'Agent ready',
     hint: 'Describe the task to give to Claude. The agent works in {cwd}.',
-    claudeMissing: 'Claude Code couldn’t be found on this machine: install it or set its path in the settings (⚙).',
+    engineMissing: '{engine} couldn’t be found on this machine: install it or set its path in Settings › Harness (⚙).',
   },
   older: {
     show: { one: 'Show the previous message', other: 'Show the previous {n} messages' },

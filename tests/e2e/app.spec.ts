@@ -299,14 +299,14 @@ test('the setting for all agents gives each one remote control, which one is set
   const card = page.locator('.card').first();
   await page.getByRole('button', { name: 'Réglages (Ctrl+,)' }).click();
   const dialog = page.getByRole('dialog', { name: 'Réglages' });
-  await dialog.getByRole('tab', { name: 'Claude Code' }).click();
+  await dialog.getByRole('tab', { name: 'Harness' }).click();
   await dialog.getByRole('switch', { name: 'Remote control pour tous les agents' }).click();
   // The project's own switch never says otherwise: on and grayed, with the reason.
   await dialog.getByRole('tab', { name: 'Projets' }).click();
   const own = dialog.getByRole('switch', { name: 'Remote control pour les agents de ce projet' });
   await expect(own).toHaveAttribute('aria-checked', 'true');
   await expect(own).toBeDisabled();
-  await expect(dialog.getByText('Activé pour tous les projets dans Réglages › Claude Code')).toBeVisible();
+  await expect(dialog.getByText('Activé pour tous les projets dans Réglages › Harness')).toBeVisible();
   await dialog.getByRole('button', { name: 'Enregistrer' }).click();
   // The agent there was gets it, and its card says where it comes from.
   await expect(card.locator('[data-tip*="Remote control : connecté"][data-tip*="activé par le réglage de tous les agents"]')).toBeVisible();
@@ -856,7 +856,7 @@ test('a ticket is taken by an agent that loops until its criteria are met, then 
   for (const [text, missing] of [
     ['Toutes les places sont prises', false],
     ['Quota atteint — reprise à 14:35', false],
-    ['Claude Code introuvable — aucun ticket ne démarre', true],
+    ['Aucun harness trouvé — aucun ticket ne démarre', true],
     ["develop n'a encore aucun commit — aucun ticket ne démarre", true],
     ['Branche cible release/2026-10 introuvable — aucun ticket ne démarre', true],
   ] as const) {

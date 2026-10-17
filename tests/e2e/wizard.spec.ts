@@ -66,7 +66,7 @@ test('a project made by copying another one’s settings runs its ticket with th
     .getByRole('button', { name: /L.agent résout/ })
     .click();
   await setup.getByRole('button', { name: /Récapitulatif/ }).click();
-  await expect(setup.getByText('Claude Code trouvé · un compte sert le projet · dépôt prêt')).toBeVisible();
+  await expect(setup.getByText('Harness trouvé · un compte sert le projet · dépôt prêt')).toBeVisible();
   // The whole window in the narrowest one of the app.
   expect(
     await setup.evaluate((e) => {

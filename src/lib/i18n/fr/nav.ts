@@ -10,6 +10,10 @@ export default {
     toReview: '{count} à tester',
     newAgent: 'Nouvel agent',
     newAgentTitle: 'Nouvel agent ({shortcut})',
+    /** The menu beside « Nouvel agent », from two harnesses found on: one entry each. */
+    newAgentOn: 'Nouvel agent sur {engine}',
+    /** The brand of an agent's harness (its card, the overview, its header), once agents run on two. */
+    engineMark: 'Harness : {engine}',
     empty: 'Aucun agent.',
     createAgent: 'Créer un agent',
     archived: 'Archivés ({n})',

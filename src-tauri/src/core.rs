@@ -536,6 +536,8 @@ pub enum Integration {
 /// How a new agent differs from the default one (`create_agent_with`).
 #[derive(Debug, Clone, Default)]
 pub struct AgentOptions {
+    /// The harness it runs on; None: its project's (`Project::engine`).
+    pub engine: Option<EngineId>,
     pub model: Option<String>,
     pub effort: Option<String>,
     pub mode: Option<String>,
@@ -1293,6 +1295,7 @@ fn blank_project(path: &str) -> Project {
         agent_branch_prefix: crate::model::default_agent_branch_prefix(),
         ticket_branch_prefix: crate::model::default_ticket_branch_prefix(),
         remote_control: false,
+        engine: None,
     }
 }
 
@@ -2483,6 +2486,9 @@ impl<R: Runtime> Core<R> {
                 "Claude Code not found. Install it or give its path in the settings."
             ))
         })?;
+        // A version older than the tested ones is refused, with its reason.
+        let harness = engine::of(&h.lock().meta);
+        engine::registry::check(harness, &program).await?;
         let (mut spawn, gen, engine) = {
             let mut rt = h.lock();
             rt.gen += 1;
@@ -4257,7 +4263,9 @@ impl<R: Runtime> Core<R> {
 
     /// A new agent in a worktree on the existing branch `branch` (a local one, or a remote one
     /// such as `origin/feat`), selected in the sidebar. Refused for the branch of the project's
-    /// folder and for one another worktree has (`IN_WORKTREE` for an agent's).
+    /// folder and for one another worktree has (`IN_WORKTREE` for an agent's). The command, which
+    /// also names a harness, goes through `create_agent_with`.
+    #[cfg(test)]
     pub async fn create_agent_on_branch(
         self: &Arc<Self>,
         project_id: &str,
@@ -4316,6 +4324,7 @@ impl<R: Runtime> Core<R> {
             project_id: project_id.to_string(),
             name: name.clone(),
             named: o.name.is_some() || o.copy_of.is_some(),
+            engine: o.engine.unwrap_or_else(|| project.engine()),
             fork_of: o.copy_of.as_ref().and_then(|c| c.session_id.clone()),
             fork_at: o
                 .copy_of
@@ -4531,6 +4540,8 @@ impl<R: Runtime> Core<R> {
         self.create_agent_with(
             &original.project_id,
             AgentOptions {
+                // The harness it has now: the session it forks is that one's.
+                engine: Some(original.engine),
                 model: Some(original.model),
                 effort: Some(original.effort),
                 mode: Some(original.mode),
@@ -5850,6 +5861,7 @@ impl<R: Runtime> Core<R> {
         cur.worktree_teardown = p.worktree_teardown;
         cur.commit_mode = p.commit_mode;
         cur.account = account;
+        cur.engine = p.engine;
         let dir_changed = cur.worktree_dir != worktree_dir;
         cur.worktree_dir = worktree_dir;
         cur.agent_branch_prefix = agent_prefix;

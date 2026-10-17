@@ -9,10 +9,12 @@
   import { modelLabel } from '../lib/models';
   import { keyLabel } from '../lib/platform';
   import { contextUse, estimateHint, fSpentUsd, spent } from '../lib/spend';
+  import { showsCost } from '../lib/engines';
   import { app } from '../lib/state.svelte';
   import { revealHidden } from '../lib/recipe';
   import { SUMMED_UP, toolLabel } from '../lib/tools';
   import type { Agent, PendingRequest, Project } from '../lib/types';
+  import EngineMark from './EngineMark.svelte';
   import StatusDot from './StatusDot.svelte';
   import { tip } from '../lib/tip';
 
@@ -280,6 +282,7 @@
       <span class="agent">
         <StatusDot status={a.status} size={8} />
         <span class="name" id={`ov-a-${a.id}`} use:tip={{ text: a.name, cut: true }}>{a.name}</span>
+        <EngineMark engine={a.engine} />
         {#if p}<span class="proj"><span class="swatch" style:background={p.color}></span>{p.name}</span>{/if}
         {#if tag}<span class="tag mono">▸ {tag}</span>{/if}
       </span>
@@ -302,7 +305,7 @@
       </span>
       <span class="model mono"><span class="sr">{t('common.model')}{' '}</span>{modelLabel(a.model, app.models)}</span>
       <span class="num" use:tip={used.estimated ? estimateHint() : undefined}
-        ><span class="sr">{t('common.cost')}{' '}</span>{fSpentUsd(used)}</span
+        ><span class="sr">{t('common.cost')}{' '}</span>{showsCost(a) ? fSpentUsd(used) : ''}</span
       >
       <span class="num ctx" class:full={ctx?.full} use:tip={ctx?.title ?? t('stats.overview.contextUnknown')}
         ><span class="sr">{t('stats.overview.context')}{' '}</span>{ctx ? fPct(ctx.pct) : '—'}</span

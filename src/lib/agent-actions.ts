@@ -1,6 +1,7 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { t, tIn } from './i18n';
 import { api } from './ipc';
+import { can } from './engines';
 import { app } from './state.svelte';
 import type { Agent, Project } from './types';
 
@@ -99,9 +100,9 @@ export async function integrateBase(agent: Agent) {
 
 /**
  * « Vue Claude Code » / « Vue Escouade », from the header of its conversation or the menu of its card: never for a
- * ticket's agent, which its board drives over the stream, nor for an archived one.
+ * ticket's agent, which its board drives over the stream, nor for an archived one, nor for a harness without a terminal view.
  */
-export const canSwitchView = (agent: Agent) => !agent.ticketId && !agent.archived;
+export const canSwitchView = (agent: Agent) => !agent.ticketId && !agent.archived && can(agent, 'terminalView');
 
 /** Into the other view; the backend's refusals (a turn under way, remote control on) are told. */
 export const switchView = (agent: Agent) => app.run(api.setAgentView(agent.id, !agent.terminal));

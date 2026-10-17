@@ -8,7 +8,7 @@ vi.mock('./terminals', () => ({
   disposeLog() {},
 }));
 
-import { agent, fakeBackend, project, resetApp, SETTINGS, ticket } from '../test/ipc';
+import { agent, CLAUDE_ENGINE, fakeBackend, project, resetApp, SETTINGS, ticket } from '../test/ipc';
 import { setLang } from './i18n';
 import { app } from './state.svelte';
 import {
@@ -495,6 +495,7 @@ describe('▶ Tester', () => {
         claudeFound: true,
         version: '0.1.0',
         models: [],
+        engines: [CLAUDE_ENGINE],
       };
       const b = backend(up, {
         subscribe: (a: any) => {

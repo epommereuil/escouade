@@ -2,13 +2,15 @@
   import { openUrl } from '@tauri-apps/plugin-opener';
   import { t } from '../../lib/i18n';
   import { api } from '../../lib/ipc';
+  import { anyCan, offered } from '../../lib/engines';
   import { EFFORTS, MODES, modelOptions } from '../../lib/models';
-  import { IS_MAC } from '../../lib/platform';
+  import { IS_MAC, OS } from '../../lib/platform';
+  import { accountName } from '../../lib/accounts';
   import { settingsForm } from '../../lib/settings.svelte';
   import { app } from '../../lib/state.svelte';
   import { privacyUrl } from '../../lib/telemetry';
   import { CREDITS_URL } from '../../lib/conversation';
-  import type { ClaudeLocated } from '../../lib/types';
+  import type { ClaudeLocated, EngineDecl, EngineInfo } from '../../lib/types';
   import { checkForUpdate } from '../../lib/updater';
   import Chips from './Chips.svelte';
   import Group from './Group.svelte';
@@ -25,6 +27,8 @@
     { value: 'refuse' as const, label: t('settings.claude.attachBigTextRefuse') },
   ]);
   let checking = $state(false);
+  /** The harnesses found, for « À propos ». */
+  const found = $derived(offered());
 
   // Where the `claude` of the path is, asked a moment after the path or the distribution changes (a look into WSL
   // may take seconds): an answer to an earlier path is dropped.
@@ -42,6 +46,51 @@
       clearTimeout(timer);
     };
   });
+
+  // Every harness with what is found of it (`engines`): its program, its version, its state. Read again once the path is
+  // saved and located; the default harness's lines only show while the field is the saved path (the backend reads the
+  // saved settings). Until read, the harnesses as declared.
+  let infos = $state<EngineInfo[] | null>(null);
+  const saved = $derived(s.claudePath === app.settings.claudePath && s.wslDistro === app.settings.wslDistro);
+  $effect(() => {
+    if (tab !== 'claude' || !saved) return;
+    void located;
+    let stale = false;
+    api
+      .engines()
+      .then((all) => {
+        if (!stale && all) infos = all;
+      })
+      .catch(() => {});
+    return () => {
+      stale = true;
+    };
+  });
+  /** Each harness: its declaration, and what is found of it once read. */
+  const harnesses = $derived(app.engines.map((d) => ({ decl: d, info: infos?.find((i) => i.id === d.id) ?? null })));
+  /** The one the path of the settings is for: the default harness, until each has its own. */
+  const pathOwner = $derived(app.engines[0]?.id);
+  /** The account new agents go to: the one « Se connecter… » signs in. */
+  const signInAccount = $derived(app.settings.accounts.find((a) => a.id === app.usage.current) ?? app.settings.accounts[0]);
+
+  /** « Se connecter… »: the sign-in of the account new agents go to, in a built-in terminal, back to this tab once done. */
+  function signIn() {
+    if (signInAccount) app.modal = { kind: 'account', accountId: signInAccount.id, back: 'claude' };
+  }
+
+  /** The command that installs a harness on this system. */
+  const installOf = (d: EngineDecl) => (OS === 'windows' ? d.install.windows : d.install.unix);
+
+  /** Under the version: where it stands against the tested ones, or what keeps it from running. */
+  function versionText(e: EngineInfo): string {
+    // The refusal or the warning (told signed in or not), else where the version stands.
+    const version =
+      e.note ??
+      (e.version
+        ? t('settings.claude.versionTested', { oldest: e.tested.oldest, newest: e.tested.newest })
+        : t('settings.claude.versionUnknown'));
+    return e.state === 'notConnected' ? `${version} ${t('settings.claude.versionNotConnected')}` : version;
+  }
 
   /** The line under the path: where its `claude` was found, or how to name one. */
   function locatedText(l: ClaudeLocated | null): string {
@@ -73,7 +122,48 @@
 {/snippet}
 
 {#if tab === 'claude'}
-  <Group title={t('settings.claude.executable')} note={located?.nat ? t('settings.claude.nat') : undefined}>
+  {#each harnesses as { decl, info } (decl.id)}
+    {@const own = decl.id === pathOwner}
+    {@const shown = own ? (info && located?.path && saved ? info : null) : info}
+    <section class="harness" data-engine={decl.id} aria-label={decl.name}>
+      <Group title={decl.name} note={own && located?.nat ? t('settings.claude.nat') : undefined}>
+        {#if own}
+          {@render pathRow()}
+        {:else}
+          <Row
+            label={t('settings.claude.executable')}
+            desc={info?.located.path ? t('settings.claude.located', { path: info.located.path }) : t('settings.claude.notLocatedHere')}
+          />
+        {/if}
+        {#if shown && shown.state !== 'absent'}
+          <Row label={t('settings.claude.version')} desc={versionText(shown)} descId="engine-version-{decl.id}">
+            <span
+              class="mono version"
+              class:warn={shown.state === 'untested' || shown.state === 'notConnected'}
+              class:bad={shown.state === 'tooOld'}
+              data-state={shown.state}
+              aria-describedby="engine-version-{decl.id}">{shown.version ?? '—'}</span
+            >
+          </Row>
+          <Row
+            label={t('settings.claude.state')}
+            desc={signInAccount ? t('settings.claude.signInDesc', { account: accountName(signInAccount) }) : undefined}
+          >
+            <span class="state" class:ok={shown.state === 'ready'} class:bad={shown.state === 'tooOld'} data-engine-state={shown.state}
+              >{t(`settings.claude.states.${shown.state}`)}</span
+            >
+            <button class="btn" disabled={!signInAccount} onclick={signIn}>{t('settings.claude.signIn')}</button>
+          </Row>
+        {:else if own ? located && !located.path : info?.state === 'absent'}
+          <Row label={t('settings.claude.install')} desc={t('settings.claude.installDesc')}>
+            <span class="state bad" data-engine-state="absent">{t('settings.claude.states.absent')}</span>
+            <code class="mono cmd">{installOf(decl)}</code>
+          </Row>
+        {/if}
+      </Group>
+    </section>
+  {/each}
+  {#snippet pathRow()}
     <Row label={t('settings.claude.path')} hint={t('settings.claude.pathHint')} desc={locatedText(located)} descId="claude-located">
       <input
         class="field mono input"
@@ -85,7 +175,7 @@
         oninput={(e) => (s.claudePath = e.currentTarget.value)}
       />
     </Row>
-  </Group>
+  {/snippet}
   <Group title={t('settings.claude.newAgents')}>
     <Row label={t('settings.claude.defaultModel')}>
       <Chips label={t('settings.claude.defaultModel')} options={modelOptions(app.models)} bind:value={s.defaultModel} />
@@ -107,12 +197,17 @@
         <Switch label={t('accounts.switchOnLimit.label')} bind:on={s.switchOnLimit} />
       </Row>
     {/if}
-    <Row label={t('settings.claude.terminalView')} desc={t('settings.claude.terminalViewDesc')}>
-      <Switch label={t('settings.claude.terminalView')} bind:on={s.terminalView} />
-    </Row>
-    <Row label={t('settings.claude.todoTools')} desc={t('settings.claude.todoToolsDesc')}>
-      <Switch label={t('settings.claude.todoTools')} bind:on={s.todoTools} />
-    </Row>
+    <!-- Settings of what only some harnesses do: shown while one of them is there. -->
+    {#if anyCan('terminalView')}
+      <Row label={t('settings.claude.terminalView')} desc={t('settings.claude.terminalViewDesc')}>
+        <Switch label={t('settings.claude.terminalView')} bind:on={s.terminalView} />
+      </Row>
+    {/if}
+    {#if anyCan('todoTools')}
+      <Row label={t('settings.claude.todoTools')} desc={t('settings.claude.todoToolsDesc')}>
+        <Switch label={t('settings.claude.todoTools')} bind:on={s.todoTools} />
+      </Row>
+    {/if}
     <Row label={t('settings.claude.idleStop')} hint={t('settings.claude.idleStopHint')}>
       <input
         class="field mono input short"
@@ -159,11 +254,13 @@
     </Row>
   </Group>
   <!-- Beside « Claude et les agents peuvent piloter Escouade », before its activity log, which can be long. -->
-  <Group title={t('settings.claude.remoteTitle')}>
-    <Row label={t('settings.claude.remoteAll')} desc={t('settings.claude.remoteAllDesc')}>
-      <Switch label={t('settings.claude.remoteAll')} bind:on={s.remoteControlAll} />
-    </Row>
-  </Group>
+  {#if anyCan('remoteControl')}
+    <Group title={t('settings.claude.remoteTitle')}>
+      <Row label={t('settings.claude.remoteAll')} desc={t('settings.claude.remoteAllDesc')}>
+        <Switch label={t('settings.claude.remoteAll')} bind:on={s.remoteControlAll} />
+      </Row>
+    </Group>
+  {/if}
   <McpSection />
 {:else if tab === 'notifications'}
   <Group
@@ -230,7 +327,10 @@
   </Group>
 {:else}
   <Group title="Escouade">
-    <Row label="Escouade {app.version}" desc={app.claudeFound ? t('settings.about.claudeFound') : t('settings.about.claudeMissing')}>
+    <Row
+      label="Escouade {app.version}"
+      desc={found.length ? t('settings.about.enginesFound', { list: found.map((e) => e.name).join(', ') }) : t('settings.about.noEngine')}
+    >
       <button class="btn" disabled={checking} onclick={check}>{checking ? t('settings.about.checking') : t('settings.about.check')}</button>
     </Row>
     <Row label={t('settings.about.autoUpdate')} desc={t('settings.about.autoUpdateDesc')}>
@@ -263,5 +363,32 @@
   }
   .input.short {
     width: 110px;
+  }
+  .version {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .version.warn {
+    color: var(--wait);
+  }
+  .version.bad {
+    color: var(--del);
+  }
+  .state {
+    font-size: 12px;
+    color: var(--wait);
+  }
+  .state.ok {
+    color: var(--ok);
+  }
+  .state.bad {
+    color: var(--del);
+  }
+  .cmd {
+    padding: 4px 8px;
+    border-radius: var(--r-sm);
+    background: var(--panel);
+    font-size: 11.5px;
+    user-select: all;
   }
 </style>

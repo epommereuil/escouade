@@ -77,7 +77,7 @@ A file sent by path is either the original file or a copy.
 
 - **Size.** No limit by default. A file over 200 MB carries a warning (a “!” mark on its chip, whose tooltip says “Big file: 250 MB, copied to the disk”, or “… attached where it is, not copied” for an original file), but it is attached all the same. So is an empty file. You can set a maximum size: past it, the file is rejected.
 - **Text file over 256 KB.** By default, it goes by path like the other files. You can have it rejected, as before, by setting “Text over 256 KB” to “Refused”; that holds in a ticket’s window and in the Claude Code view too.
-- **Settings.** The five settings of the “Attachments” group (“Largest attached file”, “Warn above”, “Attach the original file”, “Text over 256 KB”, and “Purge copies after”) are in [Settings › Claude Code](settings-claude-code#attachments), with their defaults.
+- **Settings.** The five settings of the “Attachments” group (“Largest attached file”, “Warn above”, “Attach the original file”, “Text over 256 KB”, and “Purge copies after”) are in [Settings › Harness](settings-claude-code#attachments), with their defaults.
 
 ### Deleting attached files
 

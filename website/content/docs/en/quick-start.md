@@ -33,7 +33,7 @@ The recommended setup: a worktree per agent, approval by a squash merge into the
 | “The target branch … is not found” | “Take the current branch” |
 | “Worktrees would go in a folder git tracks” | “Use .claude/worktrees” |
 | “No Claude account serves this project” | Switch an account on, or lift its reservation, in Settings › Claude accounts |
-| “Claude Code is not found” | Install it, or give its path in Settings › Claude Code |
+| “Claude Code is not found” | Install it, or give its path in Settings › Harness |
 
 Each check is also told in the step it concerns (the first one from “Start”). Click “Create project”: the project opens in a new tab with its settings, then its first agent if you asked for one. “Create without the assistant”, at the bottom left, creates the project at once with Escouade’s defaults and a first agent, as before the assistant. Later, Settings › Projects › “Open the assistant…” opens it again on an existing project (see [Settings: Projects](settings-projects#setup-assistant)).
 
@@ -68,7 +68,7 @@ The permission modes decide when Claude asks you for permission to act:
 | “Accept edits” | File edits are accepted without asking. |
 | “Bypass” | No permission requests. |
 
-A new agent starts with the values of Settings › Claude Code: “Default model” (Sonnet), “Default effort” (Medium) and “Default permission mode” (Auto). See the [Claude Code settings](settings-claude-code) and [agents](managing-agents).
+A new agent starts with the values of Settings › Harness: “Default model” (Sonnet), “Default effort” (Medium) and “Default permission mode” (Auto). See the [Claude Code settings](settings-claude-code) and [agents](managing-agents).
 
 > [!WARNING]
 > In “Bypass” mode, Claude acts without any permission request: Escouade reminds you of it when you choose it. Keep it for safe environments.

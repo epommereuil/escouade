@@ -1195,6 +1195,9 @@ impl<R: Runtime> Core<R> {
                 "Claude Code not found. Install it or give its path in the settings."
             ))
         })?;
+        // A version older than the tested ones is refused, with its reason.
+        let harness = crate::engine::of(&h.lock().meta);
+        crate::engine::registry::check(harness, &program).await?;
         let port = self.hook_port()?;
         let dir = self.data.root().join("tui");
         std::fs::create_dir_all(&dir)?;

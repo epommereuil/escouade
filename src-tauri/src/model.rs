@@ -476,9 +476,18 @@ pub struct Project {
     /// reachable from claude.ai (`RemoteSource::Project`).
     #[serde(default)]
     pub remote_control: bool,
+    /// « Harness par défaut »: the one its new agents and its tickets' run on, unless they say
+    /// theirs. None: Claude Code (and for a project saved before 1.8).
+    #[serde(default)]
+    pub engine: Option<EngineId>,
 }
 
 impl Project {
+    /// The harness of its new agents and tickets that do not say theirs.
+    pub fn engine(&self) -> EngineId {
+        self.engine.unwrap_or_default()
+    }
+
     /// The folder its new worktrees go to.
     pub fn worktrees_root(&self) -> std::path::PathBuf {
         crate::paths::worktrees_root(&self.path, &self.worktree_dir)
@@ -741,6 +750,9 @@ pub struct Ticket {
     /// tool); empty: the board's.
     pub model: String,
     pub effort: String,
+    /// The harness of its agents (« Harness » in its form), which the autopilot starts them on;
+    /// None: the project's (`Project::engine`), and for a ticket saved before 1.8.
+    pub engine: Option<EngineId>,
     /// Its agent was set apart from Remote Control by hand (`AgentMeta::remote_off`): so is the
     /// next one it gets (sent back to do and started again), until the user turns Remote Control
     /// on for one by hand.
@@ -940,6 +952,40 @@ pub struct Worktree {
     pub existing: bool,
 }
 
+/// A harness that runs agents (`engine::Engine`), as the data keeps it: an agent's
+/// (`AgentMeta::engine`), a ticket's (`Ticket::engine`), a project's default (`Project::engine`),
+/// a turn's (`TurnRow::engine`, the `engine` column of the statistics). Claude Code for what was
+/// saved before 1.8, when it was the only one.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum EngineId {
+    #[default]
+    Claude,
+    Codex,
+    Copilot,
+    Cursor,
+    Opencode,
+}
+
+impl EngineId {
+    /// As the data says it (`claude`, `opencode`…).
+    pub fn as_str(self) -> &'static str {
+        match self {
+            EngineId::Claude => "claude",
+            EngineId::Codex => "codex",
+            EngineId::Copilot => "copilot",
+            EngineId::Cursor => "cursor",
+            EngineId::Opencode => "opencode",
+        }
+    }
+}
+
+impl std::fmt::Display for EngineId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 /// Where an agent's Remote Control comes from (`AgentMeta::remote_source`).
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -963,6 +1009,10 @@ pub struct AgentMeta {
     pub name: String,
     /// True once the name was generated or chosen by the user.
     pub named: bool,
+    /// The harness it runs on, one at a time: Claude Code for an agent saved before 1.8. It
+    /// changes only by a handover to another one; each turn keeps the one that ran it
+    /// (`TurnRow::engine`), and a copy takes the one it has when copied.
+    pub engine: EngineId,
     pub model: String,
     pub effort: String,
     pub mode: String,
@@ -2201,6 +2251,59 @@ mod tests {
         assert_eq!(serde_json::to_value(&ui).unwrap()["layout"], "split");
         let old: UiState = serde_json::from_value(json!({ "view": "project" })).unwrap();
         assert_eq!(serde_json::to_value(&old).unwrap()["layout"], "");
+    }
+
+    #[test]
+    fn what_was_saved_before_the_harnesses_runs_on_claude_code() {
+        let a: AgentMeta =
+            serde_json::from_value(json!({ "id": "a1", "sessionId": "s1" })).unwrap();
+        assert_eq!(a.engine, EngineId::Claude);
+        let t: Ticket = serde_json::from_value(json!({ "id": "t1", "key": "DEM-1" })).unwrap();
+        assert_eq!(t.engine, None);
+        let p: Project = serde_json::from_value(
+            json!({ "id": "p1", "name": "demo", "path": "C:/demo", "color": "red" }),
+        )
+        .unwrap();
+        assert_eq!((p.engine, p.engine()), (None, EngineId::Claude));
+        // Each harness is kept by its id, and read back.
+        for (engine, id) in [
+            (EngineId::Claude, "claude"),
+            (EngineId::Codex, "codex"),
+            (EngineId::Copilot, "copilot"),
+            (EngineId::Cursor, "cursor"),
+            (EngineId::Opencode, "opencode"),
+        ] {
+            assert_eq!(engine.as_str(), id);
+            let v = serde_json::to_value(AgentMeta {
+                engine,
+                ..Default::default()
+            })
+            .unwrap();
+            assert_eq!(v["engine"], json!(id));
+            assert_eq!(
+                serde_json::from_value::<AgentMeta>(v).unwrap().engine,
+                engine
+            );
+            let v = serde_json::to_value(Ticket {
+                engine: Some(engine),
+                ..Default::default()
+            })
+            .unwrap();
+            assert_eq!(v["engine"], json!(id));
+            assert_eq!(
+                serde_json::from_value::<Ticket>(v).unwrap().engine,
+                Some(engine)
+            );
+            let v = serde_json::to_value(Project {
+                engine: Some(engine),
+                ..p.clone()
+            })
+            .unwrap();
+            assert_eq!(
+                serde_json::from_value::<Project>(v).unwrap().engine(),
+                engine
+            );
+        }
     }
 
     #[test]

@@ -134,7 +134,7 @@ export default {
     back: 'Revenir sur {account}',
   },
 
-  // The setting of the Claude Code tab.
+  // The setting of the Harness tab.
   switchOnLimit: {
     label: 'Reprendre sur un autre compte un agent de ticket arrêté par la limite',
     desc: 'Sinon il attend la remise à zéro de son compte',

@@ -2,12 +2,14 @@
 // restart, changed from the keyboard too, never past what the window holds (the interface is laid out for 1000 × 600
 // pixels at least); and the font sizes of the terminals and of the editor, set apart.
 
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Page } from '@playwright/test';
 import { addProject, expect, test } from './fixture';
 
 const STEPS = [80, 90, 100, 110, 125, 150, 175, 200];
+const BRANCH = 'ticket/esc-112-une-branche-au-nom-bien-trop-long-pour-tenir-dans-la-barre-d-etat';
 const percent = (n: number) => `${n} %`;
 
 /** The zoom the page is shown at, from its pixel ratio and the one it had at 100 %. */
@@ -47,7 +49,9 @@ test('the zoom of Réglages › Application grows the whole interface at once, n
   // The biggest step this window holds, as its size at 100 % says.
   const room = await page.evaluate(() => ({ width: innerWidth, height: innerHeight }));
   const fit = STEPS.filter((z) => z <= 100 || ((room.width * 100) / z >= 999.5 && (room.height * 100) / z >= 599.5)).at(-1)!;
-  expect(fit).toBeGreaterThanOrEqual(110);
+  // The step set: the biggest the window holds, or 90 % in a window too small for more than 100 % (a 1024 × 768 screen,
+  // as CI's).
+  const set = fit > 100 ? fit : 90;
 
   let dialog = await openDisplay(page);
   const zoom = dialog.getByRole('group', { name: 'Zoom de l’interface' });
@@ -56,12 +60,12 @@ test('the zoom of Réglages › Application grows the whole interface at once, n
     if (z > fit) await expect(zoom.getByRole('button', { name: percent(z) })).toBeDisabled();
     else await expect(zoom.getByRole('button', { name: percent(z) })).toBeEnabled();
   }
-  // The highest step the window holds: at once, the dialog grows with the rest, nothing to save.
-  await zoom.getByRole('button', { name: percent(fit) }).click();
-  await expect.poll(() => zoomOf(page, base)).toBe(fit);
-  await expect(zoom.getByRole('button', { name: percent(fit) })).toHaveAttribute('aria-pressed', 'true');
+  // At once, the dialog grows (or shrinks) with the rest, nothing to save.
+  await zoom.getByRole('button', { name: percent(set) }).click();
+  await expect.poll(() => zoomOf(page, base)).toBe(set);
+  await expect(zoom.getByRole('button', { name: percent(set) })).toHaveAttribute('aria-pressed', 'true');
   await expect(dialog.getByRole('tab', { name: 'Application' })).not.toHaveClass(/changed/);
-  await expect.poll(() => settingsOf(app.data).uiZoom).toBe(fit);
+  await expect.poll(() => settingsOf(app.data).uiZoom).toBe(set);
   expect(await overflowing(page)).toEqual([]);
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
@@ -80,11 +84,15 @@ test('the zoom of Réglages › Application grows the whole interface at once, n
   // Kept after a restart, shown at once.
   page = await app.restart();
   await expect(page.getByRole('button', { name: /Nouvel agent|Ajouter un projet/ }).first()).toBeVisible();
-  await expect.poll(() => zoomOf(page, base)).toBe(fit);
+  await expect.poll(() => zoomOf(page, base)).toBe(set);
   expect(await overflowing(page)).toEqual([]);
 
-  // From the keyboard: Ctrl+= goes no further than the window holds, Ctrl+- a step down, Ctrl+0 back to 100 %.
+  // From the keyboard: Ctrl+= a step up but no further than the window holds, Ctrl+- a step down, Ctrl+0 back to 100 %.
   await page.locator('body').click({ position: { x: 5, y: 300 } });
+  if (set < fit) {
+    await page.keyboard.press('Control+=');
+    await expect.poll(() => zoomOf(page, base)).toBe(STEPS[STEPS.indexOf(set) + 1]);
+  }
   await page.keyboard.press('Control+=');
   await page.waitForTimeout(300);
   expect(await zoomOf(page, base)).toBe(fit);
@@ -114,6 +122,8 @@ test('the terminals and the editor have their own font size, set at once and fit
     await route.continue().catch(() => {});
   });
   await addProject(page, app.repo);
+  // A long branch name, which the status bar has to make room for.
+  execFileSync('git', ['checkout', '-q', '-b', BRANCH], { cwd: app.repo, stdio: 'pipe' });
   await page.keyboard.press('Control+t');
   const term = page.locator('main .xterm').first();
   await expect(term).toBeVisible();
@@ -191,4 +201,21 @@ test('the terminals and the editor have their own font size, set at once and fit
     .evaluate((el) => el.getBoundingClientRect().height);
   expect(Math.round(gutter)).toBe(Math.round(line.height));
   expect(await overflowing(page)).toEqual([]);
+
+  // In the smallest window the interface is laid out for, nothing is cut either: the status bar keeps its buttons whole
+  // (the settings' among them), what it tells gives way, the branch's name cut short.
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1000, height: 600, deviceScaleFactor: 0, mobile: false });
+  await expect.poll(() => page.evaluate(() => [innerWidth, innerHeight])).toEqual([1000, 600]);
+  expect(await overflowing(page)).toEqual([]);
+  const bar = page.locator('footer.bar');
+  await expect(bar.locator('button', { hasText: '♪' })).toBeInViewport({ ratio: 1 });
+  await expect(bar.locator('button', { hasText: '⚙' })).toBeInViewport({ ratio: 1 });
+  await expect(bar.getByRole('button', { name: new RegExp(BRANCH) })).toBeInViewport({ ratio: 1 });
+  const branch = await bar
+    .locator('.branch .name')
+    .evaluate((el) => ({ shown: el.clientWidth, whole: el.scrollWidth, text: el.textContent }));
+  expect(branch.text).toContain(BRANCH);
+  expect(branch.shown).toBeLessThan(branch.whole);
+  await cdp.send('Emulation.clearDeviceMetricsOverride');
 });

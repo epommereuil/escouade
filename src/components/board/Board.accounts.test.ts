@@ -30,7 +30,7 @@ const pause = (over: Partial<AutopilotPause> = {}): AutopilotPause => ({ reason:
 describe('the board with several accounts', () => {
   beforeEach(() => {
     resetApp({ tickets: [ticket(), ticket({ id: 't2', key: 'DEM-2', title: 'Deuxième', rank: 2 })] });
-    app.claudeFound = true;
+    app.enginesFound = ['claude'];
     app.settings.accounts = [PRINCIPAL, PRO];
     fakeBackend();
   });

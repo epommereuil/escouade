@@ -27,6 +27,7 @@ fn draft(title: &str) -> TicketDraft {
         branch: String::new(),
         images: None,
         files: None,
+        engine: None,
     }
 }
 
@@ -155,6 +156,7 @@ async fn a_project_closed_comes_back_with_everything_it_had_when_its_folder_is_a
             cache: 0,
             output: 5,
             cost: 1.5,
+            ..Default::default()
         }],
     );
     let project = as_json(&h.core.project(&p.id).unwrap());

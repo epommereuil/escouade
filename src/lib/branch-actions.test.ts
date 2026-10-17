@@ -368,7 +368,12 @@ describe('startAgentOn', () => {
     const backend = fakeBackend({ create_agent_on_branch: (a: any) => agent({ id: 'a9', name: 'agent-9', projectId: a.projectId }) });
     app.editor = { p1: { open: true } } as any;
     expect(await startAgentOn('p1', 'origin/feat/login')).toBe(true);
-    expect(backend.called('create_agent_on_branch')[0].args).toEqual({ projectId: 'p1', branch: 'origin/feat/login', model: null });
+    expect(backend.called('create_agent_on_branch')[0].args).toEqual({
+      projectId: 'p1',
+      branch: 'origin/feat/login',
+      model: null,
+      engine: null,
+    });
     expect(app.agents.a9.name).toBe('agent-9');
     expect(app.ui.selectedAgent.p1).toBe('a9');
     expect(app.toasts).toEqual([]);

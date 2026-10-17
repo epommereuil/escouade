@@ -12,6 +12,7 @@
   import { fDur, fInt, fNum, fTok } from '../lib/format';
   import { modelLabel } from '../lib/models';
   import { contextUse, estimateHint, fSpentUsd, spent } from '../lib/spend';
+  import { engineName, showsCost } from '../lib/engines';
   import { injectedSource, parseAgentMessage, subagentLabels } from '../lib/events';
   import { subagentInfo } from '../lib/subagents';
   import { editsByTurn } from '../lib/tools';
@@ -33,6 +34,7 @@
   import ToolRow from './conv/ToolRow.svelte';
   import TurnCard from './conv/TurnCard.svelte';
   import UserMessage from './conv/UserMessage.svelte';
+  import EngineMark from './EngineMark.svelte';
   import StatusDot from './StatusDot.svelte';
   import { tip } from '../lib/tip';
 
@@ -522,6 +524,7 @@
     <div class="who">
       <div class="line1">
         <span class="name" ondblclick={rename} role="presentation" use:tip={t('conv.header.renameHint')}>{agent.name}</span>
+        <EngineMark engine={agent.engine} />
         <span class="st" style:color={SC[agent.status]}><StatusDot status={agent.status} size={7} />{statusLabel(agent.status)}</span>
       </div>
       <span class="sub mono">{project.name} / {branch || '—'}</span>
@@ -588,9 +591,11 @@
         <span class="k">{t('conv.header.context')}</span><span class="v mono" class:full={context.full}>{context.shown}</span>
       </div>
       <div class="m opt"><span class="k">{t('conv.header.tokens')}</span><span class="v mono">{fTok(used.tokens)}</span></div>
-      <div class="m opt2" use:tip={used.estimated ? estimateHint() : undefined}>
-        <span class="k">{t('common.cost')}</span><span class="v mono">{fSpentUsd(used)}</span>
-      </div>
+      {#if showsCost(agent)}
+        <div class="m opt2" use:tip={used.estimated ? estimateHint() : undefined}>
+          <span class="k">{t('common.cost')}</span><span class="v mono">{fSpentUsd(used)}</span>
+        </div>
+      {/if}
       {#if app.split}
         <div class="m opt2"><span class="k">{t('common.files')}</span><span class="v mono">{files}</span></div>
       {:else}
@@ -674,8 +679,8 @@
           <div class="empty">
             <span class="t">{t('conv.empty.title')}</span>
             <span class="s"><Rich k="conv.empty.hint">{#snippet cwd()}<span class="mono">{agent.cwd}</span>{/snippet}</Rich></span>
-            {#if !app.claudeFound}
-              <span class="warn">{t('conv.empty.claudeMissing')}</span>
+            {#if !app.enginesFound.includes(agent.engine ?? 'claude')}
+              <span class="warn">{t('conv.empty.engineMissing', { engine: engineName(agent.engine) })}</span>
             {/if}
           </div>
         {/if}

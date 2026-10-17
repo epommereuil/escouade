@@ -681,6 +681,7 @@ impl AgentRt {
                 cost += delta.cost;
                 let name = u["canonicalModel"].as_str().unwrap_or(model).to_string();
                 fx.turns.push(TurnRow {
+                    engine: self.meta.engine,
                     model: name,
                     input: delta.input,
                     cache: delta.cache,
@@ -761,7 +762,7 @@ impl AgentRt {
             "kind": "turn", "id": f["uuid"].as_str().map(str::to_string).unwrap_or_else(new_id), "ts": now_ms(),
             "durationMs": f["duration_ms"], "cost": cost, "tokens": tokens,
             "isError": is_error && !interrupted, "interrupted": interrupted, "error": error,
-            "limited": at_limit,
+            "limited": at_limit, "engine": self.meta.engine,
         });
         self.append(item, fx);
         if !self.pending.is_empty() {

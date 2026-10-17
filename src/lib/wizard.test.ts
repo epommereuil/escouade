@@ -112,6 +112,14 @@ describe('the assistant’s steps and starting points', () => {
     expect(saved.integrations).toBe(p.integrations);
   });
 
+  it('keeps a project’s harness when saved again, and a new one has none of its own (Claude Code)', () => {
+    expect(blankConfig().engine).toBeNull();
+    expect(recommendedConfig().engine).toBeNull();
+    expect(withConfig(source(), configOf(source())).engine).toBeNull();
+    const codex = source({ engine: 'codex' });
+    expect(withConfig(codex, configOf(codex)).engine).toBe('codex');
+  });
+
   it('saves trimmed settings, without the steps and commands that run nothing, and no tests first without a command', () => {
     const c = blankConfig();
     c.copy = ' .env* \n\n dist/ ';
@@ -264,6 +272,14 @@ describe('copying another project’s settings', () => {
       runCommands: [expect.objectContaining({ name: 'api' })],
       board: { ...blankConfig().board, conflict: 'agent' },
     });
+  });
+
+  it('copies the harness with the agents’ settings, and lists nothing more for it', () => {
+    const src = source({ engine: 'copilot' });
+    const items = copyItems(src, info(), [PRINCIPAL, WORK]);
+    expect(items.map((i) => i.id)).toEqual(copyItems(source(), info(), [PRINCIPAL, WORK]).map((i) => i.id));
+    expect(applyCopy(blankConfig(), src, new Set(['agents']), info()).engine).toBe('copilot');
+    expect(applyCopy(blankConfig(), src, new Set(['conflict']), info()).engine).toBeNull();
   });
 
   it('gives the commands and steps copied ids of their own: the other project’s launches stay its own', () => {

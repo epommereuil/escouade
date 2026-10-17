@@ -19,7 +19,7 @@ On top of that:
 
 Escouade looks for `claude` in this order:
 
-1. the path in Settings › Claude Code › “Executable path”, if it is not blank (it is then the only place tried);
+1. the path in Settings › Harness › “Executable path”, if it is not blank (it is then the only place tried);
 2. the `PATH`;
 3. the places where the Claude Code installers put it (table below);
 4. on Windows, when there is none, a Claude Code installed in WSL (see [below](#claude-code-in-wsl)).
@@ -76,7 +76,7 @@ On Linux, the tokens of the integrations (Jira, Trello, GitHub, Linear) are kept
 On Windows, Escouade can run a Claude Code installed in WSL.
 
 1. Install Claude Code in your WSL distribution and sign it in.
-2. Open Settings › Claude Code. In “Executable path”, enter the path of `claude` in one of these forms:
+2. Open Settings › Harness. In “Executable path”, enter the path of `claude` in one of these forms:
    - `~/.local/bin/claude`;
    - `/home/<user>/.local/bin/claude`;
    - `\\wsl.localhost\<distribution>\home\<user>\.local\bin\claude`.
@@ -98,7 +98,7 @@ An app started from the Finder or the Dock does not receive your terminal’s `P
 
 On Linux the same mechanism applies, which matters when Escouade is started from the desktop launcher rather than from a terminal.
 
-If `claude` is still not found, set its path in Settings › Claude Code.
+If `claude` is still not found, set its path in Settings › Harness.
 
 ## First launch
 

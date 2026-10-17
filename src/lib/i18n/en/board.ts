@@ -17,7 +17,7 @@ export default defineZone('board', {
       one: '{name} · {count} ticket · {looping} looping',
       other: '{name} · {count} tickets · {looping} looping',
     },
-    claudeMissing: 'Claude Code not found — no tickets will start',
+    noEngine: 'No harness found — no tickets will start',
     importTitle: 'Import tickets from Jira, Trello, GitHub Issues, or Linear',
     settingsTitle: 'Kanban settings — {summary}',
     afterApproval: 'After approval:',
@@ -87,6 +87,8 @@ export default defineZone('board', {
 
   form: {
     newTitle: 'New ticket',
+    engine: 'Harness',
+    engineProject: 'The project’s ({engine})',
     editTitle: 'Edit {key}',
     addHint: '{key} to add',
     saveHint: '{key} to save',

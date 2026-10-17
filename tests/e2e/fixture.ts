@@ -376,4 +376,4 @@ export async function send(page: Page, text: string) {
   await box.press('Enter');
 }
 
-export { expect };
+export { expect, FAKE };

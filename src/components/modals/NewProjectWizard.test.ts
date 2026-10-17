@@ -131,7 +131,7 @@ describe('the new project’s assistant', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Passer' }));
     await userEvent.click(screen.getByRole('button', { name: 'Passer' }));
     expect(step()).toBe('summary');
-    expect(screen.getByText('Claude Code trouvé · un compte sert le projet · dépôt prêt')).toBeInTheDocument();
+    expect(screen.getByText('Harness trouvé · un compte sert le projet · dépôt prêt')).toBeInTheDocument();
     // The steps skipped are said in the rail.
     expect(screen.getByRole('button', { name: /Kanban/ })).toHaveTextContent('passé');
 
@@ -172,7 +172,7 @@ describe('the new project’s assistant', () => {
         prefix: 'ATL',
       },
     });
-    expect(be.called('create_agent')[0].args).toEqual({ projectId: 'new', model: 'sonnet' });
+    expect(be.called('create_agent')[0].args).toEqual({ projectId: 'new', model: 'sonnet', engine: null });
     expect(app.projects.find((p) => p.id === 'new')?.worktreeDir).toBe('../wt');
     expect(app.ui.activeProject).toBe('new');
   });
@@ -271,19 +271,19 @@ describe('the new project’s assistant', () => {
     expect(screen.queryByText('La branche cible develop est introuvable')).not.toBeInTheDocument();
   });
 
-  it('says when no account serves the project, and when Claude Code is not found, with what to do', async () => {
+  it('says when no account serves the project, and when no harness is found, with what to do', async () => {
     backend();
     app.settings.accounts = [{ id: 'principal', name: 'Principal', configDir: '', claudePath: '', active: false }];
-    app.claudeFound = false;
+    app.enginesFound = [];
     render(NewProjectModal);
     await typePath();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Suivant' })).toBeEnabled());
     await userEvent.click(screen.getByRole('button', { name: /Récapitulatif/ }));
     expect(screen.getByText('Aucun compte Claude ne sert ce projet')).toBeInTheDocument();
     expect(screen.getByText(/Réglages › Comptes Claude/)).toBeInTheDocument();
-    expect(screen.getByText('Claude Code est introuvable')).toBeInTheDocument();
-    expect(screen.getByText(/indique son chemin dans Réglages › Claude Code/)).toBeInTheDocument();
-    app.claudeFound = true;
+    expect(screen.getByText('Aucun harness trouvé')).toBeInTheDocument();
+    expect(screen.getByText(/indique son chemin dans Réglages › Harness/)).toBeInTheDocument();
+    app.enginesFound = ['claude'];
   });
 
   it('fills the worktrees and the launch with what Claude reads of the folder, before the project is made', async () => {

@@ -19,7 +19,7 @@ En plus :
 
 Escouade cherche `claude` dans cet ordre :
 
-1. le chemin de Réglages › Claude Code › « Chemin de l’exécutable », s’il n’est pas vide (c’est alors le seul endroit essayé) ;
+1. le chemin de Réglages › Harness › « Chemin de l’exécutable », s’il n’est pas vide (c’est alors le seul endroit essayé) ;
 2. le `PATH` ;
 3. les endroits où les installateurs de Claude Code le mettent (tableau ci-dessous) ;
 4. sous Windows, quand il n’y en a pas, un Claude Code installé dans WSL (voir [plus bas](#claude-code-dans-wsl)).
@@ -76,7 +76,7 @@ Sous Linux, les jetons des intégrations (Jira, Trello, GitHub, Linear) sont gar
 Sous Windows, Escouade peut faire tourner un Claude Code installé dans WSL.
 
 1. Installe Claude Code dans ta distribution WSL et connecte-le.
-2. Ouvre Réglages › Claude Code. Dans « Chemin de l’exécutable », écris le chemin de `claude` sous l’une de ces formes :
+2. Ouvre Réglages › Harness. Dans « Chemin de l’exécutable », écris le chemin de `claude` sous l’une de ces formes :
    - `~/.local/bin/claude` ;
    - `/home/<utilisateur>/.local/bin/claude` ;
    - `\\wsl.localhost\<distribution>\home\<utilisateur>\.local\bin\claude`.
@@ -98,7 +98,7 @@ Une app lancée depuis le Finder ou le Dock ne reçoit pas le `PATH` de ton term
 
 Sous Linux, le même mécanisme s’applique, ce qui sert quand Escouade est lancée depuis le lanceur du bureau plutôt que depuis un terminal.
 
-Si `claude` reste introuvable, indique son chemin dans Réglages › Claude Code.
+Si `claude` reste introuvable, indique son chemin dans Réglages › Harness.
 
 ## Premier lancement
 

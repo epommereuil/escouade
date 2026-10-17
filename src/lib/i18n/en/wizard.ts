@@ -100,7 +100,7 @@ export default defineZone('wizard', {
     none: 'No command: add one, or let Claude read the project.',
   },
   account: {
-    remoteAll: 'Already on for all agents (Settings › Claude Code).',
+    remoteAll: 'Already on for all agents (Settings › Harness).',
   },
   integrations: {
     none: 'No Jira, Trello, GitHub or Linear account is connected: connect one in Settings › Integrations, after creating the project.',
@@ -148,10 +148,10 @@ export default defineZone('wizard', {
       desc: 'Nothing starts: switch an account on, or lift its reservation to other projects, in Settings › Claude accounts.',
     },
     noClaude: {
-      title: 'Claude Code is not found',
-      desc: 'Install it (npm install -g @anthropic-ai/claude-code), or give its path in Settings › Claude Code.',
+      title: 'No harness found',
+      desc: 'Install a harness (Claude Code: npm install -g @anthropic-ai/claude-code), or give its path in Settings › Harness.',
     },
-    ok: 'Claude Code found · an account serves the project · repository ready',
+    ok: 'Harness found · an account serves the project · repository ready',
   },
   reopen: {
     label: 'Setup assistant',

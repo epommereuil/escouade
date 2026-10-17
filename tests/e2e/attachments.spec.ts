@@ -366,7 +366,7 @@ test('the settings of the attachments are saved, and apply to the next file', as
   const open = async () => {
     await page.getByRole('button', { name: 'Réglages (Ctrl+,)' }).click();
     const dialog = page.getByRole('dialog', { name: 'Réglages' });
-    await dialog.getByRole('tab', { name: 'Claude Code' }).click();
+    await dialog.getByRole('tab', { name: 'Harness' }).click();
     await expect(dialog.getByRole('heading', { name: 'Pièces jointes' })).toBeVisible();
     return dialog;
   };
@@ -707,7 +707,7 @@ test.describe('in English', () => {
     // The settings: a maximum of 1 MB, a warning over 1 MB, and the words of both in English.
     await page.getByRole('button', { name: 'Settings (Ctrl+,)' }).click();
     const dialog = page.getByRole('dialog', { name: 'Settings' });
-    await dialog.getByRole('tab', { name: 'Claude Code' }).click();
+    await dialog.getByRole('tab', { name: 'Harness' }).click();
     await expect(dialog.getByRole('heading', { name: 'Attachments' })).toBeVisible();
     await expect(dialog.getByRole('switch', { name: 'Attach the original file' })).toHaveAttribute('aria-checked', 'true');
     await expect(

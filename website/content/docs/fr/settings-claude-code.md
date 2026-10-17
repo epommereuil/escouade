@@ -1,10 +1,25 @@
-# Réglages : Claude Code
+# Réglages : Harness
 
-L’onglet « Claude Code » règle l’exécutable de Claude Code, le modèle, l’effort et le mode de permission des nouveaux agents, la vie des processus Claude, les pièces jointes, le remote control de tous les agents et le serveur qui laisse Claude piloter Escouade.
+L’onglet « Harness » (« Claude Code » jusqu’à la 1.7) liste les harness des agents, avec leur exécutable, leur version et leur état, et règle les nouveaux agents, la vie des processus, les pièces jointes, le remote control et le serveur qui laisse Claude piloter Escouade.
 
-## Exécutable
+## Chaque harness
 
-Le groupe « Exécutable » n’a qu’un champ.
+Un groupe par harness, sous son nom :
+
+| Ligne | Ce qu’elle dit |
+|---|---|
+| « Chemin de l’exécutable » | Le programme du harness (voir ci-dessous pour Claude Code). |
+| « Version » | La version trouvée, et si Escouade a été testé avec elle : une version plus ancienne est refusée, avec sa raison et la commande qui la met à jour ; une plus récente est utilisée, avec un avertissement. |
+| « État » | « Prêt », « Non connecté » (aucun compte connecté), « Version non testée », « Trop ancien » ou « Introuvable ». « Se connecter… » ouvre, dans un terminal intégré, la connexion du compte où partent les nouveaux agents ; l’onglet revient une fois la fenêtre fermée. |
+| « Installation » | Pour un harness introuvable : la commande qui l’installe (Claude Code : `irm https://claude.ai/install.ps1 \| iex` sous Windows, `curl -fsSL https://claude.ai/install.sh \| bash` sous macOS et Linux). |
+
+Un harness introuvable n’apparaît que dans cet onglet. Au premier lancement, si aucun n’est trouvé, l’écran d’accueil dit « Aucun harness trouvé » et donne la commande d’installation de chacun ; Escouade marche dès qu’un harness est trouvé.
+
+Dès que deux harness sont installés, le projet a son « Harness par défaut » (Réglages › Projets), le bouton « ▾ » à côté de « Nouvel agent » propose « Nouvel agent sur … » pour chacun, et la fenêtre d’un ticket a son champ « Harness » (celui du projet par défaut), que le pilote auto suit. Dès que des agents tournent sur deux harness, le nom du harness de chacun s’affiche à côté de lui : sur sa carte, dans la vue d’ensemble, dans son en-tête et sur la carte de son ticket. Les menus du composer (modèles, effort, modes, commandes /) sont ceux du harness de l’agent.
+
+## Exécutable de Claude Code
+
+Le groupe « Claude Code » commence par un champ.
 
 | Réglage | Effet | Par défaut |
 |---|---|---|
@@ -128,7 +143,7 @@ L’interrupteur est désactivé par défaut. Allumé, chaque agent de chaque pr
 
 Le réglage s’enregistre avec « Enregistrer », comme la plupart des autres. Éteint, il retire le remote control aux agents qui le tenaient de lui, sans toucher à ceux que tu as activés à la main ni à ceux que le réglage de leur projet couvre encore.
 
-Tant qu’il est allumé, l’interrupteur « Remote control pour les agents de ce projet » de chaque projet, dans [l’onglet « Projets »](settings-projects), se montre allumé et grisé : « Activé pour tous les projets dans Réglages › Claude Code ». Le choix propre de chaque projet est gardé, et revient quand celui-ci est éteint.
+Tant qu’il est allumé, l’interrupteur « Remote control pour les agents de ce projet » de chaque projet, dans [l’onglet « Projets »](settings-projects), se montre allumé et grisé : « Activé pour tous les projets dans Réglages › Harness ». Le choix propre de chaque projet est gardé, et revient quand celui-ci est éteint.
 
 Pour un agent en [vue Claude Code](claude-code-view), le changement vaut au prochain lancement de son interface. La page sur [le remote control](remote-control) donne le détail : d’où il vient, comment mettre un agent à part et ce qui se passe au redémarrage.
 

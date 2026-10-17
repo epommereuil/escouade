@@ -65,7 +65,8 @@ export default {
     title: 'Agent prêt',
     /** `{cwd}`: the folder the agent works in, in code style. */
     hint: "Décris la tâche à confier à Claude. L'agent travaille dans {cwd}.",
-    claudeMissing: 'Claude Code est introuvable sur ce poste : installe-le ou indique son chemin dans les réglages (⚙).',
+    /** `{engine}`: the agent's harness. */
+    engineMissing: '{engine} est introuvable sur ce poste : installe-le ou indique son chemin dans Réglages › Harness (⚙).',
   },
   /** The button above the messages drawn, and what a screen reader hears once more are drawn. */
   older: {

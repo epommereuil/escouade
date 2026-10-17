@@ -24,6 +24,7 @@ const view = (range: string): StatsView => ({
     { key: 'gone', tokens: 14_500, cost: 0.4 },
   ],
   byModel: [{ key: 'claude-opus-5-5', tokens: 74_500, cost: 2 }],
+  byEngine: [{ key: 'claude', tokens: 74_500, cost: 2 }],
   byAgent: [],
   byTicket: [],
   byAccount: [],

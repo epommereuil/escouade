@@ -1,10 +1,25 @@
-# Settings: Claude Code
+# Settings: Harness
 
-The “Claude Code” tab sets the Claude Code executable, the model, effort, and permission mode of new agents, how Claude processes live, attachments, remote control for all agents, and the server that lets Claude drive Escouade.
+The “Harness” tab (“Claude Code” up to 1.7) lists the harnesses that run the agents, with their executable, version, and state, and sets new agents, how processes live, attachments, remote control, and the server that lets Claude drive Escouade.
 
-## Executable
+## Each harness
 
-The “Executable” group has a single field.
+One group per harness, under its name:
+
+| Line | What it says |
+|---|---|
+| “Executable path” | The harness’s program (see below for Claude Code). |
+| “Version” | The version found, and whether Escouade was tested with it: an older one is refused, with its reason and the command that updates it; a newer one is used, with a warning. |
+| “State” | “Ready”, “Not signed in” (no account signed in), “Untested version”, “Too old”, or “Not found”. “Sign in…” opens, in a built-in terminal, the sign-in of the account new agents go to; the tab comes back once the window is closed. |
+| “Installation” | For a harness that isn’t found: the command that installs it (Claude Code: `irm https://claude.ai/install.ps1 \| iex` on Windows, `curl -fsSL https://claude.ai/install.sh \| bash` on macOS and Linux). |
+
+A harness that isn’t found shows only in this tab. At the first start, if none is found, the welcome screen says “No harness found” and gives the command that installs each one; Escouade works as soon as one harness is found.
+
+As soon as two harnesses are installed, the project has its “Default harness” (Settings › Projects), the “▾” button beside “New agent” offers “New agent on …” for each one, and a ticket’s window has its “Harness” field (the project’s by default), which the autopilot follows. As soon as agents run on two harnesses, each one’s harness is named beside it: on its card, in the overview, in its header, and on its ticket’s card. The composer’s menus (models, effort, modes, / commands) are those of the agent’s harness.
+
+## Claude Code’s executable
+
+The “Claude Code” group starts with one field.
 
 | Setting | Effect | Default |
 |---|---|---|
@@ -128,7 +143,7 @@ The switch is off by default. When on, every agent of every project, existing or
 
 The setting is saved with “Save”, like most of the others. When off, it takes remote control away from the agents that had it from this setting, without touching those you turned on by hand or those their project’s setting still covers.
 
-While it is on, the “Remote control for this project’s agents” switch of each project, in the [“Projects” tab](settings-projects), shows on and grayed out: “On for all projects in Settings › Claude Code”. Each project’s own choice is kept, and comes back when this one is off.
+While it is on, the “Remote control for this project’s agents” switch of each project, in the [“Projects” tab](settings-projects), shows on and grayed out: “On for all projects in Settings › Harness”. Each project’s own choice is kept, and comes back when this one is off.
 
 For an agent in the [Claude Code view](claude-code-view), the change takes effect the next time its interface starts. The page on [remote control](remote-control) gives the detail: where it comes from, how to set an agent apart, and what happens at restart.
 

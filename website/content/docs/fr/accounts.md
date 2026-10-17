@@ -159,7 +159,7 @@ Cet onglet montre le projet fermé dans la ligne « Réservé aux projets » d
 
 Quand Claude refuse un tour parce que le quota du compte est épuisé, l’agent s’arrête. La carte d’erreur du tour, la carte de l’agent dans la barre latérale (« Reprise à 15:00 ») et le Kanban donnent l’heure de la reprise automatique.
 
-Par défaut, Escouade envoie « continue » à l’agent une trentaine de secondes après la remise à zéro du quota, quand elle en connaît l’heure. C’est le réglage « Reprise automatique après la limite d’usage » (Réglages › Claude Code, groupe « Processus »). Le bouton « Annuler la reprise » de la carte l’annule pour cet agent.
+Par défaut, Escouade envoie « continue » à l’agent une trentaine de secondes après la remise à zéro du quota, quand elle en connaît l’heure. C’est le réglage « Reprise automatique après la limite d’usage » (Réglages › Harness, groupe « Processus »). Le bouton « Annuler la reprise » de la carte l’annule pour cet agent.
 
 ### Reprendre sur un autre compte
 
@@ -182,7 +182,7 @@ Si le tour qui suit échoue sur le nouveau compte, la carte écrit « La repris
 
 ### Tout seul, pour les agents de ticket
 
-Le réglage « Reprendre sur un autre compte un agent de ticket arrêté par la limite » (Réglages › Claude Code, groupe « Processus », visible avec plusieurs comptes) fait la même chose sans toi. Il est désactivé par défaut ; sa description dit : « Sinon il attend la remise à zéro de son compte ».
+Le réglage « Reprendre sur un autre compte un agent de ticket arrêté par la limite » (Réglages › Harness, groupe « Processus », visible avec plusieurs comptes) fait la même chose sans toi. Il est désactivé par défaut ; sa description dit : « Sinon il attend la remise à zéro de son compte ».
 
 Activé, l’agent d’un ticket arrêté par la limite passe de lui-même sur un autre compte quand l’un convient : le compte préféré du projet, sinon le premier de la liste. Il faut que ce compte soit connecté, sous le seuil, qu’aucune pause après une limite d’usage ne le retienne, qu’aucun agent n’y attende sa propre remise à zéro, et qu’il soit du même côté de WSL que l’agent. S’il n’y en a pas, ou si le déplacement échoue (la conversation écrit alors « Reprise sur un autre compte impossible : … »), l’agent attend la remise à zéro de son compte, comme avant.
 

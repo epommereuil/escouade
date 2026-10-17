@@ -3,7 +3,7 @@
 
 import { serves } from './accounts';
 import { t } from './i18n';
-import type { Account, BoardSettings, CommitMode, Project, RunCommand, SetupInfo, WorktreeStep } from './types';
+import type { Account, BoardSettings, CommitMode, EngineId, Project, RunCommand, SetupInfo, WorktreeStep } from './types';
 import { DEFAULT_AGENT_PREFIX, DEFAULT_TICKET_PREFIX } from './worktrees';
 
 export type { SetupInfo };
@@ -36,6 +36,8 @@ export interface WizardConfig {
   commitMode: CommitMode;
   account: string;
   remoteControl: boolean;
+  /** Its default harness, copied with its agents' settings. */
+  engine: EngineId | null;
 }
 
 /** A Kanban as a new project has it (`BoardSettings::default`). */
@@ -71,6 +73,7 @@ export function blankConfig(): WizardConfig {
     commitMode: 'agent',
     account: '',
     remoteControl: false,
+    engine: null,
   };
 }
 
@@ -105,6 +108,7 @@ export function configOf(p: Project): WizardConfig {
     commitMode: p.commitMode,
     account: p.account,
     remoteControl: p.remoteControl,
+    engine: p.engine ?? null,
   });
 }
 
@@ -131,6 +135,7 @@ export function withConfig(p: Project, c: WizardConfig): Project {
     commitMode: c.commitMode,
     account: c.account,
     remoteControl: c.remoteControl,
+    engine: c.engine,
     board: { ...p.board, ...c.board, testCommand, testsFirst: c.board.testsFirst && !!testCommand },
   };
 }
@@ -370,6 +375,7 @@ export function applyCopy(base: WizardConfig, src: Project, checked: Set<string>
     c.board.model = b.model;
     c.board.effort = b.effort;
     c.board.mode = b.mode;
+    c.engine = src.engine ?? null;
   }
   if (on('commitMode')) c.commitMode = src.commitMode;
   if (on('account')) c.account = src.account;

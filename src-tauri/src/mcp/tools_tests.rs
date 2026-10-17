@@ -373,6 +373,7 @@ async fn the_agents_are_listed_with_what_waits_their_ticket_model_account_and_co
             "waiting": false,
             "requests": 0,
             "ticket": "DEM-1",
+            "engine": "claude",
             "model": "sonnet",
             "account": "Principal",
             "cost": 0.0,
@@ -976,6 +977,7 @@ async fn an_agents_summary_gives_its_last_message_cut_cleanly_and_the_files_it_e
             "id": a.id,
             "name": a.name,
             "status": "done",
+            "engine": "claude",
             "ticket": null,
             "lastMessage": "Fichier modifié.",
             "touchedFiles": ["src/app.ts"],
@@ -1023,6 +1025,7 @@ async fn an_agents_summary_gives_its_last_message_cut_cleanly_and_the_files_it_e
         summary.as_object().unwrap().keys().collect::<Vec<_>>(),
         [
             "backgroundTasksRunning",
+            "engine",
             "id",
             "interfaceRemote",
             "lastMessage",

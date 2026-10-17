@@ -6,6 +6,7 @@
   import { IS_MAC } from '../../lib/platform';
   import { app } from '../../lib/state.svelte';
   import { disposeTerminal, mountTerminal, openAccountLogin } from '../../lib/terminals';
+  import type { SettingsTab } from '../../lib/settings.svelte';
   import type { Account, ShareMode } from '../../lib/types';
   import Modal from './Modal.svelte';
 
@@ -13,7 +14,7 @@
   // « Se connecter… » (`accountId`): straight to the sign-in. The sign-in runs the account's own `claude` in a terminal
   // here; Escouade looks for it every 2 s, then closes the terminal and reads the account's quota. Closed before, the
   // account stays, not signed in.
-  let { accountId }: { accountId?: string } = $props();
+  let { accountId, back }: { accountId?: string; back?: SettingsTab } = $props();
 
   /** How often the sign-in is looked for. */
   const POLL_MS = 2000;
@@ -178,7 +179,7 @@
 
   function close() {
     stop();
-    backToAccounts();
+    backToAccounts(back);
   }
 
   onDestroy(stop);

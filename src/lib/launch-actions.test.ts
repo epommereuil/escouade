@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { agent, fakeBackend, project, SETTINGS, ticket } from '../test/ipc';
+import { agent, CLAUDE_ENGINE, fakeBackend, project, SETTINGS, ticket } from '../test/ipc';
 import { setLang } from './i18n';
 import { app } from './state.svelte';
 import type { InitialState, RunCommand, TermInfo, UiEvent } from './types';
@@ -64,6 +64,7 @@ async function boot(handlers: Record<string, (args: any) => unknown> = {}) {
     claudeFound: true,
     version: '0.1.0',
     models: [],
+    engines: [CLAUDE_ENGINE],
   };
   let n = 0;
   const backend = fakeBackend({

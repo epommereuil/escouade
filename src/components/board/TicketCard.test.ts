@@ -16,7 +16,7 @@ import { menu } from '../../lib/menu.svelte';
 import { estimateHint } from '../../lib/spend';
 import { app } from '../../lib/state.svelte';
 import type { LaunchState, Project, TestRecipe, Ticket } from '../../lib/types';
-import { agent, board, fakeBackend, project, resetApp, ticket } from '../../test/ipc';
+import { agent, BARE_ENGINE, board, CLAUDE_ENGINE, fakeBackend, project, resetApp, ticket } from '../../test/ipc';
 import TicketCard from './TicketCard.svelte';
 
 const doing = (over: Partial<Ticket> = {}) =>
@@ -1055,5 +1055,15 @@ describe('TicketCard in English', () => {
   it('says how many items of the progress are hidden, with the plural of English', () => {
     show(doing({ progress: ['One', 'Two', 'Three', 'Four'] }));
     expect(screen.getByText('+1')).toHaveAttribute('data-tip', '1 more item');
+  });
+});
+
+describe('TicketCard: the brand of its agent’s harness (ESC-29)', () => {
+  it('shows beside its agent once agents run on two harnesses', () => {
+    resetApp({ agents: [agent({ id: 'a1', engine: 'codex' }), agent({ id: 'a2' })] });
+    app.engines = [CLAUDE_ENGINE, BARE_ENGINE];
+    fakeBackend();
+    show(doing());
+    expect(screen.getByRole('img', { name: 'Harness : Harness nu' })).toBeInTheDocument();
   });
 });

@@ -5,7 +5,7 @@ export default {
   // The tabs of the window: their name and what they set (under the title, in the header).
   tabs: {
     app: { label: 'Application', desc: 'Zoom, taille du texte et langues' },
-    claude: { label: 'Claude Code', desc: 'Exécutable, modèle et permissions par défaut' },
+    claude: { label: 'Harness', desc: 'Exécutables, versions, connexion et réglages des agents' },
     accounts: { label: 'Comptes Claude', desc: 'Les comptes sur lesquels partent les agents, enregistrés à chaque changement' },
     notifications: { label: 'Notifications', desc: 'Alertes visuelles et sonores' },
     projects: { label: 'Projets', desc: 'Réglages propres à chaque projet' },
@@ -91,8 +91,22 @@ export default {
     langName: { fr: 'Français', en: 'Anglais' },
   },
 
-  // The « Claude Code » tab.
+  // The « Harness » tab (Claude Code, Codex, Copilot CLI, Cursor CLI, OpenCode: « Harness » in French too).
   claude: {
+    /** Each harness's group, under its name: its state, and what to do when it is not ready. */
+    state: 'État',
+    states: {
+      absent: 'Introuvable',
+      tooOld: 'Trop ancien',
+      notConnected: 'Non connecté',
+      untested: 'Version non testée',
+      ready: 'Prêt',
+    },
+    signIn: 'Se connecter…',
+    /** `{account}`: the Claude account new agents go to. */
+    signInDesc: 'Ouvre un terminal intégré pour te connecter, sur le compte où partent les nouveaux agents ({account}).',
+    install: 'Installation',
+    installDesc: 'Introuvable sur ce poste : installe-le avec cette commande, puis indique son chemin ici s’il n’est pas dans le PATH.',
     executable: 'Exécutable',
     path: "Chemin de l'exécutable",
     pathHint: 'vide = détection automatique',
@@ -105,6 +119,11 @@ export default {
     notLocated:
       'Introuvable. Indique le chemin de claude.exe, ou de Claude Code installé dans WSL : ~/.local/bin/claude, /home/<utilisateur>/…, ou \\\\wsl.localhost\\<distribution>\\….',
     notLocatedHere: 'Introuvable. Indique le chemin de claude.',
+    /** The version found of the saved path, and where it stands against the versions Escouade was tested with. */
+    version: 'Version',
+    versionTested: 'Testée avec Escouade (de la {oldest} à la {newest}).',
+    versionUnknown: 'Version inconnue : claude ne l’a pas donnée.',
+    versionNotConnected: 'Aucun compte connecté : connecte-toi dans l’onglet Comptes Claude.',
     newAgents: 'Nouveaux agents',
     defaultModel: 'Modèle par défaut',
     defaultEffort: 'Effort par défaut',
@@ -203,8 +222,9 @@ export default {
     credits: 'Crédits et licences',
     creditsDesc: 'Piper, eSpeak NG, ONNX Runtime, whisper.cpp, et la licence et le crédit de chaque voix',
     creditsOpen: 'Ouvrir',
-    claudeFound: 'Claude Code détecté',
-    claudeMissing: 'Claude Code introuvable',
+    /** `{list}`: the harnesses found, by name. */
+    enginesFound: 'Harness détectés : {list}',
+    noEngine: 'Aucun harness trouvé',
     checking: 'Recherche…',
     check: 'Rechercher une mise à jour',
     noUpdate: 'Aucune mise à jour disponible.',
@@ -221,6 +241,8 @@ export default {
   project: {
     identity: 'Identité',
     nameLabel: 'Nom du projet',
+    engine: 'Harness par défaut',
+    engineDesc: 'Celui des nouveaux agents et des tickets du projet, sauf s’ils en choisissent un autre.',
     colorN: 'Couleur {n}',
     /** The group of the remote control of the project’s agents, after its identity. */
     remoteTitle: 'Remote control',
@@ -228,7 +250,7 @@ export default {
     remoteDesc:
       'Chaque agent de ce projet, existant ou nouveau (agents des tickets compris), est accessible depuis claude.ai et l’app Claude. Escouade lance tout de suite le process claude de chacun, qui reste lancé. La session apparaît sur claude.ai sous le nom « projet · agent » (pour un agent de ticket, son nom vient du ticket). En vue Claude Code, une interface déjà ouverte ne le prend qu’à son prochain lancement. Pour mettre un agent à part : clic droit, « Désactiver le remote control ».',
     /** Under the switch, shown on and disabled: the setting for all agents covers the project already. */
-    remoteGlobal: 'Activé pour tous les projets dans Réglages › Claude Code',
+    remoteGlobal: 'Activé pour tous les projets dans Réglages › Harness',
     worktreePerAgent: 'Un worktree par agent',
     worktreePerAgentDesc: 'Isole les modifications de chaque nouvel agent dans sa propre branche.',
     worktreeDir: 'Dossier des worktrees',

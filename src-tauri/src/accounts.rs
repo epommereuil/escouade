@@ -1282,12 +1282,74 @@ impl<R: Runtime> Core<R> {
         }
     }
 
+    /// Every harness with what is found of it here, for the account new agents would go to: its
+    /// program, its version, whether it is signed in, its state (`engine::registry`).
+    pub async fn engines(&self) -> Vec<engine::registry::EngineInfo> {
+        use engine::registry;
+        let settings = self.settings.read().clone();
+        let current = self.usage.lock().current.clone();
+        let account = get(&settings, &current);
+        let mut out = Vec::new();
+        for harness in registry::all() {
+            // The accounts are Claude Code's until each harness has its own (lot 5).
+            let found = {
+                let (account, settings) = (account.clone(), settings.clone());
+                tokio::task::spawn_blocking(move || program(&account, &settings))
+                    .await
+                    .ok()
+                    .flatten()
+            };
+            let version = match &found {
+                Some(p) => registry::version(harness, p).await,
+                None => None,
+            };
+            let connected = found.is_some()
+                && self
+                    .claude_account_status(&account.id)
+                    .await
+                    .is_ok_and(|s| s.connected);
+            let (state, note) = registry::state_of(
+                crate::i18n::ui(),
+                harness,
+                found.is_some(),
+                version.as_deref(),
+                connected,
+            );
+            out.push(registry::EngineInfo {
+                id: harness.id(),
+                name: harness.name(),
+                located: engine::Located::of(found),
+                version,
+                tested: harness.tested(),
+                state,
+                note,
+                caps: harness.caps(),
+            });
+        }
+        out
+    }
+
     /// Whether Claude Code is found for the account new agents would go to (the current one): its
     /// own `claude`, else the settings'.
     pub fn claude_found(&self) -> bool {
         let settings = self.settings.read().clone();
         let current = self.usage.lock().current.clone();
         program(&get(&settings, &current), &settings).is_some()
+    }
+
+    /// The harnesses whose program is found, in the registry's order: those the interface offers
+    /// (a harness that is not found shows nowhere but in Réglages › Harness).
+    pub fn engines_found(&self) -> Vec<crate::model::EngineId> {
+        let settings = self.settings.read().clone();
+        engine::registry::all()
+            .into_iter()
+            .filter(|h| match h.id() {
+                // The accounts are Claude Code's until each harness has its own (lot 5).
+                crate::model::EngineId::Claude => self.claude_found(),
+                _ => h.locate("", &settings.wsl_distro).is_some(),
+            })
+            .map(|h| h.id())
+            .collect()
     }
 
     /// Whether the account is signed in, and with which email.

@@ -6,8 +6,8 @@ import { setLang } from '../../lib/i18n';
 import { settingsForm } from '../../lib/settings.svelte';
 import { app } from '../../lib/state.svelte';
 import { PROJECT_COLORS } from '../../lib/theme';
-import type { RunCommand } from '../../lib/types';
-import { board, fakeBackend, gitInfo, project, resetApp } from '../../test/ipc';
+import type { EngineInfo, RunCommand } from '../../lib/types';
+import { BARE_ENGINE, board, CLAUDE_ENGINE, fakeBackend, gitInfo, project, resetApp } from '../../test/ipc';
 import SettingsModal from './SettingsModal.svelte';
 
 vi.mock('../../lib/terminals', () => ({ launchLog: () => ({}), disposeLog() {} }));
@@ -69,7 +69,7 @@ describe('SettingsModal', () => {
         .map((t) => t.textContent?.trim()),
     ).toEqual([
       'AaApplication',
-      '✳Claude Code',
+      '✳Harness',
       '◎Comptes Claude',
       '♪Notifications',
       '◖Voix',
@@ -80,8 +80,8 @@ describe('SettingsModal', () => {
       '⇄Réseau',
       'ⓘÀ propos',
     ]);
-    expect(tab('Claude Code')).toHaveAttribute('aria-selected', 'true');
-    expect(within(dialog).getByText('Exécutable, modèle et permissions par défaut')).toBeInTheDocument();
+    expect(tab('Harness')).toHaveAttribute('aria-selected', 'true');
+    expect(within(dialog).getByText('Exécutables, versions, connexion et réglages des agents')).toBeInTheDocument();
     expect(within(panel()).getByRole('textbox', { name: /Chemin de l'exécutable/ })).toBeInTheDocument();
     expect(within(dialog).getByText('Escouade 1.3.1')).toBeInTheDocument();
 
@@ -112,7 +112,7 @@ describe('SettingsModal', () => {
     // Each tab with a change is marked until it is saved.
     expect(tab('Réseau')).toHaveClass('changed');
     expect(tab('Notifications')).toHaveClass('changed');
-    expect(tab('Claude Code')).not.toHaveClass('changed');
+    expect(tab('Harness')).not.toHaveClass('changed');
     expect(backend.called('save_settings')).toHaveLength(0);
     await save();
     expect(backend.called('save_settings')).toHaveLength(1);
@@ -205,10 +205,10 @@ describe('SettingsModal', () => {
     expect(help).toHaveTextContent(/s’ils la tiennent, Escouade montre leur avancée dans le bandeau « Plan »/);
     expect(help).toHaveTextContent(/le modèle n’est pas obligé de s’en servir/);
     expect(help).not.toHaveTextContent(/Escouade peut alors montrer/);
-    expect(tab('Claude Code')).not.toHaveClass('changed');
+    expect(tab('Harness')).not.toHaveClass('changed');
     await userEvent.click(todo);
     expect(todo).toHaveAttribute('aria-checked', 'false');
-    expect(tab('Claude Code')).toHaveClass('changed');
+    expect(tab('Harness')).toHaveClass('changed');
     await save();
     expect(backend.called('save_settings')[0].args.settings).toMatchObject({ todoTools: false });
     expect(app.settings.todoTools).toBe(false);
@@ -240,14 +240,14 @@ describe('SettingsModal', () => {
       const backend = backendSaving();
       render(SettingsModal);
       const attachments = group('Pièces jointes');
-      expect(tab('Claude Code')).not.toHaveClass('changed');
+      expect(tab('Harness')).not.toHaveClass('changed');
       await userEvent.clear(maxField());
       await userEvent.type(maxField(), '500');
       await userEvent.clear(warnField());
       await userEvent.type(keepField(), '30');
       await userEvent.click(attachments.getByRole('switch', { name: 'Joindre le fichier d’origine' }));
       await userEvent.click(attachments.getByRole('button', { name: 'Refusé' }));
-      expect(tab('Claude Code')).toHaveClass('changed');
+      expect(tab('Harness')).toHaveClass('changed');
       await save();
       expect(backend.called('save_settings')[0].args.settings).toMatchObject({
         attachMaxMb: 500,
@@ -280,7 +280,7 @@ describe('SettingsModal', () => {
     await userEvent.click(todo);
     await userEvent.click(todo);
     expect(todo).toHaveAttribute('aria-checked', 'true');
-    expect(tab('Claude Code')).not.toHaveClass('changed');
+    expect(tab('Harness')).not.toHaveClass('changed');
     await save();
     expect(backend.called('save_settings')).toHaveLength(0);
   });
@@ -299,11 +299,11 @@ describe('SettingsModal', () => {
       .getAllByRole('heading')
       .map((h) => h.textContent);
     expect(headings.slice(-3)).toEqual(['Remote control', 'Escouade dans Claude', 'Activité MCP']);
-    expect(tab('Claude Code')).not.toHaveClass('changed');
+    expect(tab('Harness')).not.toHaveClass('changed');
     await userEvent.click(all);
     expect(all).toHaveAttribute('aria-checked', 'true');
     // A setting of the draft like the others: marked, saved by « Enregistrer ».
-    expect(tab('Claude Code')).toHaveClass('changed');
+    expect(tab('Harness')).toHaveClass('changed');
     expect(backend.called('save_settings')).toHaveLength(0);
     await save();
     expect(backend.called('save_settings')[0].args.settings).toMatchObject({ remoteControlAll: true });
@@ -316,7 +316,7 @@ describe('SettingsModal', () => {
     const all = screen.getByRole('switch', { name: 'Remote control pour tous les agents' });
     await userEvent.click(all);
     await userEvent.click(all);
-    expect(tab('Claude Code')).not.toHaveClass('changed');
+    expect(tab('Harness')).not.toHaveClass('changed');
     await save();
     expect(backend.called('save_settings')).toHaveLength(0);
   });
@@ -333,7 +333,7 @@ describe('SettingsModal', () => {
     expect(move).toHaveAttribute('aria-checked', 'false');
     expect(screen.getByText('Sinon il attend la remise à zéro de son compte')).toBeInTheDocument();
     await userEvent.click(move);
-    expect(tab('Claude Code')).toHaveClass('changed');
+    expect(tab('Harness')).toHaveClass('changed');
     await save();
     expect(backend.called('save_settings')[0].args.settings).toMatchObject({ switchOnLimit: true });
   });
@@ -352,8 +352,8 @@ describe('SettingsModal', () => {
     await userEvent.type(screen.getByRole('textbox', { name: /Git Bash/ }), 'C:\\Git\\bin\\bash.exe');
     await userEvent.click(screen.getByRole('button', { name: 'Annuler' }));
     expect(app.modal).toBeNull();
-    // Nothing saved; the « Claude Code » tab it opened on only read what the MCP server is doing.
-    expect(backend.calls.filter((c) => !['mcp_status', 'mcp_declare_status', 'mcp_activity'].includes(c.cmd))).toEqual([]);
+    // Nothing saved; the « Harness » tab it opened on only read the harnesses and what the MCP server is doing.
+    expect(backend.calls.filter((c) => !['engines', 'mcp_status', 'mcp_declare_status', 'mcp_activity'].includes(c.cmd))).toEqual([]);
     expect(app.settings.bashPath).toBe('');
   });
 
@@ -1129,7 +1129,7 @@ describe('SettingsModal in English', () => {
     setLang('fr');
     render(SettingsModal);
     expect(screen.getByRole('dialog', { name: 'Réglages' })).toBeInTheDocument();
-    expect(screen.getByText('Exécutable, modèle et permissions par défaut')).toBeInTheDocument();
+    expect(screen.getByText('Exécutables, versions, connexion et réglages des agents')).toBeInTheDocument();
     setLang('en');
     flushSync();
     const dialog = screen.getByRole('dialog', { name: 'Settings' });
@@ -1139,7 +1139,7 @@ describe('SettingsModal in English', () => {
         .map((x) => x.textContent?.trim()),
     ).toEqual([
       'AaApplication',
-      '✳Claude Code',
+      '✳Harness',
       '◎Claude accounts',
       '♪Notifications',
       '◖Voice',
@@ -1150,7 +1150,7 @@ describe('SettingsModal in English', () => {
       '⇄Network',
       'ⓘAbout',
     ]);
-    expect(within(dialog).getByText('Executable, model, and default permissions')).toBeInTheDocument();
+    expect(within(dialog).getByText('Executables, versions, sign-in, and agent defaults')).toBeInTheDocument();
     expect(within(dialog).getByText('Escouade 1.3.1')).toBeInTheDocument();
     expect(within(dialog).getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
     expect(within(dialog).getByRole('button', { name: 'Save' })).toBeInTheDocument();
@@ -1171,8 +1171,8 @@ describe('SettingsModal in English', () => {
     expect(screen.getByRole('switch', { name: 'Auto-resume after the usage limit' })).toBeInTheDocument();
     expect(screen.getByRole('spinbutton', { name: 'Stop idle Claude processes after (minutes)' })).toBeInTheDocument();
     await userEvent.type(screen.getByRole('spinbutton', { name: /Stop idle/ }), '0');
-    expect(tab('Claude Code')).toHaveClass('changed');
-    expect(tab('Claude Code')).toHaveAccessibleDescription('Modified, not saved yet');
+    expect(tab('Harness')).toHaveClass('changed');
+    expect(tab('Harness')).toHaveAccessibleDescription('Modified, not saved yet');
   });
 
   it('names the task list setting in English', async () => {
@@ -1380,5 +1380,154 @@ describe('SettingsModal in English', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(backend.called('save_settings')).toHaveLength(1);
     expect(app.toasts.at(-1)?.text).toBe('Settings saved');
+  });
+});
+
+describe('SettingsModal, the version of Claude Code', () => {
+  beforeEach(() => resetApp());
+  const located = { path: 'C:\Users\me\.local\bin\claude.exe', wsl: null, nat: false, canWsl: true };
+  const info = (over: Partial<EngineInfo>): EngineInfo => ({
+    ...CLAUDE_ENGINE,
+    located,
+    version: '2.1.301',
+    state: 'ready',
+    note: null,
+    ...over,
+  });
+
+  it('says that the version found was tested with Escouade, or what keeps it from running', async () => {
+    let answer = info({});
+    fakeBackend({ claude_locate: () => located, engines: () => [answer] });
+    render(SettingsModal, { tab: 'claude' });
+    expect(await screen.findByText('Testée avec Escouade (de la 2.1.283 à la 2.1.301).')).toBeInTheDocument();
+    expect(screen.getByText('2.1.301')).toHaveAttribute('data-state', 'ready');
+    cleanup();
+    // Older than the tested ones: refused, its reason as the backend writes it.
+    const refusal =
+      'Claude Code 2.0.14 est trop ancien pour Escouade, qui demande au moins la version 2.1.283 : son flux JSON n’a été vérifié qu’à partir de celle-ci (docs/PROTOCOL.md). Mets-le à jour (claude update).';
+    answer = info({ version: '2.0.14', state: 'tooOld', note: refusal });
+    fakeBackend({ claude_locate: () => located, engines: () => [answer] });
+    render(SettingsModal, { tab: 'claude' });
+    expect(await screen.findByText(refusal)).toBeInTheDocument();
+    expect(screen.getByText('2.0.14')).toHaveClass('bad');
+    expect(screen.getByText('2.0.14')).toHaveAccessibleDescription(refusal);
+    cleanup();
+    answer = info({ state: 'notConnected' });
+    fakeBackend({ claude_locate: () => located, engines: () => [answer] });
+    render(SettingsModal, { tab: 'claude' });
+    expect(
+      await screen.findByText(
+        'Testée avec Escouade (de la 2.1.283 à la 2.1.301). Aucun compte connecté : connecte-toi dans l’onglet Comptes Claude.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('shows no version while the path typed is not the saved one, nor for a claude not found', async () => {
+    const backend = fakeBackend({ claude_locate: () => located, engines: () => [info({})] });
+    render(SettingsModal, { tab: 'claude' });
+    expect(await screen.findByText('2.1.301')).toBeInTheDocument();
+    await userEvent.type(screen.getByRole('textbox', { name: "Chemin de l'exécutable" }), 'C:\autre\claude.exe');
+    await waitFor(() => expect(screen.queryByText('2.1.301')).toBeNull());
+    expect(backend.called('engines').length).toBeGreaterThan(0);
+  });
+
+  it('says it in English too', async () => {
+    setLang('en');
+    fakeBackend({ claude_locate: () => located, engines: () => [info({ state: 'notConnected' })] });
+    render(SettingsModal, { tab: 'claude' });
+    expect(
+      await screen.findByText(
+        'Tested with Escouade (from 2.1.283 to 2.1.301). No account signed in: sign in from the Claude accounts tab.',
+      ),
+    ).toBeInTheDocument();
+    cleanup();
+    fakeBackend({ claude_locate: () => located, engines: () => [info({})] });
+    render(SettingsModal, { tab: 'claude' });
+    expect(await screen.findByText('Tested with Escouade (from 2.1.283 to 2.1.301).')).toBeInTheDocument();
+  });
+
+  it('hides the settings of what no harness does', () => {
+    const labels = [
+      'Ouvrir les nouveaux agents dans l’interface de Claude Code',
+      'Les agents tiennent une liste de tâches',
+      'Remote control pour tous les agents',
+    ];
+    fakeBackend({ claude_locate: () => located });
+    render(SettingsModal, { tab: 'claude' });
+    for (const name of labels) expect(screen.getByRole('switch', { name })).toBeInTheDocument();
+    cleanup();
+    app.engines = [BARE_ENGINE];
+    fakeBackend({ claude_locate: () => located });
+    render(SettingsModal, { tab: 'claude' });
+    for (const name of labels) expect(screen.queryByRole('switch', { name })).toBeNull();
+  });
+});
+
+describe('SettingsModal, the « Harness » tab (ESC-29)', () => {
+  beforeEach(() => {
+    resetApp();
+    app.engines = [CLAUDE_ENGINE, BARE_ENGINE];
+  });
+  const located = { path: 'C:\Users\me\.local\bin\claude.exe', wsl: null, nat: false, canWsl: true };
+  const claude = (over: Partial<EngineInfo> = {}): EngineInfo => ({
+    ...CLAUDE_ENGINE,
+    located,
+    version: '2.1.301',
+    state: 'notConnected',
+    note: null,
+    ...over,
+  });
+  const bare = (over: Partial<EngineInfo> = {}): EngineInfo => ({
+    ...BARE_ENGINE,
+    located: { path: 'C:\bin\codex.exe', wsl: null, nat: false, canWsl: true },
+    version: '0.163.0',
+    state: 'ready',
+    note: null,
+    ...over,
+  });
+
+  it('lists each harness with its executable, its version, its state and « Se connecter… »', async () => {
+    fakeBackend({ claude_locate: () => located, engines: () => [claude(), bare()] });
+    render(SettingsModal, { tab: 'claude' });
+    const own = await screen.findByRole('region', { name: 'Claude Code' });
+    expect(within(own).getByRole('textbox', { name: "Chemin de l'exécutable" })).toBeInTheDocument();
+    expect(await within(own).findByText('2.1.301')).toHaveAttribute('data-state', 'notConnected');
+    expect(within(own).getByText('Non connecté')).toHaveAttribute('data-engine-state', 'notConnected');
+    expect(
+      within(own).getByText('Ouvre un terminal intégré pour te connecter, sur le compte où partent les nouveaux agents (Principal).'),
+    ).toBeInTheDocument();
+    const other = screen.getByRole('region', { name: 'Harness nu' });
+    expect(within(other).getByText('Trouvé : C:\bin\codex.exe')).toBeInTheDocument();
+    expect(within(other).getByText('0.163.0')).toBeInTheDocument();
+    expect(within(other).getByText('Prêt')).toHaveAttribute('data-engine-state', 'ready');
+    // The sign-in of the account new agents go to, in a built-in terminal, back to this tab once done.
+    await userEvent.click(within(own).getByRole('button', { name: 'Se connecter…' }));
+    expect(app.modal).toEqual({ kind: 'account', accountId: 'principal', back: 'claude' });
+  });
+
+  it('gives the command that installs a harness that is not found', async () => {
+    fakeBackend({
+      claude_locate: () => located,
+      engines: () => [
+        claude({ state: 'ready' }),
+        bare({ located: { path: null, wsl: null, nat: false, canWsl: true }, version: null, state: 'absent' }),
+      ],
+    });
+    render(SettingsModal, { tab: 'claude' });
+    const other = await screen.findByRole('region', { name: 'Harness nu' });
+    expect(await within(other).findByText('Introuvable')).toHaveAttribute('data-engine-state', 'absent');
+    expect(within(other).getByText('npm install -g @openai/codex')).toBeInTheDocument();
+    expect(within(other).queryByRole('button', { name: 'Se connecter…' })).toBeNull();
+    expect(await within(screen.getByRole('region', { name: 'Claude Code' })).findByText('Prêt')).toBeInTheDocument();
+  });
+
+  it('says it in English too', async () => {
+    setLang('en');
+    fakeBackend({ claude_locate: () => located, engines: () => [claude(), bare()] });
+    render(SettingsModal, { tab: 'claude' });
+    const own = await screen.findByRole('region', { name: 'Claude Code' });
+    expect(await within(own).findByText('Not signed in')).toBeInTheDocument();
+    expect(within(own).getByRole('button', { name: 'Sign in…' })).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'Harness nu' })).getByText('Ready')).toBeInTheDocument();
   });
 });

@@ -489,9 +489,9 @@ Elle regroupe ce qui était « Extraction d'une interface moteur » et « Reste 
 
 Lots, dans l'ordre :
 1. **Interface « moteur »** : extraction de Claude Code, sans changement de comportement (voir « Un moteur par agent »).
-2. **Données** : moteur de l'agent, du ticket et du projet ; colonne `engine` des stats.
-3. **Registre des moteurs** : détection, versions testées, capacités déclarées (`EngineCaps`), que l'interface lit au lieu de tester « claude ».
-4. **Interface** : Réglages › Moteurs, choix du moteur, marque sur les cartes, menus du composer fournis par le moteur (voir « Choisir le moteur », « Composer »).
+2. **Données** : moteur de l'agent, du ticket et du projet ; colonne `engine` des stats. Fait (ESC-27), voir docs/ENGINES.md, « Les données ».
+3. **Registre des moteurs** : détection, versions testées, capacités déclarées (`EngineCaps`), que l'interface lit au lieu de tester « claude ». Fait (ESC-28), voir docs/ENGINES.md, « Le registre ».
+4. **Interface** : Réglages › Moteurs, choix du moteur, marque sur les cartes, menus du composer fournis par le moteur (voir « Choisir le moteur », « Composer »). Fait (ESC-29), voir docs/ENGINES.md, « L'interface ».
 5. **Comptes et quotas par moteur** (voir « Comptes et quotas », « Coût, tokens, stats »).
 6. **Textes et consignes** indépendants du moteur (voir « Textes »).
 7. **Textes rédigés** par moteur (voir « Textes rédigés par un modèle »).
@@ -536,12 +536,12 @@ Critère d'ensemble : à la fin, avec Claude seul, rien ne change pour l'utilisa
   - Cursor se met à jour seul : une version non testée peut arriver sans que l'utilisateur ait rien fait. L'avertissement le dit, et la lecture tolérante de l'inconnu compte d'autant plus.
 
 ### Choisir le moteur
-- [ ] **Réglages › « Moteurs »** (aujourd'hui l'onglet « Claude ») : pour chaque moteur, l'exécutable (comme `claude_path`), la version trouvée, son état (absent, non connecté, prêt, version non testée) et « Se connecter… » (un terminal intégré avec la commande de connexion). Un moteur absent n'apparaît nulle part ailleurs.
-- [ ] **Premier lancement** : Escouade marche dès qu'un moteur est installé. « Claude Code introuvable » devient « Aucun moteur trouvé », avec la commande d'installation de chacun.
-- [ ] **Projet** : « Moteur par défaut ». Par défaut, Claude Code, ou le seul moteur installé.
-- [ ] **Nouvel agent** : un menu « Moteur », réglé d'abord sur celui du projet.
-- [ ] **Ticket** : un champ « Moteur » (par défaut, celui du projet), que le pilote auto suit.
-- [ ] **Marque du moteur** sur la carte de l'agent, dans la barre latérale, la vue d'ensemble et l'onglet, dès que plus d'un moteur sert.
+- [x] **Réglages › « Moteurs »** (« Harness », ESC-29 ; l'onglet « Claude Code » d'avant) : pour chaque moteur, l'exécutable (comme `claude_path`), la version trouvée, son état (absent, non connecté, prêt, version non testée) et « Se connecter… » (un terminal intégré avec la commande de connexion). Un moteur absent n'apparaît nulle part ailleurs.
+- [x] **Premier lancement** (ESC-29) : Escouade marche dès qu'un moteur est installé. « Claude Code introuvable » devient « Aucun moteur trouvé », avec la commande d'installation de chacun.
+- [x] **Projet** : « Moteur par défaut » (« Harness par défaut », ESC-29, dès deux harness trouvés). Par défaut, Claude Code ; « ou le seul moteur installé » reste à faire avec le premier autre moteur.
+- [x] **Nouvel agent** : un menu « Moteur », réglé d'abord sur celui du projet (ESC-29 : « Nouvel agent » part sur celui du projet, le menu « ▾ » propose « Nouvel agent sur … » pour chacun).
+- [x] **Ticket** : un champ « Moteur » (par défaut, celui du projet), que le pilote auto suit (ESC-29).
+- [x] **Marque du moteur** (ESC-29) sur la carte de l'agent, dans la barre latérale, la vue d'ensemble et l'onglet, dès que plus d'un moteur sert.
 
 ### Composer : modèles, effort, modes
 - [ ] **Modèles** : le menu liste ceux du moteur de l'agent.
@@ -682,7 +682,7 @@ But : « je n'ai plus de quota Claude, je passe sur Codex ». Aujourd'hui, un ag
 - [ ] **OpenCode** : `cost` et `tokens` de chaque message, additionnés par tour.
 - [ ] **Fenêtre de contexte** : `modelContextWindow` chez Codex, `session.usage_info` chez Copilot, la limite du modèle chez OpenCode ; chez Cursor, à relever au point 0.
 - [ ] **Stats** :
-  - Une colonne `engine` dans la table des tours (les tours d'avant valent `claude`).
+  - [x] Une colonne `engine` dans la table des tours (les tours d'avant valent `claude`), et `by_engine` dans la vue des stats (ESC-27).
   - Un filtre « Tous les moteurs / Claude Code / Codex / Copilot / Cursor / OpenCode », qui se combine avec celui des comptes.
   - Une vue « Par moteur ».
 
@@ -798,6 +798,7 @@ But : comme en vue Claude Code (`docs/PROTOCOL.md`, « Vue Claude Code »), un a
   - Proposé : ACP pour Cursor. Pour Copilot et OpenCode, décider après le point 0, en comparant ce que donne chaque voie.
 - [x] **Mot de l'interface** (décidé le 2026-10-16) : « Harness », le mot anglais gardé tel quel en français comme en anglais (Réglages › « Harness », « un harness ») ; « Agent » est déjà pris. Le code peut garder `engine`, et ce document « moteur » pour la conception.
 - [x] **Essais du point 0** (décidé le 2026-10-16) : Codex seul pour l'instant (installé et connecté) ; la refonte commence avec Claude Code et Codex (ESC-26 ne dépend plus que d'ESC-22). Copilot CLI, Cursor CLI et OpenCode, pas installés, seront essayés plus tard (ESC-23 à 25). Pas de second compte ChatGPT : l'essai de `CODEX_HOME` et de la reprise sur un autre compte reste à faire.
+- [x] **Périmètre des harness** (décidé le 2026-10-17) : pour l'instant, Claude Code et Codex seulement. Le but est de rendre Escouade multi-harness, pas d'être exhaustif : le chapitre est fini une fois Codex fait (ESC-37, 38, 47, puis 50 à 52 réduits à Codex). Copilot CLI, Cursor CLI, OpenCode et le harness ACP générique sont reportés (ESC-23 à 25, 36, 39 à 46, 48, 49, marqués « Plus tard »).
 - [x] **Repli sur un autre moteur** (décidé le 2026-10-14) : oui, et pour un agent en cours, pas seulement pour les nouveaux tickets : voir « Continuer sur un autre moteur quand le quota est épuisé ». Décidé le même jour : l'automatique est une option, désactivée par défaut, et les moteurs de secours se règlent par projet, par les comptes réservés aux projets. Le retour n'est jamais automatique : « Revenir sur Claude » est proposé.
 - [ ] **Garde-fou d'OpenCode**, qui n'a pas de quota : un budget par jour en dollars, au-delà duquel le pilote auto se met en pause ?
 

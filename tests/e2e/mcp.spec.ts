@@ -35,7 +35,7 @@ test('Claude drives Escouade: a ticket created through MCP arrives in the Kanban
   await addProject(page, app.repo, { firstAgent: false });
   await page.getByRole('button', { name: 'Réglages (Ctrl+,)' }).click();
   const dialog = page.getByRole('dialog', { name: 'Réglages' });
-  await dialog.getByRole('tab', { name: 'Claude Code' }).click();
+  await dialog.getByRole('tab', { name: 'Harness' }).click();
   await expect(dialog.getByRole('heading', { name: 'Escouade dans Claude' })).toBeVisible();
   // Off to begin with: nothing declared anywhere.
   await expect(dialog.getByRole('switch', { name: SWITCH })).toHaveAttribute('aria-checked', 'false');
@@ -107,7 +107,7 @@ test('turning Claude’s control of Escouade off takes it out of Claude Code and
   await addProject(page, app.repo, { firstAgent: false });
   await page.getByRole('button', { name: 'Réglages (Ctrl+,)' }).click();
   const dialog = page.getByRole('dialog', { name: 'Réglages' });
-  await dialog.getByRole('tab', { name: 'Claude Code' }).click();
+  await dialog.getByRole('tab', { name: 'Harness' }).click();
   await dialog.getByRole('switch', { name: SWITCH }).click();
   await expect(dialog.getByText('Déclaré dans Claude · compte Principal')).toBeVisible();
   const before = declared(app)!;
@@ -159,7 +159,7 @@ test('the one switch reaches agents already running: their conversation says so,
   // On: the settings count the agent already running, which gets the tools at its next start.
   await page.getByRole('button', { name: 'Réglages (Ctrl+,)' }).click();
   const dialog = page.getByRole('dialog', { name: 'Réglages' });
-  await dialog.getByRole('tab', { name: 'Claude Code' }).click();
+  await dialog.getByRole('tab', { name: 'Harness' }).click();
   await dialog.getByRole('switch', { name: SWITCH }).click();
   await expect(dialog.getByText('Déclaré dans Claude · compte Principal')).toBeVisible();
   await expect(

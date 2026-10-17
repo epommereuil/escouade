@@ -50,7 +50,7 @@ Ce message, comme les suivants, est écrit dans « Langue des textes rédigés 
 
 ### Modèle, effort et permissions
 
-Dans Réglages › Kanban, le groupe « Agents » règle les agents des tickets du projet : « Modèle », « Effort » et « Mode » (de permission). Laissés à « Par défaut », ils suivent les valeurs par défaut de Réglages › Claude Code (voir [Réglages de Claude Code](settings-claude-code)).
+Dans Réglages › Kanban, le groupe « Agents » règle les agents des tickets du projet : « Modèle », « Effort » et « Mode » (de permission). Laissés à « Par défaut », ils suivent les valeurs par défaut de Réglages › Harness (voir [Réglages de Claude Code](settings-claude-code)).
 
 Les agents des tickets restent dans la vue d’Escouade. Si l’un d’eux demande une autorisation ou pose une question, sa carte passe en ambre avec « Question en attente de ta réponse », tu es prévenu, et tu réponds dans sa conversation (voir [Le chat](chat)).
 
@@ -91,7 +91,7 @@ Pendant une pause, rien ne démarre, même un ticket lancé à la main.
 
 ## Limite d’usage et reprise
 
-Quand un agent de ticket atteint la limite d’usage de son compte, son tour s’arrête. Ce qui suit dépend de tes réglages (Réglages › Claude Code) :
+Quand un agent de ticket atteint la limite d’usage de son compte, son tour s’arrête. Ce qui suit dépend de tes réglages (Réglages › Harness) :
 
 - **« Reprise automatique après la limite d’usage »** (activée par défaut) : Escouade attend la remise à zéro du quota, puis envoie « continue » à l’agent. Le ticket reste « En cours » et garde sa place ; sa carte dit « Reprise à 14:30 ». Quand tous les comptes que le projet peut utiliser ont ainsi un agent en attente, l’en-tête dit « Quota atteint — reprise à 14:30 » et rien ne démarre avant. Tant qu’un compte n’en a pas, un ticket peut partir dessus.
 - **« Reprendre sur un autre compte un agent de ticket arrêté par la limite »** (avec plusieurs comptes, désactivé par défaut) : l’agent repart tout de suite sur un autre compte utilisable, avec sa session et sa conversation. Un compte est utilisable s’il est connecté, sous le seuil, sans pause due à la limite d’usage et sans agent en attente de sa remise à zéro. Une session ne passe pas d’un compte Windows à un compte WSL. Le compte quitté reste retenu jusqu’à sa remise à zéro (30 minutes si elle n’est pas connue). Sans ce réglage, l’agent attend la remise à zéro de son compte.

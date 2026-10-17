@@ -55,6 +55,8 @@ impl AgentAlert {
 
 #[derive(Debug, Clone, Default)]
 pub struct TurnRow {
+    /// The harness that ran it: the agent's at that turn (`AgentMeta::engine`).
+    pub engine: EngineId,
     pub model: String,
     pub input: u64,
     pub cache: u64,
@@ -1187,7 +1189,7 @@ impl AgentRt {
                 let turn = json!({
                     "kind": "turn", "id": new_id(), "ts": now_ms(), "durationMs": null,
                     "cost": 0, "tokens": 0, "isError": true, "interrupted": false,
-                    "error": said, "limited": false,
+                    "error": said, "limited": false, "engine": self.meta.engine,
                 });
                 self.append(turn, fx);
             } else {
@@ -3015,6 +3017,42 @@ mod tests {
         };
         assert_eq!([todos(1, En), todos(2, En)], ["1 task", "2 tasks"]);
         assert_eq!([todos(1, Fr), todos(2, Fr)], ["1 tâche", "2 tâches"]);
+    }
+
+    #[test]
+    fn an_unknown_field_or_frame_of_a_newer_claude_code_leaves_the_turn_going() {
+        let mut a = rt();
+        let mut fx = Effects::default();
+        a.push_user("u1", "Go", 0, &[], &mut fx);
+        let frames = [
+            // Frames, events and blocks Escouade does not know: set aside.
+            json!({"type":"brand_new_frame","payload":{"x":1}}),
+            json!({"type":"system","subtype":"brand_new_subtype","session_id":"s1","extra":[1,2]}),
+            json!({"type":"stream_event","event":{"type":"message_start","message":{"id":"m1","usage":{},"new_field":true}},"parent_tool_use_id":null,"new_field":"x"}),
+            json!({"type":"stream_event","event":{"type":"brand_new_event","index":0},"parent_tool_use_id":null}),
+            json!({"type":"stream_event","event":{"type":"content_block_start","index":0,"content_block":{"type":"brand_new_block","data":"?"}},"parent_tool_use_id":null}),
+            json!({"type":"stream_event","event":{"type":"content_block_start","index":1,"content_block":{"type":"text","text":"","new_field":1}},"parent_tool_use_id":null}),
+            json!({"type":"stream_event","event":{"type":"content_block_delta","index":1,"delta":{"type":"brand_new_delta","x":"?"}},"parent_tool_use_id":null}),
+            json!({"type":"stream_event","event":{"type":"content_block_delta","index":1,"delta":{"type":"text_delta","text":"Fait.","new_field":0}},"parent_tool_use_id":null}),
+            // Fields it does not know beside the ones it reads: ignored.
+            json!({"type":"assistant","message":{"id":"m1","content":[{"type":"brand_new_block"},{"type":"text","text":"Fait.","citations_v9":[]}],"new_field":{}},"parent_tool_use_id":null,"uuid":"e1","new_field":"x"}),
+            json!({"type":"rate_limit_event","rate_limit_info":{"status":"allowed","brand_new":"x"},"new_field":1}),
+        ];
+        for f in &frames {
+            a.handle_frame(f, &mut fx);
+        }
+        assert_eq!(fx.turn_end, None, "nothing ended the turn");
+        assert_eq!(a.meta.status, AgentStatus::Running);
+        let mut fx = Effects::default();
+        a.handle_frame(&json!({"type":"result","subtype":"success","is_error":false,"duration_ms":1,"result":"Fait.","brand_new_field":{"a":1}}), &mut fx);
+        assert_eq!(fx.turn_end, Some(TurnEnd::Finished("Fait.".into())));
+        assert_eq!(a.meta.status, AgentStatus::Done);
+        // The text is there, once, and no notice says something went wrong.
+        let items = a.conv.items();
+        let texts: Vec<&Value> = items.iter().filter(|i| i["kind"] == "text").collect();
+        assert_eq!(texts.len(), 1, "{items:?}");
+        assert_eq!(texts[0]["text"], "Fait.");
+        assert!(!items.iter().any(|i| i["kind"] == "notice"), "{items:?}");
     }
 
     #[test]

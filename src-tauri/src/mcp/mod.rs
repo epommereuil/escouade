@@ -15,6 +15,8 @@ mod agents_tests;
 mod background;
 #[cfg(test)]
 mod background_tests;
+#[cfg(test)]
+mod engines_tests;
 mod files;
 #[cfg(test)]
 mod files_tests;

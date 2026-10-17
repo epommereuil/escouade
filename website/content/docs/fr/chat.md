@@ -77,7 +77,7 @@ Un fichier envoyé par chemin est soit le fichier d’origine, soit une copie.
 
 - **Taille.** Aucune limite par défaut. Un fichier de plus de 200 Mo porte un avertissement (une marque « ! » sur sa puce, dont l’infobulle dit « Gros fichier : 250 Mo, copié sur le disque », ou « … joint là où il est, sans copie » pour un fichier d’origine), mais il se joint. Un fichier vide aussi. Tu peux fixer une taille maximale : au-delà, le fichier est refusé.
 - **Texte de plus de 256 Ko.** Par défaut, il part par chemin comme les autres fichiers. Tu peux le faire refuser, comme avant, en réglant « Texte de plus de 256 Ko » sur « Refusé » ; cela vaut aussi dans la fenêtre d’un ticket et dans la vue Claude Code.
-- **Réglages.** Les cinq réglages du groupe « Pièces jointes » (« Taille maximale d’un fichier joint », « Avertir au-delà de », « Joindre le fichier d’origine », « Texte de plus de 256 Ko » et « Purger les copies après ») sont dans [Réglages › Claude Code](settings-claude-code#pieces-jointes), avec leurs valeurs par défaut.
+- **Réglages.** Les cinq réglages du groupe « Pièces jointes » (« Taille maximale d’un fichier joint », « Avertir au-delà de », « Joindre le fichier d’origine », « Texte de plus de 256 Ko » et « Purger les copies après ») sont dans [Réglages › Harness](settings-claude-code#pieces-jointes), avec leurs valeurs par défaut.
 
 ### Effacer les fichiers joints
 

@@ -28,7 +28,7 @@ describe('Board', () => {
         ticket({ id: 't3', key: 'DEM-3', title: 'En route', column: 'doing', agentId: 'a1', iteration: 1, startedAt: 1 }),
       ],
     });
-    app.claudeFound = true;
+    app.enginesFound = ['claude'];
   });
 
   it('shows the four columns with their counts and the board header', () => {
@@ -43,11 +43,11 @@ describe('Board', () => {
     expect(screen.getByRole('button', { name: /Après validation : merge squash → main/ })).toBeInTheDocument();
   });
 
-  it('says that no ticket starts while Claude Code is not found', () => {
+  it('says that no ticket starts while no harness is found', () => {
     fakeBackend();
-    app.claudeFound = false;
+    app.enginesFound = [];
     render(Board, { project: app.projects[0] });
-    expect(screen.getByText('Claude Code introuvable — aucun ticket ne démarre')).toBeInTheDocument();
+    expect(screen.getByText('Aucun harness trouvé — aucun ticket ne démarre')).toBeInTheDocument();
     expect(screen.queryByText('1 place libre')).not.toBeInTheDocument();
   });
 
@@ -308,7 +308,7 @@ describe('Board in English', () => {
         ticket({ id: 't3', key: 'DEM-3', title: 'En route', column: 'doing', agentId: 'a1', iteration: 1, startedAt: 1 }),
       ],
     });
-    app.claudeFound = true;
+    app.enginesFound = ['claude'];
     setLang('en');
   });
 
@@ -324,7 +324,7 @@ describe('Board in English', () => {
 
   it('counts one ticket in the singular', () => {
     resetApp({ tickets: [ticket()] });
-    app.claudeFound = true;
+    app.enginesFound = ['claude'];
     fakeBackend();
     render(Board, { project: app.projects[0] });
     expect(screen.getByText('demo-api · 1 ticket · 0 looping')).toBeInTheDocument();
@@ -333,9 +333,9 @@ describe('Board in English', () => {
 
   it('writes the header in English: the missing Claude Code, the import and the autopilot', () => {
     fakeBackend();
-    app.claudeFound = false;
+    app.enginesFound = [];
     render(Board, { project: app.projects[0] });
-    expect(screen.getByText('Claude Code not found — no tickets will start')).toBeInTheDocument();
+    expect(screen.getByText('No harness found — no tickets will start')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Import' })).toHaveAttribute(
       'data-tip',
       'Import tickets from Jira, Trello, GitHub Issues, or Linear',

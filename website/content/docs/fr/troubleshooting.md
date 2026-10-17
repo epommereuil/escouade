@@ -10,11 +10,11 @@ Les problèmes que rencontre le plus souvent Escouade, chacun avec son symptôme
 
 **Cause.** Escouade cherche `claude` dans cet ordre :
 
-1. Le chemin de Réglages › Claude Code, champ « Chemin de l’exécutable », quand il est rempli. S’il est rempli, il décide seul : un chemin faux donne « introuvable », même si `claude` est dans le `PATH`.
+1. Le chemin de Réglages › Harness, champ « Chemin de l’exécutable », quand il est rempli. S’il est rempli, il décide seul : un chemin faux donne « introuvable », même si `claude` est dans le `PATH`.
 2. Sinon, le `PATH`, puis les emplacements habituels des installeurs. Sous Windows : `%USERPROFILE%\.local\bin\claude.exe`, `%USERPROFILE%\.claude\local\claude.exe` et `%USERPROFILE%\AppData\Roaming\npm\claude.cmd`. Sous macOS et Linux : `~/.local/bin/claude`, `~/.claude/local/claude`, `/opt/homebrew/bin/claude` et `/usr/local/bin/claude`.
 3. Sous Windows, à défaut, un Claude Code installé dans WSL (voir plus bas).
 
-**Solution.** Installe Claude Code et connecte-le, ou indique son chemin dans Réglages › Claude Code (voir les [réglages Claude Code](settings-claude-code)). Le champ accepte `~` pour ton dossier personnel, et sous Windows on peut y omettre `.exe` ou `.cmd`. La ligne sous le champ répond tout de suite : « Trouvé : … » avec le chemin retenu, ou « Introuvable. Indique le chemin de claude.exe, … ». Vide le champ pour revenir à la détection automatique (« vide = détection automatique »).
+**Solution.** Installe Claude Code et connecte-le, ou indique son chemin dans Réglages › Harness (voir les [réglages Claude Code](settings-claude-code)). Le champ accepte `~` pour ton dossier personnel, et sous Windows on peut y omettre `.exe` ou `.cmd`. La ligne sous le champ répond tout de suite : « Trouvé : … » avec le chemin retenu, ou « Introuvable. Indique le chemin de claude.exe, … ». Vide le champ pour revenir à la détection automatique (« vide = détection automatique »).
 
 Un compte Claude peut avoir son propre exécutable (Réglages › Comptes Claude, champ « Exécutable », « Celui des réglages » par défaut). Un chemin qui existe mais ne se lance pas donne « impossible de lancer » suivi de ce chemin.
 
@@ -24,7 +24,7 @@ Un compte Claude peut avoir son propre exécutable (Réglages › Comptes Claude
 
 **Cause.** macOS donne aux apps lancées depuis le Finder ou le Dock un `PATH` minimal, pas celui de ton terminal. Au démarrage, Escouade le complète avec celui de ton shell de connexion (elle l’interroge par `$SHELL -ilc`), puis ajoute `/opt/homebrew/bin`, `/usr/local/bin` et `~/.local/bin`. Elle n’attend le shell que cinq secondes : un profil qui demande une saisie, ou qui met plus longtemps, annule cette étape. La même chose vaut pour un lanceur de bureau sous Linux.
 
-**Solution.** Indique le chemin complet de `claude` dans Réglages › Claude Code (`which claude` dans un terminal le donne), ou allège le profil de ton shell pour qu’il réponde vite.
+**Solution.** Indique le chemin complet de `claude` dans Réglages › Harness (`which claude` dans un terminal le donne), ou allège le profil de ton shell pour qu’il réponde vite.
 
 ### Claude Code est installé dans WSL
 
@@ -32,7 +32,7 @@ Un compte Claude peut avoir son propre exécutable (Réglages › Comptes Claude
 
 **Cause.** Sous Windows, Escouade ne regarde dans WSL que si Windows n’a pas de `claude`. Elle cherche dans la distribution de Réglages › Terminaux (champ « Distribution WSL », « vide = distribution par défaut »), à `~/.local/bin/claude`, `~/.claude/local/claude`, `/usr/local/bin/claude` et `/usr/bin/claude`. Cette recherche peut démarrer la distribution et prendre quelques secondes.
 
-**Solution.** Indique le chemin dans Réglages › Claude Code, sous l’une de ces formes :
+**Solution.** Indique le chemin dans Réglages › Harness, sous l’une de ces formes :
 
 - `~/.local/bin/claude`
 - `/home/<utilisateur>/.local/bin/claude`
@@ -42,7 +42,7 @@ La ligne sous le champ confirme : « Trouvé dans WSL (Ubuntu) : /home/ada/.loc
 
 ### Les outils MCP et le suivi de la vue Claude Code ne marchent pas depuis WSL
 
-**Symptôme.** Sous le champ du chemin, Réglages › Claude Code affiche : « Le réseau de WSL est en NAT : le serveur MCP d’Escouade et le suivi de la vue Claude Code ne joignent pas l’app. »
+**Symptôme.** Sous le champ du chemin, Réglages › Harness affiche : « Le réseau de WSL est en NAT : le serveur MCP d’Escouade et le suivi de la vue Claude Code ne joignent pas l’app. »
 
 **Cause.** En mode NAT, WSL n’est pas sur le réseau de Windows : le serveur MCP d’Escouade et les hooks de la vue Claude Code, qui écoutent sur le `127.0.0.1` de Windows, lui sont hors de portée.
 
@@ -113,9 +113,9 @@ Puis, dans un terminal Windows, lance `wsl --shutdown` et relance Escouade.
 
 **Solution.** Ce que fait l’app dépend de tes réglages :
 
-- **Reprise automatique.** Le réglage « Reprise automatique après la limite d’usage » (Réglages › Claude Code, activé par défaut) envoie « continue » une fois le quota réinitialisé. Quand Claude Code indique l’heure de remise à zéro, la carte dit « Reprise automatique » suivi du moment, avec un bouton « Annuler la reprise ».
+- **Reprise automatique.** Le réglage « Reprise automatique après la limite d’usage » (Réglages › Harness, activé par défaut) envoie « continue » une fois le quota réinitialisé. Quand Claude Code indique l’heure de remise à zéro, la carte dit « Reprise automatique » suivi du moment, avec un bouton « Annuler la reprise ».
 - **Un autre compte.** Avec plusieurs comptes, le bouton « Reprendre sur Pro » (avec le nom d’un autre compte), et son menu « Reprendre sur un autre compte », font repartir l’agent avec sa session sur un autre compte. Les comptes inactifs, pas connectés ou au-delà de « Pause au-delà du quota » n’y figurent pas.
-- **Les agents de ticket** attendent la remise à zéro de leur compte, sauf si tu actives « Reprendre sur un autre compte un agent de ticket arrêté par la limite » (Réglages › Claude Code, avec plusieurs comptes).
+- **Les agents de ticket** attendent la remise à zéro de leur compte, sauf si tu actives « Reprendre sur un autre compte un agent de ticket arrêté par la limite » (Réglages › Harness, avec plusieurs comptes).
 
 Pour ne pas arriver à la limite, le [pilote auto](autopilot) se met en pause avant, au seuil « Pause au-delà du quota ».
 
@@ -127,7 +127,7 @@ Pour ne pas arriver à la limite, le [pilote auto](autopilot) se met en pause av
 
 **Cause.** Le processus Claude Code de l’agent s’est terminé de lui-même. Le message qu’il a laissé dit le plus souvent pourquoi (connexion, proxy, version…).
 
-**Solution.** Envoie un message : Escouade relance Claude sur la même session. Un processus arrêté exprès n’est pas une erreur : Escouade arrête les processus inactifs après un délai (Réglages › Claude Code, « Arrêter les processus Claude inactifs après », 30 minutes par défaut, 0 pour jamais) et les relance à la prochaine action.
+**Solution.** Envoie un message : Escouade relance Claude sur la même session. Un processus arrêté exprès n’est pas une erreur : Escouade arrête les processus inactifs après un délai (Réglages › Harness, « Arrêter les processus Claude inactifs après », 30 minutes par défaut, 0 pour jamais) et les relance à la prochaine action.
 
 ### Session Claude introuvable
 

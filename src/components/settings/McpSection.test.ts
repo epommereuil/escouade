@@ -65,7 +65,7 @@ describe('McpSection', () => {
     backend();
     app.modal = { kind: 'settings', tab: 'claude' };
     render(SettingsModal, { tab: 'claude' });
-    expect(screen.getByRole('tab', { name: 'Claude Code' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Harness' })).toHaveAttribute('aria-selected', 'true');
     expect(await screen.findByRole('heading', { name: 'Escouade dans Claude' })).toBeInTheDocument();
     expect(switchEl()).toHaveAttribute('aria-checked', 'false');
     expect(
@@ -94,7 +94,7 @@ describe('McpSection', () => {
     await waitFor(() => expect(switchEl()).toHaveAttribute('aria-checked', 'true'));
     expect(app.settings.mcpEnabled).toBe(true);
     // Saved already: the tab is not a change left for « Enregistrer ».
-    expect(screen.getByRole('tab', { name: 'Claude Code' })).not.toHaveClass('changed');
+    expect(screen.getByRole('tab', { name: 'Harness' })).not.toHaveClass('changed');
     // Not told yet.
     expect(screen.getByRole('status')).toHaveTextContent('Déclaration dans Claude…');
     mcp.take({ type: 'mcpStatus', status: RUNNING });

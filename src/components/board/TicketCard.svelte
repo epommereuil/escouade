@@ -14,6 +14,7 @@
   import { app } from '../../lib/state.svelte';
   import { anyRunning, flows, stopTests, testAgent } from '../../lib/test-launch.svelte';
   import type { Project, Ticket } from '../../lib/types';
+  import EngineMark from '../EngineMark.svelte';
   import StatusDot from '../StatusDot.svelte';
   import RejectForm from './RejectForm.svelte';
   import { tip } from '../../lib/tip';
@@ -421,7 +422,7 @@
     <div class="row foot">
       {#if agent}<span class="who mono"
           ><StatusDot status={agent.status} size={7} /><span class="name" use:tip={{ text: agent.name, cut: true }}>{agent.name}</span
-          ></span
+          ><EngineMark engine={agent.engine} /></span
         >{/if}
       {#if figures}
         <div class="figures">

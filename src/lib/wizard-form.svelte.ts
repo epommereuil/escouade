@@ -70,7 +70,11 @@ export class WizardForm {
   items = $derived<CopyItem[]>(this.source ? copyItems(this.source, this.setup, app.settings.accounts, accountName) : []);
   /** What would keep the way of working from working, as set so far. */
   problems = $derived.by<ControlId[]>(() =>
-    controls(this.setup, this.config, { accounts: app.settings.accounts, claudeFound: app.claudeFound, projectId: this.project?.id }),
+    controls(this.setup, this.config, {
+      accounts: app.settings.accounts,
+      claudeFound: app.enginesFound.length > 0,
+      projectId: this.project?.id,
+    }),
   );
 
   /** Starts from another project: the one on screen by default, its settings checked as `copyItems` says. */

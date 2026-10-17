@@ -1,9 +1,10 @@
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { setLang } from '../lib/i18n';
 import { app } from '../lib/state.svelte';
-import { fakeBackend, resetApp } from '../test/ipc';
+import { OS } from '../lib/platform';
+import { BARE_ENGINE, CLAUDE_ENGINE, fakeBackend, resetApp } from '../test/ipc';
 import Welcome from './Welcome.svelte';
 
 describe('Welcome', () => {
@@ -17,22 +18,26 @@ describe('Welcome', () => {
     expect(app.modal).toEqual({ kind: 'newProject' });
   });
 
-  it('says where Claude Code can be installed from when it is not found, the command in code style', () => {
+  it('says « Aucun harness trouvé » when none is found, with the command that installs each one', () => {
     fakeBackend();
-    app.claudeFound = false;
+    app.engines = [CLAUDE_ENGINE, BARE_ENGINE];
+    app.enginesFound = [];
     render(Welcome);
-    const warn = screen.getByText(/Claude Code est introuvable sur ce poste/);
-    expect(warn).toHaveTextContent(
-      'Claude Code est introuvable sur ce poste. Installe-le (irm https://claude.ai/install.ps1 | iex) ou indique son chemin dans les réglages.',
-    );
-    expect(screen.getByText('irm https://claude.ai/install.ps1 | iex')).toHaveClass('mono');
+    const none = screen.getByRole('region', { name: 'Aucun harness trouvé' });
+    expect(none).toHaveTextContent('Installe l’un d’eux, puis indique son chemin dans Réglages › Harness s’il n’est pas dans le PATH :');
+    const items = within(none).getAllByRole('listitem');
+    expect(items.map((i) => i.textContent)).toEqual([
+      'Claude Code' + (OS === 'windows' ? 'irm https://claude.ai/install.ps1 | iex' : 'curl -fsSL https://claude.ai/install.sh | bash'),
+      'Harness nu' + 'npm install -g @openai/codex',
+    ]);
+    expect(within(items[0]).getByText(/claude\.ai\/install/)).toHaveClass('mono');
   });
 
-  it('says nothing about it when it is found', () => {
+  it('says nothing about it once one is found', () => {
     fakeBackend();
-    app.claudeFound = true;
+    app.enginesFound = ['claude'];
     render(Welcome);
-    expect(screen.queryByText(/introuvable/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Aucun harness trouvé')).not.toBeInTheDocument();
   });
 });
 
@@ -44,11 +49,11 @@ describe('Welcome in English', () => {
 
   it('writes the invitation, the warning and the button in English', () => {
     fakeBackend();
-    app.claudeFound = false;
+    app.enginesFound = [];
     render(Welcome);
     expect(screen.getByText(/^Add a project to run Claude Code agents, follow/)).toBeInTheDocument();
-    expect(screen.getByText(/Claude Code couldn’t be found on this machine/)).toHaveTextContent(
-      'Claude Code couldn’t be found on this machine. Install it (irm https://claude.ai/install.ps1 | iex) or set its path in the settings.',
+    expect(screen.getByRole('region', { name: 'No harness found' })).toHaveTextContent(
+      'Install one of them, then set its path in Settings › Harness if it isn’t on the PATH:',
     );
     expect(screen.getByRole('button', { name: '+ Add a project' })).toBeInTheDocument();
   });

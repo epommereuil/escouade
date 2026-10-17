@@ -8,6 +8,7 @@ import { app } from './state.svelte';
 import type {
   BoardSettings,
   CommitMode,
+  EngineId,
   Project,
   ProjectIntegrations,
   RunCommand,
@@ -103,6 +104,7 @@ type ProjectFields = Pick<
   | 'agentBranchPrefix'
   | 'ticketBranchPrefix'
   | 'remoteControl'
+  | 'engine'
 >;
 
 /** Which commands of a project's worktrees: run once one is made, or before one is removed. */
@@ -129,6 +131,8 @@ export interface ProjectDraft {
   ticketBranchPrefix: string;
   /** « Remote control pour les agents de ce projet »: its own value, kept while the setting for all agents covers it too. */
   remoteControl: boolean;
+  /** « Harness par défaut »: null is Claude Code. */
+  engine: EngineId | null;
   board: BoardSettings;
   /** Its sources in external ticket systems (the « Intégrations » tab). */
   integrations: ProjectIntegrations;
@@ -149,6 +153,7 @@ function draftOf(p: Project): ProjectDraft {
     agentBranchPrefix,
     ticketBranchPrefix,
     remoteControl,
+    engine,
     board,
     integrations,
   } = $state.snapshot(p);
@@ -166,6 +171,8 @@ function draftOf(p: Project): ProjectDraft {
     agentBranchPrefix,
     ticketBranchPrefix,
     remoteControl,
+    // Absent from a project of the window's tests made before 1.8.
+    engine: engine ?? null,
     board,
     integrations,
   };
@@ -213,6 +220,7 @@ function fieldsOf(d: ProjectDraft): ProjectFields {
     agentBranchPrefix: d.agentBranchPrefix.trim(),
     ticketBranchPrefix: d.ticketBranchPrefix.trim(),
     remoteControl: d.remoteControl,
+    engine: d.engine,
   };
 }
 
@@ -438,6 +446,7 @@ class SettingsForm {
             if (found) {
               app.claudeFound = found.claudeFound;
               app.claudePathFound = found.claudePathFound;
+              app.enginesFound = found.enginesFound ?? (found.claudeFound ? ['claude'] : []);
             }
           }
         } else ok = false;

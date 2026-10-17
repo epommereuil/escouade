@@ -25,7 +25,7 @@ Les comptes sont décrits dans [les comptes](accounts) et réglés dans l’ongl
 
 Pour mettre un agent à part, fais un clic droit sur sa carte, puis « Désactiver le remote control ». Éteint, le réglage retire le remote control aux agents qui le tenaient de lui, sans toucher à ceux que tu as activés à la main ni à ceux que le réglage global couvre encore.
 
-Quand « Remote control pour tous les agents » est allumé dans l’onglet [« Claude Code »](settings-claude-code), l’interrupteur du projet se montre allumé et grisé, avec « Activé pour tous les projets dans Réglages › Claude Code ». Le choix propre du projet est gardé : une fois le réglage global éteint, l’interrupteur retrouve son état. Voir [le remote control](remote-control).
+Quand « Remote control pour tous les agents » est allumé dans l’onglet [« Claude Code »](settings-claude-code), l’interrupteur du projet se montre allumé et grisé, avec « Activé pour tous les projets dans Réglages › Harness ». Le choix propre du projet est gardé : une fois le réglage global éteint, l’interrupteur retrouve son état. Voir [le remote control](remote-control).
 
 ## Git
 

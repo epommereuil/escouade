@@ -25,7 +25,7 @@ Accounts are described in [accounts](accounts) and set in the [“Claude account
 
 To set an agent apart, right-click its card, then “Turn off remote control”. When off, the setting takes remote control away from the agents that had it from this setting, without touching those you turned on by hand or those the global setting still covers.
 
-When “Remote control for all agents” is on in the [“Claude Code”](settings-claude-code) tab, the project’s switch shows on and grayed out, with “On for all projects in Settings › Claude Code”. The project’s own choice is kept: once the global setting is off, the switch goes back to its state. See [remote control](remote-control).
+When “Remote control for all agents” is on in the [“Claude Code”](settings-claude-code) tab, the project’s switch shows on and grayed out, with “On for all projects in Settings › Harness”. The project’s own choice is kept: once the global setting is off, the switch goes back to its state. See [remote control](remote-control).
 
 ## Git
 

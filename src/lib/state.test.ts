@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { agent, board, fakeBackend, gitInfo, project, resetApp, SETTINGS, ticket } from '../test/ipc';
+import { agent, CLAUDE_ENGINE, board, fakeBackend, gitInfo, project, resetApp, SETTINGS, ticket } from '../test/ipc';
 import { conversationOf } from './conversations.svelte';
 import { buffers } from './editor/buffers.svelte';
 import { navHistory } from './editor/history';
@@ -26,6 +26,7 @@ async function start(over: Partial<InitialState> = {}, handlers: Record<string, 
     claudeFound: true,
     version: '0.1.0',
     models: [],
+    engines: [CLAUDE_ENGINE],
     ...over,
   };
   const backend = fakeBackend({
@@ -452,6 +453,7 @@ describe('AppState start-up', () => {
       claudeFound: true,
       version: '0.1.0',
       models: [],
+      engines: [CLAUDE_ENGINE],
     });
     await init;
     expect(app.agents.a1).toMatchObject({ status: 'running', tokens: 500 });

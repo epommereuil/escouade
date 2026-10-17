@@ -11,6 +11,8 @@ import type {
   BranchInfo,
   CheckedUpdate,
   ClaudeLocated,
+  EngineId,
+  EngineInfo,
   ClosedProject,
   CommitScope,
   Container,
@@ -135,7 +137,9 @@ export const api = {
   /** Where the `claude` of `path` is (blank: the one found by itself), `wslDistro` the distribution for one of WSL. */
   locateClaude: (path: string, wslDistro: string) => invoke<ClaudeLocated>('claude_locate', { path, wslDistro }),
   /** Whether Claude Code is found for the account new agents go to, and by the settings' own path (as at the start). */
-  claudeFound: () => invoke<{ claudeFound: boolean; claudePathFound: boolean }>('claude_found'),
+  claudeFound: () => invoke<{ claudeFound: boolean; claudePathFound: boolean; enginesFound?: EngineId[] }>('claude_found'),
+  /** Every harness with what is found of it here: its program, version and state (versions read again). */
+  engines: () => invoke<EngineInfo[]>('engines'),
   /** The items of Principal's folder a new account may share (those it has), files first. */
   accountShareable: () => invoke<string[]>('account_shareable'),
   /** A new Claude account, its folder made with the items `share` of Principal's linked or copied, saved last. */
@@ -180,9 +184,10 @@ export const api = {
   closedProjects: () => invoke<ClosedProject[]>('closed_projects'),
   /** The history of a closed project, erased for good (an entry the app cannot read: its one file). */
   eraseClosedProject: (id: string) => invoke<void>('erase_closed_project', { id }),
-  createAgent: (projectId: string, model: string | null = null) => invoke<Agent>('create_agent', { projectId, model }),
-  createAgentOnBranch: (projectId: string, branch: string, model: string | null = null) =>
-    invoke<Agent>('create_agent_on_branch', { projectId, branch, model }),
+  createAgent: (projectId: string, model: string | null = null, engine: EngineId | null = null) =>
+    invoke<Agent>('create_agent', { projectId, model, engine }),
+  createAgentOnBranch: (projectId: string, branch: string, model: string | null = null, engine: EngineId | null = null) =>
+    invoke<Agent>('create_agent_on_branch', { projectId, branch, model, engine }),
   warmAgent: (id: string) => invoke<void>('warm_agent', { id }),
   /** « Relancer »: the agent's process, at rest, started again on the same session (« Outils d'Escouade au prochain démarrage »). */
   restartAgentProcess: (id: string) => invoke<void>('restart_agent_process', { id }),

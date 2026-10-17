@@ -50,7 +50,7 @@ On every start, Escouade also adds to the agent’s system prompt a protocol tha
 
 ### Model, effort, and permissions
 
-In Settings › Kanban, the “Agents” group sets the agents of the project’s tickets: “Model”, “Effort”, and “Mode” (of permission). Left on “Default”, they follow the defaults of Settings › Claude Code (see [Claude Code settings](settings-claude-code)).
+In Settings › Kanban, the “Agents” group sets the agents of the project’s tickets: “Model”, “Effort”, and “Mode” (of permission). Left on “Default”, they follow the defaults of Settings › Harness (see [Claude Code settings](settings-claude-code)).
 
 Ticket agents stay in Escouade’s view. If one of them asks for a permission or asks a question, its card turns amber with “Question waiting for your answer”, you are notified, and you answer in its conversation (see [Chat](chat)).
 
@@ -91,7 +91,7 @@ During a pause nothing starts, not even a ticket started by hand.
 
 ## Usage limit and resume
 
-When a ticket’s agent reaches its account’s usage limit, its turn stops. What follows depends on your settings (Settings › Claude Code):
+When a ticket’s agent reaches its account’s usage limit, its turn stops. What follows depends on your settings (Settings › Harness):
 
 - **“Auto-resume after the usage limit”** (on by default): Escouade waits for the quota to reset, then sends “continue” to the agent. The ticket stays “In progress” and keeps its slot; its card says “Resumes at 2:30 PM”. When every account the project can use has an agent waiting like this, the header says “Quota reached — resumes at 2:30 PM” and nothing starts before then. As long as an account has none, a ticket can start on it.
 - **“Resume a ticket’s agent stopped by the usage limit on another account”** (with several accounts, off by default): the agent goes on at once on another usable account, with its session and its conversation. An account is usable if it is signed in, under the threshold, has no pause due to the usage limit, and has no agent waiting for its reset. A session does not move between a Windows account and a WSL account. The account it leaves stays held back until it resets (30 minutes if the reset is not known). Without this setting, the agent waits for its account to reset.

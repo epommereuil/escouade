@@ -67,9 +67,10 @@ describe('settingsForm', () => {
   it('asks again whether Claude Code is found once its path or the distribution of WSL is saved', async () => {
     app.claudeFound = false;
     app.claudePathFound = false;
+    app.enginesFound = [];
     const backend = fakeBackend({
       save_settings: () => [],
-      claude_found: () => ({ claudeFound: true, claudePathFound: true }),
+      claude_found: () => ({ claudeFound: true, claudePathFound: true, enginesFound: ['claude'] }),
     });
     settingsForm.open();
     settingsForm.settings.sound = false;
@@ -81,6 +82,8 @@ describe('settingsForm', () => {
     await settingsForm.save();
     expect(backend.called('claude_found')).toHaveLength(1);
     expect([app.claudeFound, app.claudePathFound]).toEqual([true, true]);
+    // The harnesses offered with it: « Aucun harness trouvé » goes.
+    expect(app.enginesFound).toEqual(['claude']);
     settingsForm.settings.wslDistro = 'Ubuntu-24.04';
     await settingsForm.save();
     expect(backend.called('claude_found')).toHaveLength(2);
@@ -510,7 +513,7 @@ describe('settingsForm', () => {
     flushSync();
     expect(names()).toEqual([
       'Application / Zoom, text size, and languages',
-      'Claude Code / Executable, model, and default permissions',
+      'Harness / Executables, versions, sign-in, and agent defaults',
       'Claude accounts / The accounts agents start on, saved as you change them',
       'Notifications / Visual and sound alerts',
       'Voice / Dictating messages: microphone, transcription model, language and shortcut',

@@ -292,6 +292,20 @@ pub struct TicketDraft {
     /// Its files other than images, the whole list, in their order; None: they stay as they are
     /// (the tools of the MCP server, the imports).
     pub files: Option<Vec<DraftFile>>,
+    /// Its harness (« Harness » in its form): Some(None), the project's; None, absent, it stays
+    /// as it is (the tools of the MCP server, the imports).
+    #[serde(deserialize_with = "given")]
+    pub engine: Option<Option<EngineId>>,
+}
+
+/// A field that is there, null or not: Some, its value (null: None); absent, it is None by its
+/// `default`.
+fn given<'de, D, T>(d: D) -> std::result::Result<Option<Option<T>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    Option::<T>::deserialize(d).map(Some)
 }
 
 /// An image of a ticket's form: one the ticket has (`file`, in its folder), or one pasted or
@@ -480,6 +494,7 @@ impl<R: Runtime> Core<R> {
             branch,
             images,
             files,
+            engine: d.engine.flatten(),
             ..Default::default()
         };
         let pushed = {
@@ -634,6 +649,9 @@ impl<R: Runtime> Core<R> {
                 t.max_loops = board::max_loops(d.max_loops);
                 t.after = after;
                 t.branch = branch;
+                if let Some(engine) = d.engine {
+                    t.engine = engine;
+                }
                 let before = images.map(|i| std::mem::replace(&mut t.images, i));
                 let files_before = files.map(|f| std::mem::replace(&mut t.files, f));
                 Ok((t.clone(), before, files_before))
@@ -1425,6 +1443,8 @@ impl<R: Runtime> Core<R> {
             .create_agent_with(
                 &project.id,
                 AgentOptions {
+                    // The ticket's own, else the project's.
+                    engine: t.engine,
                     model: Some(model),
                     effort: Some(effort),
                     mode: Some(mode),

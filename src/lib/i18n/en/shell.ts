@@ -12,7 +12,8 @@ export default defineZone('shell', {
   welcome: {
     intro: 'Add a project to run Claude Code agents, follow their questions, and open terminals.',
     /** `{command}`: the command that installs it, in code style. */
-    claudeMissing: 'Claude Code couldn’t be found on this machine. Install it ({command}) or set its path in the settings.',
+    noEngine: 'No harness found',
+    noEngineDesc: 'Install one of them, then set its path in Settings › Harness if it isn’t on the PATH:',
     addProject: 'Add a project',
   },
   /** The window that adds a project. */

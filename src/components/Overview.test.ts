@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { setLang } from '../lib/i18n';
 import { app } from '../lib/state.svelte';
 import type { Agent, PendingRequest } from '../lib/types';
-import { agent, fakeBackend, project, resetApp, ticket } from '../test/ipc';
+import { agent, BARE_ENGINE, CLAUDE_ENGINE, fakeBackend, project, resetApp, ticket } from '../test/ipc';
 import Overview from './Overview.svelte';
 
 const NOW = Date.UTC(2026, 9, 10, 12, 0, 0);
@@ -615,5 +615,22 @@ describe('Overview in English', () => {
     expect(screen.getByRole('listitem', { name: /refacto-auth/ })).toHaveTextContent(
       'Too long to read here: read it and answer in the conversation.',
     );
+  });
+});
+
+describe('Overview: the brand of the harnesses (ESC-29)', () => {
+  it('names each agent’s harness beside it once agents run on two, and none with one', () => {
+    resetApp({
+      agents: [agent({ id: 'a1', status: 'running' }), agent({ id: 'a2', name: 'sur-codex', engine: 'codex', status: 'running' })],
+    });
+    app.engines = [CLAUDE_ENGINE, BARE_ENGINE];
+    fakeBackend();
+    const { unmount } = render(Overview);
+    expect(screen.getByRole('img', { name: 'Harness : Claude Code' })).toHaveTextContent('Claude');
+    expect(screen.getByRole('img', { name: 'Harness : Harness nu' })).toBeInTheDocument();
+    unmount();
+    resetApp({ agents: [agent({ id: 'a1', status: 'running' })] });
+    render(Overview);
+    expect(screen.queryByRole('img', { name: /^Harness :/ })).toBeNull();
   });
 });

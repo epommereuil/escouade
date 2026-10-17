@@ -351,6 +351,81 @@ export interface IssuePage {
   total: number | null;
 }
 
+/** A harness that runs agents (« Harness » in the interface): Claude Code, Codex, Copilot CLI, Cursor CLI, OpenCode. */
+export type EngineId = 'claude' | 'codex' | 'copilot' | 'cursor' | 'opencode';
+
+/** A mode of Escouade a harness takes, and what it means there (null: what Escouade's menu says of it, Claude Code's meaning). */
+export interface ModeCap {
+  id: string;
+  meaning: string | null;
+}
+
+/** What a harness can do, as it declares it: the window shows a function from these, never from the harness's name. A function it lacks is hidden, not greyed out. */
+export interface EngineCaps {
+  modes: ModeCap[];
+  /** Its models take an effort (each model may still have none). */
+  effort: boolean;
+  images: boolean;
+  pdf: boolean;
+  /** Copying an agent (« Dupliquer la conversation »), and up to where; 'none': hidden. */
+  fork: 'none' | 'entry' | 'turn' | 'event' | 'message';
+  resumeOtherAccount: boolean;
+  /** A message sent while a turn runs: queued, read at once, or refused. */
+  midTurn: 'queued' | 'immediate' | 'refused';
+  slashCommands: boolean;
+  quota: 'windows' | 'credits' | 'none';
+  /** What a turn costs: told by the harness, estimated, or unknown (nothing shown). */
+  cost: 'exact' | 'estimated' | 'none';
+  /** Its own interface in a terminal (« Vue Claude Code »). */
+  terminalView: boolean;
+  remoteControl: boolean;
+  /** Background tasks and workflows, and stopping a subagent. */
+  backgroundTasks: boolean;
+  todoTools: boolean;
+  /** It tells which requests it would refuse by default. */
+  defaultRefusal: boolean;
+}
+
+/** The versions of a harness Escouade was tested with. */
+export interface EngineTested {
+  oldest: string;
+  newest: string;
+}
+
+/** A model of the composer's menu for a harness, by the id its harness takes, and what it takes. */
+export interface ModelDecl {
+  id: string;
+  /** Its name in the menu until the harness tells which version it runs. */
+  label: string;
+  effort: boolean;
+  auto: boolean;
+}
+
+/** What a harness declares, as the window gets it at its start. */
+export interface EngineDecl {
+  id: EngineId;
+  name: string;
+  tested: EngineTested;
+  caps: EngineCaps;
+  /** The command that installs it, on Windows and elsewhere (« Aucun harness trouvé »). */
+  install: { windows: string; unix: string };
+  /** The models of the composer's menu, in its order. */
+  models: ModelDecl[];
+  /** The efforts of the composer's menu, in its order (empty without `caps.effort`). */
+  efforts: string[];
+}
+
+/** A harness with what is found of it here (Réglages). */
+export interface EngineInfo extends EngineDecl {
+  located: ClaudeLocated;
+  /** Its version as it tells it, null when not found or not told. */
+  version: string | null;
+  /** absent, refused for a version older than the tested ones, no account signed in, newer than the tested ones (taken with a warning), ready. */
+  state: 'absent' | 'tooOld' | 'notConnected' | 'untested' | 'ready';
+  /** What its state means: the refusal and its reason, the warning. */
+  note: string | null;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -382,6 +457,8 @@ export interface Project {
   ticketBranchPrefix: string;
   /** « Remote control pour les agents de ce projet »: each of its agents is reachable from claude.ai and the Claude app, unless set apart by hand (`Agent.remoteOff`). */
   remoteControl: boolean;
+  /** « Harness par défaut »: the one its new agents and tickets run on unless they say theirs; null: Claude Code. */
+  engine: EngineId | null;
 }
 
 /** « Rédigé par l'agent » (the agent is asked to commit) or « Direct, avec un message proposé ». */
@@ -513,6 +590,8 @@ export interface Ticket {
   model: string;
   /** The effort its agent runs at, over the Kanban's; empty: the Kanban's. */
   effort: string;
+  /** The harness its agents run on (the autopilot starts them on it); null: the project's. */
+  engine: EngineId | null;
   /** The images pasted or dropped in its form, in their order: its agent gets them with its first message. */
   images: TicketImage[];
   /** The files attached in its form that are no image it can show (any format, any size): its agent gets their paths with its first message. */
@@ -593,6 +672,8 @@ export interface TicketDraft {
   images?: DraftImage[];
   /** Its other files, the whole list; absent: they stay as they are. */
   files?: DraftFile[];
+  /** Its harness (« Harness »), null for the project's; absent: it stays as it is. */
+  engine?: EngineId | null;
 }
 
 export interface RecipeStep {
@@ -675,6 +756,8 @@ export interface Agent {
   projectId: string;
   name: string;
   named: boolean;
+  /** The harness it runs on, one at a time ('claude' for an agent saved before 1.8); a copy takes the original's. */
+  engine: EngineId;
   model: string;
   effort: string;
   mode: string;
@@ -1254,6 +1337,8 @@ export interface TurnItem extends Base {
   error: string | null;
   /** Stopped by the usage limit (absent from turns saved before the accounts): the card offers to go on, on another account. */
   limited?: boolean;
+  /** The harness that ran it (absent from turns saved before 1.8, all Claude Code's). */
+  engine?: EngineId;
 }
 export interface NoticeItem extends Base {
   kind: 'notice';
@@ -1400,6 +1485,10 @@ export interface InitialState {
   version: string;
   /** Claude Code's models as it last reported them, empty until a process has started. */
   models: ModelInfo[];
+  /** What each harness declares: its capabilities. */
+  engines: EngineDecl[];
+  /** The harnesses whose program is found: the only ones offered (absent before 1.8: Claude Code, when found). */
+  enginesFound?: EngineId[];
   /** Why no ticket of a project's board starts, by project (none: they may). */
   boardIssues?: Record<string, string>;
   /** Why no ticket of a project that goes to any account starts for now (none: they may). */
@@ -1481,6 +1570,8 @@ export interface StatsView {
   prompts: number;
   byProject: Share[];
   byModel: Share[];
+  /** By harness (its id), the one that ran each turn. */
+  byEngine: Share[];
   byAgent: AgentShare[];
   byTicket: TicketShare[];
   /** Every account side by side, dearest first, whichever account the other fields are for. */

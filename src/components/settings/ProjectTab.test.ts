@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { setLang } from '../../lib/i18n';
 import { app } from '../../lib/state.svelte';
-import { fakeBackend, project, resetApp } from '../../test/ipc';
+import { BARE_ENGINE, CLAUDE_ENGINE, fakeBackend, project, resetApp } from '../../test/ipc';
 import SettingsModal from '../modals/SettingsModal.svelte';
 
 vi.mock('../../lib/terminals', () => ({ launchLog: () => ({}), disposeLog() {} }));
@@ -38,7 +38,7 @@ describe('ProjectTab', () => {
 
   describe('remote control', () => {
     const LABEL = 'Remote control pour les agents de ce projet';
-    const REASON = 'Activé pour tous les projets dans Réglages › Claude Code';
+    const REASON = 'Activé pour tous les projets dans Réglages › Harness';
     const tab = (name: string) => screen.getByRole('tab', { name });
     const headings = () => screen.getAllByRole('heading').map((h) => h.textContent);
     /** The modal on « Claude Code », the setting for all agents switched on or off, then on the project’s tab. */
@@ -48,6 +48,14 @@ describe('ProjectTab', () => {
       if (global !== (all.getAttribute('aria-checked') === 'true')) await userEvent.click(all);
       await userEvent.click(tab(projectsTab));
     };
+
+    it('is hidden while no harness has Remote Control', () => {
+      fakeBackend();
+      app.engines = [BARE_ENGINE];
+      render(SettingsModal, { tab: 'projects', projectId: 'p1' });
+      expect(screen.queryByRole('switch', { name: LABEL })).toBeNull();
+      expect(headings()).not.toContain('Remote control');
+    });
 
     it('has its own group after the project’s identity, off by default, and says what it does', () => {
       fakeBackend();
@@ -118,7 +126,7 @@ describe('ProjectTab', () => {
       fakeBackend();
       await toProjects(true);
       expect(screen.getByRole('switch', { name: LABEL })).toBeDisabled();
-      await userEvent.click(tab('Claude Code'));
+      await userEvent.click(tab('Harness'));
       await userEvent.click(screen.getByRole('switch', { name: 'Remote control pour tous les agents' }));
       await userEvent.click(tab('Projets'));
       const remote = screen.getByRole('switch', { name: LABEL });
@@ -135,7 +143,7 @@ describe('ProjectTab', () => {
       await toProjects(true);
       expect(screen.getByRole('switch', { name: LABEL })).toHaveAttribute('aria-checked', 'true');
       expect(screen.getByRole('switch', { name: LABEL })).toBeDisabled();
-      await userEvent.click(tab('Claude Code'));
+      await userEvent.click(tab('Harness'));
       await userEvent.click(screen.getByRole('switch', { name: 'Remote control pour tous les agents' }));
       await userEvent.click(tab('Projets'));
       expect(screen.getByRole('switch', { name: LABEL })).toHaveAttribute('aria-checked', 'true');
@@ -150,7 +158,7 @@ describe('ProjectTab', () => {
       const remote = screen.getByRole('switch', { name: 'Remote control for this project’s agents' });
       expect(remote).toBeDisabled();
       expect(remote).toHaveAttribute('aria-checked', 'true');
-      expect(screen.getByText('On for all projects in Settings › Claude Code')).toBeVisible();
+      expect(screen.getByText('On for all projects in Settings › Harness')).toBeVisible();
       expect(screen.getByText(/^Every agent of this project/)).toHaveTextContent(
         'Every agent of this project, existing or new (ticket agents included), is reachable from claude.ai and the Claude app. Escouade starts each one’s claude process right away, and it stays running. The session appears on claude.ai as “project · agent” (for a ticket agent, the name comes from the ticket). In Claude Code view, an interface that is already open only picks it up at its next launch. To set an agent apart: right-click, “Turn off remote control”.',
       );
@@ -244,5 +252,33 @@ describe('ProjectTab', () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'MCP server' })).not.toBeInTheDocument();
     expect(screen.queryByRole('switch', { name: 'Agents can use Escouade' })).not.toBeInTheDocument();
+  });
+});
+
+describe('ProjectTab: its default harness (ESC-29)', () => {
+  beforeEach(() => {
+    resetApp({ projects: [project()] });
+    app.engines = [CLAUDE_ENGINE, BARE_ENGINE];
+    app.modal = { kind: 'settings' };
+  });
+  const LABEL = 'Harness par défaut';
+
+  it('is offered only from two harnesses found on', () => {
+    fakeBackend();
+    render(SettingsModal, { tab: 'projects', projectId: 'p1' });
+    expect(screen.queryByRole('group', { name: LABEL })).toBeNull();
+  });
+
+  it('is Claude Code until another is chosen, and saved with the project', async () => {
+    app.enginesFound = ['claude', 'codex'];
+    const backend = fakeBackend();
+    render(SettingsModal, { tab: 'projects', projectId: 'p1' });
+    const group = screen.getByRole('group', { name: LABEL });
+    expect(screen.getByText('Celui des nouveaux agents et des tickets du projet, sauf s’ils en choisissent un autre.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Claude Code', pressed: true })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Harness nu' }));
+    expect(group).toBeInTheDocument();
+    await save();
+    expect(backend.called('update_project')[0].args.project.engine).toBe('codex');
   });
 });

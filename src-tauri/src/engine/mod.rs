@@ -9,6 +9,7 @@
 
 mod claude;
 mod program;
+pub mod registry;
 
 pub use claude::CLAUDE;
 pub use program::{Located, Program};
@@ -19,7 +20,7 @@ pub(crate) use claude::{claude_args, ClaudeProcess, SpawnOpts};
 use crate::agent::{AgentRt, Effects};
 use crate::core::Attachment;
 use crate::job::JobUsage;
-use crate::model::AgentMeta;
+use crate::model::{AgentMeta, EngineId};
 use anyhow::Result;
 use serde_json::Value;
 use std::future::Future;
@@ -41,10 +42,22 @@ pub type OnFrame = Box<dyn Fn(Value) + Send + Sync>;
 /// frames (its stderr).
 pub type OnExit = Box<dyn FnOnce(Option<i32>, String) + Send>;
 
-/// The engine of an agent. There is only Claude Code for now: the agent's own engine is the next
-/// lot of the work (`AgentMeta.engine`).
-pub fn of(_meta: &AgentMeta) -> &'static dyn Engine {
-    &CLAUDE
+/// The engine of an agent, as its `AgentMeta.engine` says.
+pub fn of(meta: &AgentMeta) -> &'static dyn Engine {
+    by_id(meta.engine)
+}
+
+/// The engine `id` names. Claude Code is the only one written yet: the others get theirs with
+/// their adapter (docs/TODO-1.8.md, chapter 1), and until then nothing makes an agent of theirs
+/// (the interface offers none).
+pub fn by_id(id: EngineId) -> &'static dyn Engine {
+    match id {
+        EngineId::Claude
+        | EngineId::Codex
+        | EngineId::Copilot
+        | EngineId::Cursor
+        | EngineId::Opencode => &CLAUDE,
+    }
 }
 
 /// The engine of what has no agent yet (a question about a project, the settings).
@@ -196,14 +209,32 @@ pub enum StartLost {
 
 /// A harness: Claude Code, then Codex, Copilot CLI, Cursor CLI, OpenCode.
 pub trait Engine: Send + Sync {
-    /// Its id, as the data will keep it (`claude`).
-    fn id(&self) -> &'static str;
+    /// Its id, as the data keeps it (`claude`).
+    fn id(&self) -> EngineId;
     /// Its name, as the interface says it (`Claude Code`).
     fn name(&self) -> &'static str;
 
     /// Its program, from the path of a setting (empty: where it usually is) and the distribution
     /// of WSL of the settings.
     fn locate(&self, configured: &str, wsl_distro: &str) -> Option<Program>;
+
+    /// The versions Escouade was tested with: an older one is refused (`oldest_reason` says why),
+    /// a newer one taken with a warning (`registry`).
+    fn tested(&self) -> registry::Tested;
+    /// Why a version older than `tested().oldest` is refused, in `lang`.
+    fn oldest_reason(&self, lang: crate::i18n::Lang) -> String;
+    /// The command that updates it, as the refusal tells it.
+    fn update_command(&self) -> &'static str;
+    /// The arguments that make its program print its version.
+    fn version_args(&self) -> &'static [&'static str];
+    /// What it can do, as the interface reads it (`registry::EngineCaps`).
+    fn caps(&self) -> registry::EngineCaps;
+    /// The command that installs it (« Aucun harness trouvé »).
+    fn install(&self) -> registry::Install;
+    /// The models the composer offers, in its menu's order.
+    fn models(&self) -> Vec<registry::ModelDecl>;
+    /// The efforts the composer offers, in its menu's order (none without `caps().effort`).
+    fn efforts(&self) -> &'static [&'static str];
 
     /// Whether `model` takes an effort.
     fn supports_effort(&self, model: &str) -> bool;

@@ -11,8 +11,9 @@ export default {
   },
   welcome: {
     intro: 'Ajoute un projet pour y lancer des agents Claude Code, suivre leurs questions et ouvrir des terminaux.',
-    /** `{command}`: the command that installs it, in code style. */
-    claudeMissing: 'Claude Code est introuvable sur ce poste. Installe-le ({command}) ou indique son chemin dans les réglages.',
+    /** No harness found: the first start lists each one with the command that installs it. */
+    noEngine: 'Aucun harness trouvé',
+    noEngineDesc: 'Installe l’un d’eux, puis indique son chemin dans Réglages › Harness s’il n’est pas dans le PATH :',
     addProject: 'Ajouter un projet',
   },
   /** The window that adds a project. */

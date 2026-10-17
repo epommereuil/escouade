@@ -159,7 +159,7 @@ That tab shows the closed project in the account’s “Reserved to projects” 
 
 When Claude refuses a turn because the account’s quota is used up, the agent stops. The turn’s error card, the agent’s card in the sidebar (“Resumes at 3:00 PM”) and the Kanban give the time of the automatic resume.
 
-By default, Escouade sends “continue” to the agent about thirty seconds after the quota resets, when it knows when that is. This is the “Auto-resume after the usage limit” setting (Settings › Claude Code, “Processes” group). The card’s “Cancel auto-resume” button cancels it for that agent.
+By default, Escouade sends “continue” to the agent about thirty seconds after the quota resets, when it knows when that is. This is the “Auto-resume after the usage limit” setting (Settings › Harness, “Processes” group). The card’s “Cancel auto-resume” button cancels it for that agent.
 
 ### Resume on another account
 
@@ -182,7 +182,7 @@ If the turn that follows fails on the new account, the card says “Resuming on 
 
 ### By itself, for ticket agents
 
-The “Resume a ticket’s agent stopped by the usage limit on another account” setting (Settings › Claude Code, “Processes” group, visible with several accounts) does the same without you. It is off by default; its description reads: “Otherwise it waits for its account to reset”.
+The “Resume a ticket’s agent stopped by the usage limit on another account” setting (Settings › Harness, “Processes” group, visible with several accounts) does the same without you. It is off by default; its description reads: “Otherwise it waits for its account to reset”.
 
 When on, the agent of a ticket stopped by the limit moves by itself to another account when one fits: the project’s preferred account, otherwise the first one in the list. That account must be signed in, under the threshold, held back by no pause after a usage limit, with no agent waiting for its own reset, and on the same side of WSL as the agent. If there is none, or if the move fails (the conversation then says “Couldn’t resume on another account: …”), the agent waits for its account to reset, as before.
 

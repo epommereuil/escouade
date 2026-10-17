@@ -10,7 +10,8 @@
   import { keyLabel, primaryKey } from '../../lib/platform';
   import { ariaEnter } from '../../lib/shortcuts';
   import { app, type TicketFormDraft } from '../../lib/state.svelte';
-  import type { Ticket, TicketDraft } from '../../lib/types';
+  import type { EngineId, Ticket, TicketDraft } from '../../lib/types';
+  import { choosesEngine, engineName, engineOptions } from '../../lib/engines';
   import { insertAt } from '../../lib/dictation';
   import type { DictationTarget } from '../../lib/dictation.svelte';
   import AttachmentChip from '../AttachmentChip.svelte';
@@ -43,6 +44,7 @@
     maxLoops: ticket?.maxLoops ?? 5,
     after: ticket?.after ?? [],
     branch: ticket?.branch ?? '',
+    engine: ticket?.engine ?? null,
     images: ticket?.images.map((i) => i.file) ?? [],
     files: ticket?.files.map((f) => f.file) ?? [],
   }));
@@ -56,6 +58,9 @@
   let after = $state(untrack(() => [...(resume?.after ?? start.after)]));
   /** The existing branch its agent takes up; empty: the ticket's own, made when it starts. */
   let branch = $state(untrack(() => resume?.branch ?? start.branch));
+  /** The harness of its agents (« Harness », from two harnesses found on); null: the project's. */
+  let engine = $state<EngineId | null>(untrack(() => (resume?.engine !== undefined ? resume.engine : start.engine)));
+  let engineButton = $state<HTMLButtonElement>();
   let branchButton = $state<HTMLButtonElement>();
   let choosing = $state(false);
   let query = $state('');
@@ -117,6 +122,7 @@
       criteria !== start.criteria ||
       maxLoops !== start.maxLoops ||
       branch !== start.branch ||
+      engine !== start.engine ||
       after.length !== start.after.length ||
       after.some((id) => !start.after.includes(id)) ||
       imagesChanged(images, held) ||
@@ -149,6 +155,7 @@
         maxLoops,
         after: [...after],
         branch,
+        engine,
         images: images.map((i) => ({ ...i })),
         held: [...held],
         // Not a copy: the one of a file being written is still this list's, which it takes the chip out of if it fails.
@@ -343,6 +350,18 @@
     ticket ? t('branches.ticket.own', { branch: ticketBranch(ticket.key, prefix) }) : t('branches.ticket.ownNew', { prefix }),
   );
 
+  /** « Celui du projet (…) », then each harness found. */
+  const projectEngine = $derived(app.projects.find((p) => p.id === projectId)?.engine ?? 'claude');
+  const engineLabel = $derived(engine ? engineName(engine) : t('board.form.engineProject', { engine: engineName(projectEngine) }));
+
+  function engineMenu() {
+    if (!engineButton) return;
+    menu.showAt(engineButton, [
+      { label: t('board.form.engineProject', { engine: engineName(projectEngine) }), onClick: () => (engine = null) },
+      ...engineOptions(engine).map((e) => ({ label: e.label, onClick: () => (engine = e.value) })),
+    ]);
+  }
+
   function branchMenu() {
     if (!branchButton) return;
     menu.showAt(branchButton, [
@@ -416,6 +435,8 @@
         after: [...after],
         // Said only when it matters: a branch taken up, or the one of an edited ticket given up (empty).
         ...(branch || start.branch ? { branch } : {}),
+        // Its harness, null for the project's.
+        engine,
         // Only when they changed from what the ticket had (not `held`: one gone from its folder is taken off at any save);
         // those of an edited ticket may not be read yet.
         ...(imagesChanged(images, start.images) ? { images: draftImages(images) } : {}),
@@ -563,6 +584,21 @@
             <span aria-hidden="true">▾</span>
           </button>
         </div>
+        {#if choosesEngine()}
+          <div class="branch" role="group" aria-label={t('board.form.engine')}>
+            <span class="k" id="{uid}-engine">{t('board.form.engine')}</span>
+            <button
+              class="pick"
+              bind:this={engineButton}
+              aria-haspopup="menu"
+              aria-labelledby="{uid}-engine {uid}-engine-value"
+              onclick={engineMenu}
+            >
+              <span id="{uid}-engine-value">{engineLabel}</span>
+              <span aria-hidden="true">▾</span>
+            </button>
+          </div>
+        {/if}
       </div>
       {#if candidates.length}
         <div class="after" role="group" aria-label={t('board.form.after')}>

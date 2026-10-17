@@ -8,6 +8,8 @@ export default defineZone('nav', {
     toReview: '{count} to review',
     newAgent: 'New agent',
     newAgentTitle: 'New agent ({shortcut})',
+    newAgentOn: 'New agent on {engine}',
+    engineMark: 'Harness: {engine}',
     empty: 'No agents.',
     createAgent: 'Create an agent',
     archived: 'Archived ({n})',

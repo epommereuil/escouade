@@ -58,8 +58,8 @@ describe('board commands', () => {
     await api.createAgentOnBranch('p1', 'feat');
     expect(await api.integrateBase('a1')).toEqual({ kind: 'conflict', files: ['src/a.ts'], rebase: false });
     expect(backend.calls).toEqual([
-      { cmd: 'create_agent_on_branch', args: { projectId: 'p1', branch: 'origin/feat', model: 'opus' } },
-      { cmd: 'create_agent_on_branch', args: { projectId: 'p1', branch: 'feat', model: null } },
+      { cmd: 'create_agent_on_branch', args: { projectId: 'p1', branch: 'origin/feat', model: 'opus', engine: null } },
+      { cmd: 'create_agent_on_branch', args: { projectId: 'p1', branch: 'feat', model: null, engine: null } },
       { cmd: 'integrate_base', args: { id: 'a1' } },
     ]);
   });

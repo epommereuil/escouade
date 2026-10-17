@@ -79,6 +79,12 @@ import path from 'node:path';
 import readline from 'node:readline';
 
 const argv = process.argv.slice(2);
+// `--version`, as Claude Code prints it, not logged (the app asks it before an agent starts, not a launch of one):
+// FAKE_CLAUDE_VERSION plays another version (an older one than the tested ones is refused by the app).
+if (argv[0] === '--version') {
+  process.stdout.write(`${process.env.FAKE_CLAUDE_VERSION || '2.1.301'} (Claude Code)\n`);
+  process.exit(0);
+}
 const logFile = process.env.FAKE_CLAUDE_LOG || path.join(os.tmpdir(), `fake-claude-${process.cwd().replace(/[^a-zA-Z0-9]/g, '_')}.jsonl`);
 fs.appendFileSync(
   logFile,

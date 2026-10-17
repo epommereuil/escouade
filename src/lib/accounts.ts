@@ -4,6 +4,7 @@ import { quotaUntil } from './board';
 import { fDayMonth, fList, fPct, fTime } from './format';
 import { t, tIn } from './i18n';
 import { app } from './state.svelte';
+import type { SettingsTab } from './settings.svelte';
 import type { Account, AccountUsage, Agent, AutopilotPause, Project, RateWindow } from './types';
 
 /** The id of the user's own account. */
@@ -183,7 +184,7 @@ export function quotaRows(now: number): QuotaRow[] {
   return [...rows.filter((r) => r.current), ...rows.filter((r) => !r.current)];
 }
 
-/** Back to the « Comptes Claude » tab of the settings, their draft as it was. */
-export function backToAccounts() {
-  app.modal = { kind: 'settings', tab: 'accounts', resume: true };
+/** Back to the settings' tab `tab` (« Comptes Claude » by default), their draft as it was. */
+export function backToAccounts(tab: SettingsTab = 'accounts') {
+  app.modal = { kind: 'settings', tab, resume: true };
 }

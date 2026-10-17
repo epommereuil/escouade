@@ -33,7 +33,7 @@ La configuration recommandée : un worktree par agent, validation par merge squa
 | « La branche cible … est introuvable » | « Prendre la branche courante » |
 | « Les worktrees iraient dans un dossier suivi par git » | « Utiliser .claude/worktrees » |
 | « Aucun compte Claude ne sert ce projet » | Activer un compte, ou retirer sa réservation, dans Réglages › Comptes Claude |
-| « Claude Code est introuvable » | L’installer, ou indiquer son chemin dans Réglages › Claude Code |
+| « Claude Code est introuvable » | L’installer, ou indiquer son chemin dans Réglages › Harness |
 
 Chaque contrôle est aussi dit dans l’étape qu’il concerne (le premier dès « Départ »). Clique sur « Créer le projet » : le projet s’ouvre dans un nouvel onglet avec ses réglages, puis son premier agent si tu l’as demandé. « Créer sans l’assistant », en bas à gauche, crée le projet tout de suite avec les valeurs par défaut d’Escouade et un premier agent, comme avant l’assistant. Plus tard, Réglages › Projets › « Ouvrir l’assistant… » le rouvre sur un projet existant (voir [Réglages : Projets](settings-projects#assistant-de-configuration)).
 
@@ -68,7 +68,7 @@ Les modes de permission décident quand Claude te demande l’autorisation d’a
 | « Édits auto » | Les modifications de fichiers sont acceptées sans demander. |
 | « Bypass » | Aucune demande de permission. |
 
-Un nouvel agent démarre avec les valeurs de Réglages › Claude Code : « Modèle par défaut » (Sonnet), « Effort par défaut » (Moyen) et « Mode de permission par défaut » (Auto). Voir les [réglages de Claude Code](settings-claude-code) et [les agents](managing-agents).
+Un nouvel agent démarre avec les valeurs de Réglages › Harness : « Modèle par défaut » (Sonnet), « Effort par défaut » (Moyen) et « Mode de permission par défaut » (Auto). Voir les [réglages de Claude Code](settings-claude-code) et [les agents](managing-agents).
 
 > [!WARNING]
 > En mode « Bypass », Claude agit sans aucune demande de permission : Escouade te le rappelle quand tu le choisis. Réserve-le aux environnements sûrs.

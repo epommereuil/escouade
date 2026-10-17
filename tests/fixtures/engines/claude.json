@@ -1,0 +1,42 @@
+{
+  "id": "claude",
+  "name": "Claude Code",
+  "tested": {
+    "oldest": "2.1.283",
+    "newest": "2.1.301"
+  },
+  "caps": {
+    "modes": [
+      { "id": "auto", "meaning": null },
+      { "id": "default", "meaning": null },
+      { "id": "plan", "meaning": null },
+      { "id": "acceptEdits", "meaning": null },
+      { "id": "bypassPermissions", "meaning": null }
+    ],
+    "effort": true,
+    "images": true,
+    "pdf": true,
+    "fork": "entry",
+    "resumeOtherAccount": true,
+    "midTurn": "queued",
+    "slashCommands": true,
+    "quota": "windows",
+    "cost": "exact",
+    "terminalView": true,
+    "remoteControl": true,
+    "backgroundTasks": true,
+    "todoTools": true,
+    "defaultRefusal": true
+  },
+  "install": {
+    "windows": "irm https://claude.ai/install.ps1 | iex",
+    "unix": "curl -fsSL https://claude.ai/install.sh | bash"
+  },
+  "models": [
+    { "id": "fable", "label": "Fable", "effort": true, "auto": true },
+    { "id": "opus", "label": "Opus", "effort": true, "auto": true },
+    { "id": "sonnet", "label": "Sonnet", "effort": true, "auto": true },
+    { "id": "haiku", "label": "Haiku", "effort": false, "auto": false }
+  ],
+  "efforts": ["low", "medium", "high", "xhigh", "max"]
+}

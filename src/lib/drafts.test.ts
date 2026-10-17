@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { agent, fakeBackend, project, SETTINGS } from '../test/ipc';
+import { agent, CLAUDE_ENGINE, fakeBackend, project, SETTINGS } from '../test/ipc';
 import type { DraftAttachment } from './attachments';
 import { SAVE_DELAY, forgetDraft, getDraft, setDraft } from './drafts';
 import { readPref } from './prefs';
@@ -129,6 +129,7 @@ describe('drafts', () => {
         claudeFound: true,
         version: '0.1.0',
         models: [],
+        engines: [CLAUDE_ENGINE],
       };
       fakeBackend({
         subscribe: (args: any) => {

@@ -35,7 +35,7 @@ A new agent is called `agent-1`, `agent-2`… As soon as you send it its first m
 
 ## Model, effort, and permission mode
 
-Under the message field, a bar of menus adjusts the agent: “Model”, “Effort”, and “Mode” (plus “Account” when you have several accounts). The values for new agents are in Settings › Claude Code, group “New agents”: “Default model” (Sonnet), “Default effort” (Medium), and “Default permission mode” (Auto). See [the Claude Code settings](settings-claude-code).
+Under the message field, a bar of menus adjusts the agent: “Model”, “Effort”, and “Mode” (plus “Account” when you have several accounts). The values for new agents are in Settings › Harness, group “New agents”: “Default model” (Sonnet), “Default effort” (Medium), and “Default permission mode” (Auto). See [the Claude Code settings](settings-claude-code).
 
 ### Model
 
@@ -161,7 +161,7 @@ On restart, each agent gets its conversation back, and no Claude process is star
 
 ### Idle processes
 
-A Claude process takes up memory. When an agent hasn’t done anything for a while, Escouade therefore stops its process, conversation and session intact. The delay, 30 minutes by default, is set in Settings › Claude Code: “Stop idle Claude processes after (minutes)”; `0` turns the stopping off. It doesn’t apply to an agent that is working or waiting for an answer, nor to an agent whose remote control is on, nor to an agent that still has a command, a monitor, a subagent or a workflow running in the background (they live in its process, which stopping would kill). The next action on the agent restarts its process on its session.
+A Claude process takes up memory. When an agent hasn’t done anything for a while, Escouade therefore stops its process, conversation and session intact. The delay, 30 minutes by default, is set in Settings › Harness: “Stop idle Claude processes after (minutes)”; `0` turns the stopping off. It doesn’t apply to an agent that is working or waiting for an answer, nor to an agent whose remote control is on, nor to an agent that still has a command, a monitor, a subagent or a workflow running in the background (they live in its process, which stopping would kill). The next action on the agent restarts its process on its session.
 
 ### If an agent stops
 
