@@ -6,7 +6,7 @@ Escouade est sous licence GPL-3.0 ou ultérieure (voir [LICENSE](LICENSE)). Elle
 | --- | --- | --- |
 | [Piper](https://github.com/OHF-Voice/piper1-gpl) (Open Home Foundation) | Les voix et leur synthèse : son enchaînement (phonèmes, alphabet de la voix, modèle VITS) est réécrit en Rust dans Escouade | GPL-3.0 |
 | [eSpeak NG](https://github.com/espeak-ng/espeak-ng), par son portage en Rust [espeak-ng-rs](https://github.com/eugenehp/espeak-ng-rs) | Le texte en phonèmes, avec les données du français et de l’anglais | GPL-3.0-or-later |
-| [ONNX Runtime](https://github.com/microsoft/onnxruntime) (Microsoft), par [ort](https://github.com/pykeio/ort) | Fait tourner le modèle de la voix | MIT (ort : MIT ou Apache-2.0) |
+| [ONNX Runtime](https://github.com/microsoft/onnxruntime) (Microsoft), par [ort](https://github.com/pykeio/ort) | Fait tourner le modèle de la voix (lié statiquement ; sur les Mac Intel, la bibliothèque 1.23.2 de Microsoft est embarquée dans l’app) | MIT (ort : MIT ou Apache-2.0) |
 | [whisper.cpp](https://github.com/ggml-org/whisper.cpp), par [whisper-rs](https://codeberg.org/tazz4843/whisper-rs) | La transcription de la dictée et de la conversation | MIT (whisper-rs : Unlicense) |
 | [cpal](https://github.com/RustAudio/cpal) | Le micro et les haut-parleurs | Apache-2.0 |
 

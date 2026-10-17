@@ -264,6 +264,11 @@ jobs:
           rustup target add x86_64-apple-darwin
           cargo check --lib --target x86_64-apple-darwin
 
+      # The conversation's voice on Intel Macs: Microsoft's ONNX Runtime, in the bundle's Frameworks
+      # (tauri.macos.conf.json), its checksum checked.
+      - name: ONNX Runtime for Intel Macs
+        run: scripts/onnxruntime-macos.sh
+
       # Without the updater key: only checks that the app and its disk image build.
       - name: Build the app bundle
         run: npx tauri build --debug --bundles app,dmg --config '{"bundle":{"createUpdaterArtifacts":false}}'

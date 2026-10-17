@@ -163,6 +163,12 @@ jobs:
             fi
           done
 
+      # The conversation's voice on Intel Macs: Microsoft's ONNX Runtime, in the bundle's Frameworks
+      # (tauri.macos.conf.json), its checksum checked; pyke builds no static one for Intel.
+      - name: ONNX Runtime for Intel Macs
+        if: runner.os == 'macOS'
+        run: scripts/onnxruntime-macos.sh
+
       # The same notes go into latest.json, which the in-app updater reads.
       - name: Release notes
         id: notes

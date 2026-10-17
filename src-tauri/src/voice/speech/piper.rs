@@ -169,11 +169,61 @@ impl Phonemizer {
     }
 }
 
+/// ONNX Runtime is loaded from a library at run time, not linked in: Intel Macs (pyke builds none for them), or the
+/// `ort-dynamic` feature (to try that path on another system).
+const DYNAMIC: bool = cfg!(any(
+    feature = "ort-dynamic",
+    all(target_os = "macos", target_arch = "x86_64")
+));
+
+/// Microsoft's library, in the app: `Contents/Frameworks` of the bundle on a Mac, beside the program elsewhere;
+/// `ESCOUADE_ORT_DYLIB` in its place.
+pub fn runtime_path() -> PathBuf {
+    if let Some(p) = std::env::var_os("ESCOUADE_ORT_DYLIB").filter(|p| !p.is_empty()) {
+        return PathBuf::from(p);
+    }
+    let exe = std::env::current_exe().unwrap_or_default();
+    let dir = exe.parent().map(Path::to_path_buf).unwrap_or_default();
+    if cfg!(target_os = "macos") {
+        dir.join("../Frameworks/libonnxruntime.1.23.2.dylib")
+    } else if cfg!(windows) {
+        dir.join("onnxruntime.dll")
+    } else {
+        dir.join("libonnxruntime.so")
+    }
+}
+
+/// ONNX Runtime made ready, once: loaded from its library where it is not linked in.
+fn runtime() -> Result<()> {
+    static READY: std::sync::OnceLock<std::result::Result<(), String>> = std::sync::OnceLock::new();
+    READY
+        .get_or_init(|| {
+            #[cfg(any(
+                feature = "ort-dynamic",
+                all(target_os = "macos", target_arch = "x86_64")
+            ))]
+            {
+                let path = runtime_path();
+                let started = std::time::Instant::now();
+                ort::init_from(&path)
+                    .map_err(|e| format!("ONNX Runtime ({}): {e}", path.display()))?
+                    .commit();
+                log::info!(
+                    "speech: ONNX Runtime loaded from {} in {:?}",
+                    path.display(),
+                    started.elapsed()
+                );
+            }
+            Ok(())
+        })
+        .clone()
+        .map_err(|e| anyhow::anyhow!(e))
+}
+
 /// A pause between two sentences, in seconds.
 const SENTENCE_GAP: f32 = 0.15;
 
 /// The voice loaded, kept for the next sentences.
-#[cfg(not(all(target_os = "macos", target_arch = "x86_64")))]
 struct Loaded {
     path: PathBuf,
     session: ort::session::Session,
@@ -182,7 +232,6 @@ struct Loaded {
 
 pub struct Piper {
     phonemizer: Phonemizer,
-    #[cfg(not(all(target_os = "macos", target_arch = "x86_64")))]
     loaded: Mutex<Option<Loaded>>,
 }
 
@@ -190,7 +239,6 @@ impl Piper {
     pub fn new(espeak_dir: PathBuf) -> Self {
         Self {
             phonemizer: Phonemizer::new(espeak_dir),
-            #[cfg(not(all(target_os = "macos", target_arch = "x86_64")))]
             loaded: Mutex::new(None),
         }
     }
@@ -211,10 +259,9 @@ pub fn normalize(samples: &mut [f32]) {
     }
 }
 
-#[cfg(not(all(target_os = "macos", target_arch = "x86_64")))]
 impl Engine for Piper {
     fn available(&self) -> bool {
-        true
+        !DYNAMIC || runtime_path().exists()
     }
 
     fn sentences(&self, text: &str) -> Vec<String> {
@@ -231,6 +278,7 @@ impl Engine for Piper {
 
     fn synthesize(&self, model: &Path, sentence: &str, opts: &SpeakOptions) -> Result<Audio> {
         use ort::value::Tensor;
+        runtime()?;
         let mut slot = self.loaded.lock();
         if slot.as_ref().map(|l| l.path.as_path()) != Some(model) {
             *slot = None;
@@ -301,25 +349,6 @@ impl Engine for Piper {
     fn unload(&self) {
         *self.loaded.lock() = None;
     }
-}
-
-/// Intel Macs: no ONNX Runtime the app could link in (none built for them).
-#[cfg(all(target_os = "macos", target_arch = "x86_64"))]
-impl Engine for Piper {
-    fn available(&self) -> bool {
-        false
-    }
-
-    fn sentences(&self, text: &str) -> Vec<String> {
-        vec![text.to_string()]
-    }
-
-    fn synthesize(&self, _model: &Path, _sentence: &str, _opts: &SpeakOptions) -> Result<Audio> {
-        let _ = &self.phonemizer;
-        anyhow::bail!("speech is not available on Intel Macs")
-    }
-
-    fn unload(&self) {}
 }
 
 #[cfg(test)]
@@ -404,7 +433,6 @@ mod tests {
     /// The real thing, when a voice is given (`ESCOUADE_SPEECH_TEST_VOICE`, its `.onnx`): speaks a French sentence,
     /// written to `<target>/speech-test.wav`; with a Whisper model too (`ESCOUADE_VOICE_TEST_MODEL`), checks that it
     /// is understood. Run by hand: the CI has no voice.
-    #[cfg(not(all(target_os = "macos", target_arch = "x86_64")))]
     #[test]
     fn piper_speaks_with_a_real_voice_when_one_is_given() {
         let Ok(voice) = std::env::var("ESCOUADE_SPEECH_TEST_VOICE") else {

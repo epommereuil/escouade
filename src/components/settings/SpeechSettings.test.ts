@@ -109,6 +109,8 @@ describe('Réglages › Voix, the conversation', () => {
 
   it('says when this machine cannot speak', async () => {
     open({ speech_info: () => ({ ...SPEECH, available: false }) });
-    expect(await screen.findByText('La synthèse vocale n’est pas disponible sur ce Mac (processeur Intel).')).toBeTruthy();
+    expect(
+      await screen.findByText('La synthèse vocale n’est pas disponible : le moteur de la voix (ONNX Runtime) est introuvable dans l’app.'),
+    ).toBeTruthy();
   });
 });

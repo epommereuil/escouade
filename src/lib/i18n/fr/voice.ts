@@ -86,7 +86,7 @@ export default {
     downloading: '{name} : {done} sur {total}',
     cancel: 'Annuler',
     unavailable:
-      'La conversation vocale n’est pas disponible sur ce Mac (processeur Intel) : la synthèse vocale demande un Mac Apple Silicon.',
+      'La conversation vocale n’est pas disponible : le moteur de la voix (ONNX Runtime) est introuvable dans l’app. Réinstalle Escouade.',
     sendFailed: 'Le message n’est pas parti : {error}',
     /** What it says aloud, in the agent's voice. */
     say: {
@@ -110,7 +110,7 @@ export default {
   speech: {
     title: 'Conversation',
     note: 'Les réponses sont lues sur ta machine par Piper : rien ne quitte ta machine. Les voix proposées sont celles dont la licence le permet (modèle et jeu de données libres, aucune voix de personnage, de personne connue ni de marque) ; chacune se télécharge une fois, sa somme de contrôle vérifiée.',
-    unavailable: 'La synthèse vocale n’est pas disponible sur ce Mac (processeur Intel).',
+    unavailable: 'La synthèse vocale n’est pas disponible : le moteur de la voix (ONNX Runtime) est introuvable dans l’app.',
     voiceFor: 'Voix en {lang}',
     voiceDesc: 'Celle qui lit les réponses quand la conversation se tient dans cette langue.',
     quality: { low: 'basse', medium: 'moyenne', high: 'haute', xLow: 'très basse' },

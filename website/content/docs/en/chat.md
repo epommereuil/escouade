@@ -129,7 +129,7 @@ A panel above the button says where the conversation is (“Listening”, “Tra
 - **Cutting in**: speak while it reads, the reading stops at once and Escouade listens. The microphone does not take the agent’s voice for a sentence of yours: while it reads, it only tells whether you speak over it, above the echo of the speakers. Headphones remain the most comfortable.
 - **Questions and permissions**: when the agent asks a question or a permission, Escouade reads it, then your spoken answer answers it: “yes”, “okay” or “go ahead” allow, “no” denies, “always” always allows; an option is said by its name or its rank (“the second”). If Escouade does not understand, or if the question takes several choices, the conversation **pauses** and says so: answer in the window, then “Resume”.
 
-Everything happens **on your machine**: the transcription by Whisper, as for dictation, and the voice by **Piper**, linked into Escouade. At the first conversation, Escouade offers to download the voice (about 60 MB, once, from Hugging Face, its checksum checked). The conversation is held in French or English: the spoken language of the settings, else the interface’s. It is not available on Intel Macs.
+Everything happens **on your machine**: the transcription by Whisper, as for dictation, and the voice by **Piper**, linked into Escouade. At the first conversation, Escouade offers to download the voice (about 60 MB, once, from Hugging Face, its checksum checked). The conversation is held in French or English: the spoken language of the settings, else the interface’s.
 
 In **Settings › Voice › Conversation**:
 

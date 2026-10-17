@@ -129,7 +129,7 @@ Un panneau au-dessus du bouton dit où en est la conversation (« À l’écoute
 - **Couper la parole** : parle pendant la lecture, elle s’arrête aussitôt et Escouade t’écoute. Le micro n’entend pas la voix de l’agent pour une phrase de toi : pendant la lecture, il sert seulement à savoir si tu parles par-dessus, au-dessus de l’écho des haut-parleurs. Un casque reste le plus confortable.
 - **Questions et permissions** : quand l’agent pose une question ou demande une permission, Escouade la lit, puis ta réponse dite y répond : « oui », « d’accord » ou « vas-y » autorisent, « non » refuse, « toujours » autorise toujours ; une option se dit par son nom ou son rang (« la deuxième »). Si Escouade ne comprend pas, ou si la question demande plusieurs choix, la conversation se met **en pause** et le dit : réponds dans la fenêtre, puis « Reprendre ».
 
-Tout se passe **sur ta machine** : la transcription par Whisper, comme la dictée, et la voix par **Piper**, liée à Escouade. À la première conversation, Escouade propose de télécharger la voix (environ 60 Mo, une seule fois, depuis Hugging Face, sa somme de contrôle vérifiée). La conversation se tient en français ou en anglais : la langue parlée des réglages, sinon celle de l’interface. Elle n’est pas disponible sur les Mac à processeur Intel.
+Tout se passe **sur ta machine** : la transcription par Whisper, comme la dictée, et la voix par **Piper**, liée à Escouade. À la première conversation, Escouade propose de télécharger la voix (environ 60 Mo, une seule fois, depuis Hugging Face, sa somme de contrôle vérifiée). La conversation se tient en français ou en anglais : la langue parlée des réglages, sinon celle de l’interface.
 
 Dans **Réglages › Voix › Conversation** :
 

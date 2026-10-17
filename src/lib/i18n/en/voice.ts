@@ -81,7 +81,7 @@ export default defineZone('voice', {
     download: 'Download',
     downloading: '{name}: {done} of {total}',
     cancel: 'Cancel',
-    unavailable: 'Voice conversation is not available on this Mac (Intel processor): speech needs an Apple silicon Mac.',
+    unavailable: 'Voice conversation is not available: the voice’s engine (ONNX Runtime) is missing from the app. Reinstall Escouade.',
     sendFailed: 'The message was not sent: {error}',
     say: {
       noPassage: 'Done. The answer is in the conversation.',
@@ -102,7 +102,7 @@ export default defineZone('voice', {
   speech: {
     title: 'Conversation',
     note: 'Answers are read on your machine by Piper: nothing leaves your machine. The voices offered are those whose licence allows it (free model and dataset, no voice of a character, a known person or a brand); each one is downloaded once, its checksum checked.',
-    unavailable: 'Speech is not available on this Mac (Intel processor).',
+    unavailable: 'Speech is not available: the voice’s engine (ONNX Runtime) is missing from the app.',
     voiceFor: 'Voice in {lang}',
     voiceDesc: 'The one that reads the answers when the conversation is held in this language.',
     quality: { low: 'low', medium: 'medium', high: 'high', xLow: 'very low' },
