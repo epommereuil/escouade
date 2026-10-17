@@ -25,24 +25,26 @@ export default {
     layout: 'Disposition ({key})',
     layoutClassic: 'Disposition classique',
     layoutSplit: 'Conversation et fichiers côte à côte',
-    toTerminal: 'Vue Claude Code',
-    toTerminalHint: 'Faire tourner l’agent dans l’interface de Claude Code elle-même, dans un terminal',
+    /** « Vue <harness> »: `{engine}`, the agent's harness (Claude Code, Codex…). */
+    toTerminal: 'Vue {engine}',
+    toTerminalHint: 'Faire tourner l’agent dans l’interface de {engine} elle-même, dans un terminal',
     toRich: 'Vue Escouade',
     toRichHint: 'Revenir à la conversation d’Escouade (la session continue)',
   },
 
   /** « Vue Claude Code »: the agent in Claude Code's own interface. */
   terminal: {
-    starting: 'Démarrage de Claude Code…',
-    exited: 'Claude Code s’est arrêté.',
+    /** `{engine}`: the agent's harness, everywhere in this group; `{speaker}`: its agents' name (Claude). */
+    starting: 'Démarrage de {engine}…',
+    exited: '{engine} s’est arrêté.',
     /** It stopped as soon as it started (ESC-106): the reason is in its output, above. `{code}`: its exit code. */
-    exitedAtOnce: 'Claude Code s’est arrêté dès son lancement (code {code}). Regarde sa sortie ci-dessus, puis relance-le.',
-    exitedAtOnceNoCode: 'Claude Code s’est arrêté dès son lancement. Regarde sa sortie ci-dessus, puis relance-le.',
+    exitedAtOnce: '{engine} s’est arrêté dès son lancement (code {code}). Regarde sa sortie ci-dessus, puis relance-le.',
+    exitedAtOnceNoCode: '{engine} s’est arrêté dès son lancement. Regarde sa sortie ci-dessus, puis relance-le.',
     /** It found no conversation to resume: the interface starts again, on a new session. */
-    sessionLost: 'Session Claude introuvable : l’interface repart en nouvelle session.',
+    sessionLost: 'Session {speaker} introuvable : l’interface repart en nouvelle session.',
     restart: 'Relancer',
-    failed: 'Claude Code n’a pas démarré : {error}',
-    imageTooBig: '{name} dépasse {max} : Claude Code ne la recevra pas.',
+    failed: '{engine} n’a pas démarré : {error}',
+    imageTooBig: '{name} dépasse {max} : {engine} ne la recevra pas.',
   },
 
   /** An agent whose process started without Escouade’s tools, which its next start gives (ESC-91). */

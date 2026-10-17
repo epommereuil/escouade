@@ -6,6 +6,8 @@ authors = ["Guillaume Gagnaire"]
 license = "GPL-3.0-or-later"
 edition = "2021"
 rust-version = "1.88"
+# The app; `escouade-hook` (src/bin) is the other program the installers ship beside it.
+default-run = "escouade"
 
 [lib]
 name = "escouade_lib"

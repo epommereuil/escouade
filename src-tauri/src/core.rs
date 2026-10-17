@@ -4292,12 +4292,13 @@ impl<R: Runtime> Core<R> {
                 format!("agent-{n}")
             }
         };
+        let engine = o.engine.unwrap_or_else(|| project.engine());
         let mut meta = AgentMeta {
             id: new_id(),
             project_id: project_id.to_string(),
             name: name.clone(),
             named: o.name.is_some() || o.copy_of.is_some(),
-            engine: o.engine.unwrap_or_else(|| project.engine()),
+            engine,
             fork_of: o.copy_of.as_ref().and_then(|c| c.session_id.clone()),
             fork_at: o
                 .copy_of
@@ -4310,7 +4311,9 @@ impl<R: Runtime> Core<R> {
             cwd: project.path.clone(),
             created_at: now_ms(),
             last_activity: now_ms(),
-            terminal: settings.terminal_view && o.ticket_id.is_none(),
+            terminal: settings.terminal_view
+                && o.ticket_id.is_none()
+                && crate::engine::by_id(engine).terminal().is_some(),
             remote_off: o.remote_off || o.copy_of.as_ref().is_some_and(|c| c.remote_off),
             ticket_id: o.ticket_id,
             append_prompt: o.append_prompt,
@@ -5255,7 +5258,7 @@ impl<R: Runtime> Core<R> {
                     rt.gen += 1;
                     rt.stop_tui(fx);
                     self.hooks.revoke(&rt.meta.id);
-                    interface = Some(t);
+                    interface = Some((t, crate::tui::quit_key(&rt.meta)));
                 }
                 rt.clear_pending(fx);
                 if rt.meta.status.is_active() {
@@ -5275,8 +5278,8 @@ impl<R: Runtime> Core<R> {
             p.close_input();
         }
         // Marked as quitting under the launch lock, which is let go for the seconds it takes.
-        if let Some(t) = interface {
-            let quit = self.quit_soon(id, &t);
+        if let Some((t, key)) = interface {
+            let quit = self.quit_soon(id, &t, key);
             drop(guard);
             let _ = quit.await;
         }
@@ -5320,7 +5323,10 @@ impl<R: Runtime> Core<R> {
             if let Some(p) = &killed {
                 p.kill();
             }
-            let interface = rt.tui.take().map(|t| t.term_id);
+            let interface = rt
+                .tui
+                .take()
+                .map(|t| (t.term_id, crate::tui::quit_key(&rt.meta)));
             rt.conv.delete_file();
             (
                 rt.meta.project_id.clone(),
@@ -5335,7 +5341,7 @@ impl<R: Runtime> Core<R> {
         self.hooks.revoke(id);
         // Its Claude Code interface quits as its user would (it archives its remote session), and
         // is gone before its worktree is removed; the launch lock is not held meanwhile.
-        let quit = interface.map(|t| self.quit_soon(id, &t));
+        let quit = interface.map(|(t, key)| self.quit_soon(id, &t, key));
         self.spawn_locks.lock().remove(id);
         self.quit_locks.lock().remove(id);
         self.remote_locks.lock().remove(id);
@@ -5967,7 +5973,7 @@ impl<R: Runtime> Core<R> {
                 }
                 // Its Claude Code interface is no terminal of the project's (it quits below).
                 if let Some(t) = rt.tui.take() {
-                    interfaces.push(t.term_id);
+                    interfaces.push((t.term_id, crate::tui::quit_key(&rt.meta)));
                     at_work = true;
                 }
                 // What its turn left open is closed in the conversation the history keeps (its
@@ -6010,11 +6016,11 @@ impl<R: Runtime> Core<R> {
         // The interfaces of its agents quit as their users would, all together.
         let quits: Vec<_> = interfaces
             .into_iter()
-            .map(|t| {
+            .map(|(t, key)| {
                 let pty = self.pty.clone();
-                tauri::async_runtime::spawn(
-                    async move { crate::tui::quit_interface(&pty, &t).await },
-                )
+                tauri::async_runtime::spawn(async move {
+                    crate::tui::quit_interface(&pty, &t, key).await
+                })
             })
             .collect();
         for quit in quits {

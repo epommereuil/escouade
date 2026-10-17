@@ -92,7 +92,7 @@ Le nom des outils reste celui de Claude Code pour tous les moteurs (`Bash`, `Edi
 
 L'extraction s'est arrêtée là où d'autres lots reprennent :
 
-- **La vue Claude Code** : `tui.rs` (les arguments et réglages de l'interface de `claude`, ses hooks), `agent/transcript.rs` et `agent/sidechain.rs` (son transcript). Lot 9, vue terminal générique.
+- **La vue Claude Code** : passée par l'interface `TerminalView` (lot 9, ESC-34, « La vue terminal » ci-dessous). Restent propres à Claude Code, hors de cette interface : Remote Control (`--remote-control`, ses liens) et les sous-agents lus dans les transcripts (`agent/sidechain.rs`).
 - **Les comptes et le quota** : `accounts.rs` (comptes Claude, `CLAUDE_CONFIG_DIR`, connexion), `usage.rs` (fenêtres du quota, point d'accès OAuth). Lot 5. `Program::launch` traduit encore `CLAUDE_CONFIG_DIR` et les options de chemin de Claude Code pour WSL (`PATH_OPTIONS`).
 - **Les modèles** : `ModelInfo::list` lit la liste de `initialize` de Claude Code. Avec les menus du composer (lot 4).
 
@@ -227,6 +227,31 @@ Le protocole du ticket (`board::protocol_prompt_for`) et les messages du pilote 
 Le protocole est une consigne ajoutée : le pilote auto le met dans `AgentOptions.append_prompt`, que `Spawn.append_prompt` porte au moteur, qui le passe à sa façon (Claude Code : `--append-system-prompt` ; Codex : `developerInstructions` de `thread/start`). Sa longueur suit le moteur du ticket (`Engine::instructions_room`) : pour Claude Code, la ligne de commande d'un `.cmd` (6 000, pesés par `escaped_len`), les critères qui n'y tiennent pas remplacés par « … » ; sans borne, tous les critères.
 
 Ce qui nomme un outil d'un moteur passe par lui : le message transmis à un sous-agent (`Engine::subagent_relay`, l'outil `SendMessage` de Claude Code).
+
+## La vue terminal (ESC-34)
+
+« Vue <harness> » : un agent tourne dans l'interface de son harness elle-même, dans un terminal intégré, à la place de la conversation d'Escouade. Une session n'a qu'un process à la fois : changer de vue arrête l'un et reprend la session dans l'autre. Le cœur (`tui.rs`) fait le même travail pour tous les harness (terminal et sortie gardée, serveur de hooks et jetons, lecture du journal au fil de l'eau, sortie aussitôt et session perdue, file des messages, arrêt) et ne parle à un harness que par son `TerminalView` (`engine/terminal.rs`), que `Engine::terminal()` donne, `None` pour un harness sans vue terminal (`caps().terminal_view` dit la même chose, ce qu'un test vérifie pour chaque harness).
+
+| Méthode | Ce qu'elle dit | Claude Code (`engine/claude/terminal.rs`) |
+|---|---|---|
+| `shell()` | Le nom de son terminal. | `claude` |
+| `launch(TerminalLaunch)` | Ses arguments, son fichier privé et ses variables, depuis l'agent, la session nommée d'avance, Remote Control, le serveur de hooks (`HookServer` : adresse, variable du jeton, variable de l'adresse, `escouade-hook`) et le serveur MCP donné ou refusé. | `tui_args`, et les hooks HTTP dans le fichier de `--settings` |
+| `read_dir_args(dossier)` | Ce qui lui fait lire un dossier sans demander (celui des fichiers joints). | `--add-dir=<dossier>` |
+| `names_its_session()` | Escouade nomme une session neuve avant le lancement ; sinon, son premier hook la dit. | oui (`--session-id`) |
+| `on_hook(rt, hook)` | L'état en direct : début et fin de tour, permission ou question en attente. | `AgentRt::on_hook` |
+| `running_dir`, `find_running` | Où il liste ses interfaces lancées, et la sienne : elle est passée ce qu'elle demande avant de lire un message. | `<dossier du compte>/sessions`, `tui::find_registered` |
+| `find_log`, `on_log_entry` | La conversation : le journal de la session, et chaque entrée traduite. | `projects/*/<session>.jsonl`, `AgentRt::on_transcript` |
+| `says_session_lost`, `copy_session` | La reprise : ce qu'il écrit quand il ne trouve pas la session, et la copie d'une session d'un compte à l'autre. | « No conversation found », `accounts::copy_session` |
+| `paste`, `submit`, `image_types` | Le collage d'un message (entre crochets, puis la touche d'envoi), et les images qu'il prend par un chemin collé. | collage entre crochets, Entrée, PNG/JPEG/GIF/WebP |
+| `interrupt_key`, `quit_key` | La touche qui interrompt un tour, et celle qui le ferme pour de bon, envoyée deux fois. | Échap, Ctrl+C |
+
+Les textes de la vue nomment le harness de l'agent (« Vue {engine} », « {engine} s'est arrêté. ») ; avec Claude Code, ils sont ceux d'avant. Le réglage des nouveaux agents (« Vue des nouveaux agents » : « Escouade » ou « Terminal du harness ») est montré tant qu'un harness a une vue terminal ; un agent dont le harness n'en a pas reste dans la vue d'Escouade (`Core::create_agent_with`), et le passage est refusé (`set_agent_view`).
+
+### `escouade-hook`
+
+Codex et Copilot CLI lancent leurs hooks comme des commandes, pas en HTTP. `escouade-hook` (`src-tauri/src/bin/escouade-hook.rs`, la bibliothèque standard seule) lit l'événement sur son entrée et le poste au serveur de hooks d'Escouade comme le ferait un hook HTTP de Claude Code : à l'adresse de `ESCOUADE_HOOK_URL` (la boucle locale seulement), avec le jeton de `ESCOUADE_HOOK_TOKEN` en `Authorization: Bearer`. Sans jeton, il sort aussitôt sans rien lire ni envoyer : un hook déclaré dans un dossier que l'utilisateur partage avec ses propres sessions ne les touche pas. Il sort toujours avec le code 0 et n'écrit rien : le harness continue comme sans lui.
+
+C'est un second binaire du crate : `tauri build` le construit et l'installe à côté de l'app (Windows : le dossier d'installation, l'installeur NSIS l'y copie et le désinstalleur l'enlève ; macOS : `Escouade.app/Contents/MacOS` ; Linux : `/usr/bin` du .deb et de l'AppImage), ce que la CI vérifie sur chaque paquet. `engine::terminal::hook_command()` le trouve à côté du programme de l'app (ou un dossier au-dessus, pour les tests). Ses tests : `tests/escouade_hook.rs` (le programme, avec et sans jeton) et `terminal_tests.rs` (posté au vrai serveur de hooks, l'agent suit).
 
 ## Le banc de conformité (ESC-35)
 

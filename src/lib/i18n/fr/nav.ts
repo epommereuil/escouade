@@ -68,7 +68,8 @@ export default {
       // The project's launch commands, to run in its worktree.
       launch: 'Lancer…',
       openTerminal: 'Ouvrir un terminal',
-      toTerminal: 'Vue Claude Code',
+      /** `{engine}`: the agent's harness. */
+      toTerminal: 'Vue {engine}',
       toRich: 'Vue Escouade',
       remoteOff: 'Désactiver le remote control',
       remoteOn: 'Activer le remote control',

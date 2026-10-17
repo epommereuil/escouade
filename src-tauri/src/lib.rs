@@ -57,6 +57,8 @@ mod shellenv;
 mod stats;
 mod taskout;
 mod telemetry;
+#[cfg(test)]
+mod terminal_tests;
 mod testlaunch;
 mod text;
 mod ticketfiles;

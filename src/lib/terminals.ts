@@ -14,6 +14,7 @@ import { api } from './ipc';
 import { openOutside, terminalLinks } from './links';
 import { IS_MAC } from './platform';
 import { isAppShortcut } from './shortcuts';
+import { engineName } from './engines';
 import { app } from './state.svelte';
 import type { TermInfo } from './types';
 
@@ -405,7 +406,8 @@ async function pastedPath(f: File, agentId: string): Promise<string | null> {
   }
   // Refused before it is read, as the backend would after.
   if (f.size > MAX_TOTAL) {
-    app.toast(t('conv.terminal.imageTooBig', { name: f.name, max: sizeLabel(MAX_TOTAL) }), 'error');
+    const engine = engineName(app.agents[agentId]?.engine);
+    app.toast(t('conv.terminal.imageTooBig', { name: f.name, max: sizeLabel(MAX_TOTAL), engine }), 'error');
     return null;
   }
   return api.pasteImage(agentId, type, await base64(f));

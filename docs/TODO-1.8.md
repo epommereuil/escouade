@@ -495,7 +495,7 @@ Lots, dans l'ordre :
 6. **Textes et consignes** indépendants du moteur (voir « Textes »). Fait (ESC-31), voir docs/ENGINES.md, « Les textes et les consignes ».
 7. **Textes rédigés** par moteur (voir « Textes rédigés par un modèle »).
 8. **Serveur MCP** par moteur (voir « Serveur MCP d'Escouade »). Fait (ESC-33), voir docs/ENGINES.md, « Le serveur MCP d'Escouade » : l'interface et Claude Code ; Codex suit avec ESC-38 et ESC-50.
-9. **Vue terminal générique** et commande `escouade-hook` (voir « Vue terminal de chaque moteur »).
+9. **Vue terminal générique** et commande `escouade-hook` (voir « Vue terminal de chaque moteur »). Fait (ESC-34), voir docs/ENGINES.md, « La vue terminal » : l'interface `TerminalView` et Claude Code ; Codex la prend avec son adaptateur.
 10. **Banc de conformité** des moteurs, et guide `docs/ENGINES.md` « Ajouter un moteur ». Fait (ESC-35), voir docs/ENGINES.md, « Le banc de conformité » : le faux `claude` passe les douze scénarios, un faux moteur minimal s'y branche sans toucher au cœur, et les flux réels se rejouent depuis `tests/fixtures/replays/` ; chaque moteur y branche son faux avec son ticket.
 11. **Moteur ACP générique** : client, extensions propres à un moteur, faux agent ACP.
 12. **Continuer sur un autre moteur** quand le quota est épuisé (voir la section du même nom, ESC-88).
@@ -719,7 +719,7 @@ But : comme en vue Claude Code (`docs/PROTOCOL.md`, « Vue Claude Code »), un a
   - un message de la fenêtre ou du serveur MCP est collé dans l'interface (collage entre crochets, puis Entrée), et une interruption envoie la touche du moteur (Échap chez Claude Code, à relever ailleurs) ;
   - un agent de ticket reste sur le protocole ;
   - quand l'interface demande la confiance du dossier, Escouade ne répond jamais à la place de l'utilisateur.
-- [ ] **Hooks par commande** : Claude Code appelle des hooks HTTP, alors que Codex et Copilot lancent des commandes.
+- [x] **Hooks par commande** (ESC-34 : `src-tauri/src/bin/escouade-hook.rs`, docs/ENGINES.md, « La vue terminal ») : Claude Code appelle des hooks HTTP, alors que Codex et Copilot lancent des commandes.
   - Escouade fournit une petite commande (`escouade-hook`, livrée avec l'app) qui lit l'événement sur son entrée et le poste au serveur de hooks d'Escouade, avec le jeton de l'interface lu dans l'environnement (`ESCOUADE_HOOK_TOKEN`).
   - Sans ce jeton, elle sort aussitôt sans rien faire. Un hook déclaré dans un dossier que l'utilisateur partage avec ses propres sessions ne les touche donc pas.
 - [ ] **Par moteur** (à confirmer au point 0) :
@@ -745,7 +745,7 @@ But : comme en vue Claude Code (`docs/PROTOCOL.md`, « Vue Claude Code »), un a
   - **Confiance du dossier** : sur un projet que Codex ne connaît pas, l'interface s'ouvre sur « Trust and continue », pour la racine du dépôt, et Entrée l'accepte. Aucun hook ne le signale (`SessionStart` attend le premier message). Avant de coller un message, Escouade lit donc `[projects.'<racine>'] trust_level` dans le `config.toml` du compte : sans confiance, il ne colle rien, garde le message en file et dit « Codex demande si tu fais confiance à ce dossier : réponds dans le terminal ». Il ne répond jamais à cette question.
   - En vue Escouade, l'app-server écrit cette confiance de lui-même au premier `thread/start` en `workspace-write`. Le dire dans la doc (Escouade touche ainsi au `config.toml` de l'utilisateur, par Codex), et voir s'il faut le dire dans l'app.
   - Une session neuve prend le modèle du `config.toml` : Escouade passe `-m` avec celui de l'agent.
-- [ ] **Bouton et réglage** : « Vue Claude Code » devient « Vue <moteur> » (« Vue Codex »…) dans l'en-tête de la conversation et le clic droit sur la carte. Le réglage des nouveaux agents propose « Escouade » ou « Terminal du moteur ». Textes fr et en.
+- [x] **Bouton et réglage** (ESC-34 ; le réglage dit « Terminal du harness », le mot de l'interface) : « Vue Claude Code » devient « Vue <moteur> » (« Vue Codex »…) dans l'en-tête de la conversation et le clic droit sur la carte. Le réglage des nouveaux agents propose « Escouade » ou « Terminal du moteur ». Textes fr et en.
 - [ ] **Coût** : estimé depuis l'usage lu dans le journal, comme en vue Claude Code. Rien pour Cursor.
 - [ ] **Tests** : chaque faux moteur a aussi une interface factice, lancée dans un pseudo-terminal, qui écrit son journal et appelle ses hooks, comme pour la vue Claude Code (`tests/fixtures/tui-transcript.jsonl`, `tui-hooks.jsonl`).
 

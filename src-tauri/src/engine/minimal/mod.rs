@@ -72,6 +72,10 @@ impl Engine for Minimal {
         }
     }
 
+    fn terminal(&self) -> Option<&'static dyn crate::engine::TerminalView> {
+        None
+    }
+
     fn spawn(
         &self,
         spawn: Spawn,

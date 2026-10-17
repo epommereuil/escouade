@@ -15,7 +15,15 @@
 use crate::accounts;
 use crate::agent::{AgentHandle, Effects, TuiRun};
 use crate::core::Core;
-use crate::engine::{Engine, Escouade};
+pub use crate::engine::claude_terminal::find_transcript;
+#[cfg(test)]
+pub use crate::engine::claude_terminal::tui_args;
+#[cfg(test)]
+use crate::engine::claude_terminal::EVENTS;
+use crate::engine::terminal::{HookServer, TerminalLaunch};
+use crate::engine::TerminalView;
+#[cfg(test)]
+use crate::engine::{claude_terminal, Engine, Escouade};
 use crate::model::*;
 use crate::pty::{PtyManager, TermInfo};
 use anyhow::{anyhow, bail, Context, Result};
@@ -26,7 +34,9 @@ use hyper::service::service_fn;
 use hyper::{header, Method, Request, Response, StatusCode};
 use hyper_util::rt::{TokioIo, TokioTimer};
 use parking_lot::Mutex;
-use serde_json::{json, Value};
+#[cfg(test)]
+use serde_json::json;
+use serde_json::Value;
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::io::{Read, Seek, SeekFrom};
@@ -39,7 +49,9 @@ use tauri::Runtime;
 /// The path of the hooks' endpoint.
 const PATH: &str = "/hook";
 /// The variable that gives an interface its token.
-const TOKEN_VAR: &str = "ESCOUADE_HOOK_TOKEN";
+pub(crate) const TOKEN_VAR: &str = "ESCOUADE_HOOK_TOKEN";
+/// The variable that gives `escouade-hook` the hooks' server's address.
+pub(crate) const URL_VAR: &str = "ESCOUADE_HOOK_URL";
 /// How often the transcript of a running interface is read.
 const READ_EVERY: Duration = Duration::from_millis(400);
 /// The most a hook may send (its tool's input, a prompt with a pasted file).
@@ -68,17 +80,6 @@ const QUIT_WRITTEN_WITHIN: Duration = Duration::from_secs(2);
 const QUIT_GAP: Duration = Duration::from_millis(700);
 /// How long an interface told to quit is given to end, before it is killed.
 const QUIT_WAIT: Duration = Duration::from_secs(5);
-/// The hooks Escouade listens to.
-const EVENTS: &[&str] = &[
-    "UserPromptSubmit",
-    "PreToolUse",
-    "PermissionRequest",
-    "PostToolUse",
-    "PostToolUseFailure",
-    "Notification",
-    "Stop",
-    "StopFailure",
-];
 
 /// The server the interfaces' hooks call: started with the first interface, until the app quits.
 #[derive(Default)]
@@ -417,19 +418,19 @@ fn csi_query_len(s: &[u8]) -> Option<usize> {
 /// that will not run again: back in Escouade's view, archived, deleted, no longer holding Remote
 /// Control. Not when the app quits (the remote session is kept, so that the next start reattaches
 /// it), nor when the user closes the terminal (`Core::kill_terminal`).
-pub(crate) async fn quit_interface(pty: &PtyManager, term: &str) {
+pub(crate) async fn quit_interface(pty: &PtyManager, term: &str, key: &'static [u8]) {
     // The first one is waited for until it is really written (the terminal's input thread may be
     // behind), off the runtime's threads: the pause starts then, not when it was queued, else the
     // two could be written together, one key press and not two.
     let first = {
         let (pty, term) = (pty.clone(), term.to_string());
-        tokio::task::spawn_blocking(move || pty.write_and_wait(&term, b"\x03", QUIT_WRITTEN_WITHIN))
+        tokio::task::spawn_blocking(move || pty.write_and_wait(&term, key, QUIT_WRITTEN_WITHIN))
             .await
     };
     match first {
         Ok(Ok(_)) => {
             tokio::time::sleep(QUIT_GAP).await;
-            match pty.write(term, b"\x03") {
+            match pty.write(term, key) {
                 Ok(_) => {
                     let deadline = Instant::now() + QUIT_WAIT;
                     while pty.exists(term) && Instant::now() < deadline {
@@ -449,92 +450,17 @@ pub(crate) async fn quit_interface(pty: &PtyManager, term: &str) {
     let _ = tokio::task::spawn_blocking(move || pty.kill(&term)).await;
 }
 
-/// The settings an interface is started with (`--settings <file>`): its hooks, each an HTTP call
-/// to `port` with the token of its environment, and, Escouade's tools refused to it (`access`),
-/// the server itself kept out (`Engine::refusal` of its `engine`: Claude Code reads the last
-/// `--settings` only, so both are in this one).
+/// Claude Code's settings for an interface whose hooks call `port` (`claude_terminal::settings`),
+/// Escouade's server kept out of it when its tools are refused (`access`).
+#[cfg(test)]
 pub fn tui_settings(port: u16, engine: &dyn Engine, access: &Escouade) -> Value {
-    let hook = json!([{ "hooks": [{
-        "type": "http",
-        "url": format!("http://127.0.0.1:{port}{PATH}"),
-        "headers": { "Authorization": format!("Bearer ${TOKEN_VAR}") },
-        "allowedEnvVars": [TOKEN_VAR],
-        "timeout": 5,
-    }] }]);
-    let hooks: serde_json::Map<String, Value> = EVENTS
-        .iter()
-        .map(|e| (e.to_string(), hook.clone()))
-        .collect();
-    let mut settings = json!({ "hooks": hooks });
-    let refusal = match access {
-        Escouade::Denied { .. } => engine.refusal(),
-        Escouade::Granted { .. } => None,
-    };
-    if let Some(Value::Object(refusal)) = refusal {
-        settings.as_object_mut().unwrap().extend(refusal);
-    }
-    settings
+    debug_assert_eq!(engine.id(), EngineId::Claude);
+    claude_terminal::settings(&hook_url(port), TOKEN_VAR, access)
 }
 
-/// The arguments of an agent's interface, as its stream's are (`claude_args`) less the stream's
-/// own; `session` is the session it starts or forks into, when it resumes none, and `remote` the
-/// name of its session in claude.ai when it starts with Remote Control.
-pub fn tui_args(
-    m: &AgentMeta,
-    session: Option<&str>,
-    remote: Option<&str>,
-    settings_file: &Path,
-) -> Vec<String> {
-    let mut a: Vec<String> = vec!["--model".into(), m.model.clone()];
-    if crate::engine::of(m).supports_effort(&m.model) {
-        a.extend(["--effort".into(), m.effort.clone()]);
-    }
-    a.extend([
-        "--permission-mode".into(),
-        m.mode.clone(),
-        "--allow-dangerously-skip-permissions".into(),
-    ]);
-    if let Some(p) = m.append_prompt.as_deref().filter(|p| !p.trim().is_empty()) {
-        let one_line = p.split_whitespace().collect::<Vec<_>>().join(" ");
-        a.extend(["--append-system-prompt".into(), one_line]);
-    }
-    match (&m.session_id, &m.fork_of) {
-        (Some(s), _) => a.push(format!("--resume={s}")),
-        (None, Some(f)) => {
-            a.extend([format!("--resume={f}"), "--fork-session".into()]);
-            if let Some(at) = &m.fork_at {
-                a.push(format!("--resume-session-at={at}"));
-            }
-            a.extend(session.map(|s| format!("--session-id={s}")));
-        }
-        (None, None) => a.extend(session.map(|s| format!("--session-id={s}"))),
-    }
-    // One argument, the name glued to the flag: Claude Code takes it so, even one that starts with
-    // « - » (as a separate argument, it might be read as an option).
-    if let Some(name) = remote {
-        a.push(format!("--remote-control={name}"));
-    }
-    a.extend([
-        "--settings".into(),
-        settings_file.to_string_lossy().into_owned(),
-    ]);
-    a
-}
-
-/// The transcript of `session` in an account's folder: `projects/<folder>/<session>.jsonl`, the
-/// one written last if several folders have it.
-pub fn find_transcript(config_dir: &Path, session: &str) -> Option<PathBuf> {
-    let file = format!("{session}.jsonl");
-    std::fs::read_dir(config_dir.join("projects"))
-        .ok()?
-        .flatten()
-        .filter_map(|folder| {
-            let path = folder.path().join(&file);
-            let at = std::fs::metadata(&path).ok()?.modified().ok()?;
-            Some((at, path))
-        })
-        .max_by_key(|(at, _)| *at)
-        .map(|(_, path)| path)
+/// The address of the hooks' server on `port`.
+fn hook_url(port: u16) -> String {
+    format!("http://127.0.0.1:{port}{PATH}")
 }
 
 /// An interface that stops sooner than this after it started, other than by its user's wish
@@ -545,8 +471,6 @@ pub(crate) const QUICK_EXIT: Duration = Duration::from_secs(20);
 const QUICK_EXITS_MAX: u32 = 2;
 /// How much of an interface's first output is kept, to read what it said when it stopped at once.
 const EXIT_OUTPUT_KEPT: usize = 8 << 10;
-/// What Claude Code says, before it quits, of a session to resume that its folder does not have.
-const NO_CONVERSATION: &str = "No conversation found";
 
 /// What the check before a start found of the session the interface is to resume.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -567,10 +491,21 @@ fn session_to_resume(m: &AgentMeta) -> Option<&str> {
     m.session_id.as_deref().or(m.fork_of.as_deref())
 }
 
-/// Whether the session the interface is to resume (`m`) is where Claude Code will look for it, in
+/// `check_session_of` for Claude Code.
+#[cfg(test)]
+pub fn check_session(
+    m: &AgentMeta,
+    config_dir: &Path,
+    others: impl FnOnce() -> Vec<(String, PathBuf)>,
+) -> SessionCheck {
+    check_session_of(&claude_terminal::CLAUDE_TERMINAL, m, config_dir, others)
+}
+
+/// Whether the session the interface `view` is to resume (`m`) is where it will look for it, in
 /// the account's folder `config_dir`, or else in the folder of one of the `others` (looked for
 /// only then: their name and folder). Claude Code quits at once on a session it does not find.
-pub fn check_session(
+pub fn check_session_of(
+    view: &dyn TerminalView,
     m: &AgentMeta,
     config_dir: &Path,
     others: impl FnOnce() -> Vec<(String, PathBuf)>,
@@ -578,12 +513,12 @@ pub fn check_session(
     let Some(session) = session_to_resume(m) else {
         return SessionCheck::Fresh;
     };
-    if find_transcript(config_dir, session).is_some() {
+    if view.find_log(config_dir, session).is_some() {
         return SessionCheck::Found;
     }
     others()
         .into_iter()
-        .find(|(_, dir)| find_transcript(dir, session).is_some())
+        .find(|(_, dir)| view.find_log(dir, session).is_some())
         .map_or(SessionCheck::Missing, |(account, dir)| {
             SessionCheck::InOtherAccount { account, dir }
         })
@@ -620,20 +555,27 @@ fn keep_output(kept: &mut Vec<u8>, bytes: &[u8]) {
     kept.extend_from_slice(&bytes[..bytes.len().min(room)]);
 }
 
-/// Whether the output says Claude Code could not find the session it was told to resume.
-fn says_no_conversation(output: &[u8]) -> bool {
-    String::from_utf8_lossy(output).contains(NO_CONVERSATION)
+/// `classify_exit_of` for Claude Code.
+#[cfg(test)]
+pub fn classify_exit(elapsed: Duration, code: Option<u32>, output: &[u8]) -> TuiExit {
+    classify_exit_of(&claude_terminal::CLAUDE_TERMINAL, elapsed, code, output)
 }
 
-/// How an interface that ran for `elapsed` ended with `code` (None: killed), having written
-/// `output`. Quick: soon after it started, and not by its user's wish (`/exit` ends with code 0).
-/// The session is lost when it was quick and the output says Claude Code did not find it.
-pub fn classify_exit(elapsed: Duration, code: Option<u32>, output: &[u8]) -> TuiExit {
+/// How the interface `view` that ran for `elapsed` ended with `code` (None: killed), having
+/// written `output`. Quick: soon after it started, and not by its user's wish (`/exit` ends with
+/// code 0). The session is lost when it was quick and the output says the interface did not find
+/// it.
+pub fn classify_exit_of(
+    view: &dyn TerminalView,
+    elapsed: Duration,
+    code: Option<u32>,
+    output: &[u8],
+) -> TuiExit {
     let quick = elapsed < QUICK_EXIT && code != Some(0);
     TuiExit {
         code,
         quick,
-        session_lost: quick && says_no_conversation(output),
+        session_lost: quick && view.says_session_lost(output),
     }
 }
 
@@ -646,12 +588,12 @@ fn starts_too_fast(manual: bool, quick_exits: u32) -> bool {
 /// What an interface wrote, once its last bytes are in: the terminal's reader may still be behind
 /// when the exit is told. Waits a moment for more while it has not said the session was not
 /// found, and its output still grows.
-fn settled_output(kept: &Mutex<Vec<u8>>) -> Vec<u8> {
+fn settled_output(view: &dyn TerminalView, kept: &Mutex<Vec<u8>>) -> Vec<u8> {
     let mut seen = None;
     for _ in 0..12 {
         let len = {
             let output = kept.lock();
-            if says_no_conversation(&output) {
+            if view.says_session_lost(&output) {
                 break;
             }
             output.len()
@@ -799,9 +741,6 @@ const PASTES_KEPT: Duration = Duration::from_secs(24 * 3600);
 /// The most a pasted image may weigh, as all the files of a message in the composer (`MAX_TOTAL`).
 const MAX_PASTE: usize = 18 << 20;
 
-/// The types of the images Claude Code reads.
-const IMAGE_TYPES: [&str; 4] = ["image/png", "image/jpeg", "image/gif", "image/webp"];
-
 /// The extension Claude Code knows an image by, from its first bytes; None for anything but the
 /// images it reads.
 fn image_extension(bytes: &[u8]) -> Option<&'static str> {
@@ -836,6 +775,26 @@ pub(crate) fn clear_pastes(dir: &Path) {
     }
 }
 
+/// The interface in a terminal of the harness of the agent `m` (« Vue <harness> »), and its name;
+/// refused for a harness that has none.
+fn view_of(m: &AgentMeta) -> Result<(&'static dyn TerminalView, &'static str)> {
+    let harness = crate::engine::of(m);
+    match harness.terminal() {
+        Some(view) => Ok((view, harness.name())),
+        None => bail!(tr!(
+            "{harness} n’a pas de vue terminal : l’agent reste dans la vue d’Escouade.",
+            "{harness} has no terminal view: the agent stays in Escouade’s view.",
+            harness = harness.name()
+        )),
+    }
+}
+
+/// The key that ends the interface of the agent `m` for good, sent twice (`quit_interface`):
+/// its harness's, Ctrl+C for one with no interface.
+pub(crate) fn quit_key(m: &AgentMeta) -> &'static [u8] {
+    view_of(m).map_or(b"\x03", |(view, _)| view.quit_key())
+}
+
 /// Refused: a ticket's agent is driven by its board, over the stream.
 fn ticket_refusal() -> anyhow::Error {
     anyhow!(tr!(
@@ -852,7 +811,7 @@ impl<R: Runtime> Core<R> {
     }
 
     /// The port of the hooks' server, started the first time.
-    fn hook_port(self: &Arc<Self>) -> Result<u16> {
+    pub(crate) fn hook_port(self: &Arc<Self>) -> Result<u16> {
         let mut port = self.hooks.port.lock();
         if let Some(p) = *port {
             return Ok(p);
@@ -880,6 +839,9 @@ impl<R: Runtime> Core<R> {
             }
             if terminal && rt.meta.ticket_id.is_some() {
                 return Err(ticket_refusal());
+            }
+            if terminal {
+                view_of(&rt.meta)?;
             }
             if rt.meta.status.is_active() && rt.tui.is_none() {
                 bail!(tr!(
@@ -919,7 +881,10 @@ impl<R: Runtime> Core<R> {
                 rt.meta.terminal = false;
                 rt.tui_exit = None;
                 rt.gen += 1;
-                let term = rt.tui.as_ref().map(|t| t.term_id.clone());
+                let term = rt
+                    .tui
+                    .as_ref()
+                    .map(|t| (t.term_id.clone(), quit_key(&rt.meta)));
                 rt.stop_tui(&mut fx);
                 term
             };
@@ -927,8 +892,8 @@ impl<R: Runtime> Core<R> {
             // Gone before the stream resumes the session: never two processes on one. The launch
             // lock is not held while it quits (five seconds at worst): what starts a process or
             // an interface of the agent waits for the quit (`after_quit`).
-            if let Some(t) = term {
-                let quit = self.quit_soon(id, &t);
+            if let Some((t, key)) = term {
+                let quit = self.quit_soon(id, &t, key);
                 drop(guard);
                 let _ = quit.await;
             }
@@ -980,10 +945,12 @@ impl<R: Runtime> Core<R> {
         }
         {
             let mut rt = h.lock();
+            let (_, harness) = view_of(&rt.meta)?;
             if !rt.meta.terminal {
                 bail!(tr!(
-                    "L’agent n’est pas en vue Claude Code.",
-                    "The agent is not in the Claude Code view."
+                    "L’agent n’est pas en vue {harness}.",
+                    "The agent is not in the {harness} view.",
+                    harness = harness
                 ));
             }
             if rt.meta.ticket_id.is_some() {
@@ -994,8 +961,9 @@ impl<R: Runtime> Core<R> {
             }
             if starts_too_fast(manual, rt.tui_quick_exits) {
                 bail!(tr!(
-                    "Claude Code s’arrête dès son lancement ({n} fois de suite) : regarde sa sortie, puis clique sur « Relancer ».",
-                    "Claude Code stops as soon as it starts ({n} times in a row): read its output, then click “Restart”.",
+                    "{harness} s’arrête dès son lancement ({n} fois de suite) : regarde sa sortie, puis clique sur « Relancer ».",
+                    "{harness} stops as soon as it starts ({n} times in a row): read its output, then click “Restart”.",
+                    harness = harness,
                     n = rt.tui_quick_exits
                 ));
             }
@@ -1089,7 +1057,7 @@ impl<R: Runtime> Core<R> {
                 run.stop_when_idle = true;
                 return;
             }
-            let term = run.term_id.clone();
+            let term = (run.term_id.clone(), quit_key(&rt.meta));
             rt.gen += 1;
             rt.stop_tui(&mut Effects::default());
             (rt.meta.id.clone(), term)
@@ -1097,7 +1065,7 @@ impl<R: Runtime> Core<R> {
         self.hooks.revoke(&id);
         // Quits on a task of its own, as its user would; its end is ignored (the agent's run of it
         // is over), so it is no failure to start with Remote Control.
-        self.quit_soon(&id, &term);
+        self.quit_soon(&id, &term.0, term.1);
         self.emit_agent(h);
         self.request_save();
     }
@@ -1127,7 +1095,12 @@ impl<R: Runtime> Core<R> {
     /// agent's launch lock, the caller may let it go next: the quit is already marked, and nothing
     /// starts a process or an interface of the agent before it is over (`after_quit`). Neither
     /// holds the launch lock for the five seconds an interface that holds out takes to be killed.
-    pub(crate) fn quit_soon(&self, id: &str, term: &str) -> tauri::async_runtime::JoinHandle<()> {
+    pub(crate) fn quit_soon(
+        &self,
+        id: &str,
+        term: &str,
+        key: &'static [u8],
+    ) -> tauri::async_runtime::JoinHandle<()> {
         let lock = self.quit_lock(id);
         // Marked now when no other quit of the agent is under way (it is, in the rare case of two
         // in a row: the task then waits its turn).
@@ -1138,7 +1111,7 @@ impl<R: Runtime> Core<R> {
                 Some(held) => held,
                 None => lock.lock_owned().await,
             };
-            quit_interface(&pty, &term).await;
+            quit_interface(&pty, &term, key).await;
         })
     }
 
@@ -1193,47 +1166,46 @@ impl<R: Runtime> Core<R> {
         self.hooks.revoke(id);
         let settings = self.settings.read().clone();
         let account = accounts::get(&settings, &h.lock().meta.account);
+        let harness = crate::engine::of(&h.lock().meta);
+        let (view, harness_name) = view_of(&h.lock().meta)?;
         let program = accounts::program(&account, &settings).ok_or_else(|| {
             anyhow!(tr!(
-                "Claude Code introuvable. Installe-le ou indique son chemin dans les réglages.",
-                "Claude Code not found. Install it or give its path in the settings."
+                "{harness} introuvable. Installe-le ou indique son chemin dans les réglages.",
+                "{harness} not found. Install it or give its path in the settings.",
+                harness = harness_name
             ))
         })?;
         // A version older than the tested ones is refused, with its reason.
-        let harness = crate::engine::of(&h.lock().meta);
         crate::engine::registry::check(harness, &program).await?;
         let port = self.hook_port()?;
         let dir = self.data.root().join("tui");
         std::fs::create_dir_all(&dir)?;
         let settings_file = dir.join(format!("{id}.json"));
         let config_dir = accounts::config_dir(&account, &settings);
-        self.settle_session(id, &settings, &account, &program, &config_dir)
+        self.settle_session(view, id, &settings, &account, &program, &config_dir)
             .await;
         let started = now_ms();
-        let (args, cwd, name, gen, transcript, since, with_remote) = {
+        let (meta, new_session, remote, cwd, name, gen, transcript, since) = {
             let mut rt = h.lock();
-            // A session of its own from the start: its transcript is known before any hook.
-            let new_session = rt
-                .meta
-                .session_id
-                .is_none()
+            // A session of its own from the start, when the harness takes its name: its log is
+            // known before any hook.
+            let new_session = (rt.meta.session_id.is_none() && view.names_its_session())
                 .then(|| uuid::Uuid::new_v4().to_string());
             // Without the option once an interface closed right after starting with it.
             let remote =
                 (rt.meta.remote_control && !rt.remote_fallback).then(|| self.remote_name(&rt.meta));
-            let args = tui_args(
-                &rt.meta,
-                new_session.as_deref(),
-                remote.as_deref(),
-                &settings_file,
-            );
-            if let Some(s) = new_session {
+            // As it was before the new session is its: what the interface is started from.
+            let meta = rt.meta.clone();
+            if let Some(s) = new_session.clone() {
                 rt.meta.session_id = Some(s);
                 rt.meta.fork_of = None;
                 rt.meta.fork_at = None;
             }
-            let sid = rt.meta.session_id.clone().unwrap_or_default();
-            let file = find_transcript(&config_dir, &sid);
+            let file = rt
+                .meta
+                .session_id
+                .clone()
+                .and_then(|sid| view.find_log(&config_dir, &sid));
             // Where the last read stopped, when it was this file; else from now on.
             let kept = rt
                 .meta
@@ -1251,15 +1223,17 @@ impl<R: Runtime> Core<R> {
             rt.gen += 1;
             rt.start_tui();
             (
-                args,
+                meta,
+                new_session,
+                remote,
                 rt.meta.cwd.clone(),
                 rt.meta.name.clone(),
                 rt.gen,
                 (transcript, offset),
                 since,
-                remote.is_some(),
             )
         };
+        let with_remote = remote.is_some();
         if !Path::new(&cwd).is_dir() {
             bail!(tr!(
                 "Le dossier {dir} n'existe plus",
@@ -1268,21 +1242,36 @@ impl<R: Runtime> Core<R> {
             ));
         }
         self.ready_for_wsl(&program, h);
-        let mut args = args;
+        let access = self.agent_access(id, harness);
+        let (url, command) = (hook_url(port), crate::engine::terminal::hook_command());
+        let started_from = view.launch(&TerminalLaunch {
+            meta: &meta,
+            session: new_session.as_deref(),
+            remote: remote.as_deref(),
+            private_file: &settings_file,
+            hooks: HookServer {
+                url: &url,
+                token_var: TOKEN_VAR,
+                url_var: URL_VAR,
+                command: command.as_deref(),
+            },
+            access: &access,
+        });
+        let mut args = started_from.args;
         // The folder of the files joined to its messages, read without a question: the window
         // copies a file dropped on its terminal there (`attachfiles`) and types its path.
         args.extend(
             self.agent_read_dir(id)
-                .map(|d| format!("--add-dir={}", d.display())),
+                .into_iter()
+                .flat_map(|d| view.read_dir_args(&d)),
         );
-        let harness = crate::engine::of(&h.lock().meta);
-        let access = self.agent_access(id, harness);
         let launch = harness.escouade_launch(&access);
         args.extend(launch.args);
         // Its hooks, and Escouade's server kept out of it when its tools are refused.
-        let written = serde_json::to_vec_pretty(&tui_settings(port, harness, &access))
-            .map_err(anyhow::Error::from)
-            .and_then(|b| Ok(std::fs::write(&settings_file, b)?));
+        let written = match &started_from.file {
+            Some(bytes) => std::fs::write(&settings_file, bytes).map_err(anyhow::Error::from),
+            None => Ok(()),
+        };
         if let Err(e) = written {
             if let Some(t) = access.token() {
                 self.mcp.release_agent(id, t);
@@ -1292,6 +1281,7 @@ impl<R: Runtime> Core<R> {
         let token = self.hooks.grant(id);
         let mut env = [settings.agent_env(), accounts::launch_env(&account)].concat();
         env.push((TOKEN_VAR.into(), token));
+        env.extend(started_from.env);
         env.extend(launch.env);
         no_proxy(&mut env);
         let info = TermInfo {
@@ -1299,10 +1289,10 @@ impl<R: Runtime> Core<R> {
             // No project's: the window lists it with no project's terminals.
             project_id: String::new(),
             name,
-            shell: "claude".into(),
+            shell: view.shell().into(),
         };
         log::info!(
-            "agent {id}: starting Claude Code's interface {} {} in {cwd} (account {})",
+            "agent {id}: starting {harness_name}'s interface {} {} in {cwd} (account {})",
             program.describe(),
             args.join(" "),
             account.id
@@ -1383,7 +1373,7 @@ impl<R: Runtime> Core<R> {
                 spoke: false,
                 registered: None,
                 registry_file: None,
-                sessions: config_dir.join("sessions"),
+                sessions: view.running_dir(&config_dir),
                 linked: false,
                 typing: Default::default(),
                 killed: false,
@@ -1407,32 +1397,37 @@ impl<R: Runtime> Core<R> {
     /// one its `claude` reads (in WSL, the Linux one).
     pub fn paste_image(&self, id: &str, media_type: &str, data: &str) -> Result<String> {
         use base64::Engine;
-        let program = {
+        let (program, view, harness) = {
             let h = self.agent(id)?;
             let rt = h.lock();
+            let (view, harness) = view_of(&rt.meta)?;
             match &rt.tui {
-                Some(t) => t.program.clone(),
+                Some(t) => (t.program.clone(), view, harness),
                 None if rt.meta.terminal => bail!(tr!(
-                    "Claude Code s’est arrêté : relance-le pour y coller une image.",
-                    "Claude Code stopped: restart it to paste an image into it."
+                    "{harness} s’est arrêté : relance-le pour y coller une image.",
+                    "{harness} stopped: restart it to paste an image into it.",
+                    harness = harness
                 )),
                 None => bail!(tr!(
-                    "L’agent n’est pas en vue Claude Code.",
-                    "The agent is not in the Claude Code view."
+                    "L’agent n’est pas en vue {harness}.",
+                    "The agent is not in the {harness} view.",
+                    harness = harness
                 )),
             }
         };
-        if !IMAGE_TYPES.contains(&media_type) {
+        if !view.image_types().contains(&media_type) {
             bail!(tr!(
-                "Claude Code ne lit pas les images {media_type}",
-                "Claude Code does not read {media_type} images",
+                "{harness} ne lit pas les images {media_type}",
+                "{harness} does not read {media_type} images",
+                harness = harness,
                 media_type = media_type
             ));
         }
         let too_big = || {
             anyhow!(tr!(
-                "L’image dépasse 18 Mo : Claude Code ne la recevra pas.",
-                "The image is over 18 MB: Claude Code will not get it."
+                "L’image dépasse 18 Mo : {harness} ne la recevra pas.",
+                "The image is over 18 MB: {harness} will not get it.",
+                harness = harness
             ))
         };
         // Measured before it is decoded.
@@ -1446,8 +1441,9 @@ impl<R: Runtime> Core<R> {
         // What it holds, whatever its type says (a file copied under a wrong name).
         let Some(extension) = image_extension(&bytes) else {
             bail!(tr!(
-                "Ce n’est pas une image PNG, JPEG, GIF ou WebP : Claude Code ne la lit pas.",
-                "This is no PNG, JPEG, GIF or WebP image: Claude Code does not read it."
+                "Ce n’est pas une image PNG, JPEG, GIF ou WebP : {harness} ne la lit pas.",
+                "This is no PNG, JPEG, GIF or WebP image: {harness} does not read it.",
+                harness = harness
             ));
         };
         let dir = self.pastes_dir();
@@ -1512,7 +1508,8 @@ impl<R: Runtime> Core<R> {
             (!rt.interface_ready() || waits_for_a_link)
                 .then(|| {
                     Some((
-                        run.sessions.clone(),
+                        view_of(&rt.meta).ok()?.0,
+                        run.sessions.clone()?,
                         rt.meta.session_id.clone()?,
                         run.registry_file.clone(),
                     ))
@@ -1521,8 +1518,8 @@ impl<R: Runtime> Core<R> {
         };
         // Off the runtime's threads: files are read, as many as the folder holds.
         let found = match look {
-            Some((dir, session, known)) => tokio::task::spawn_blocking(move || {
-                find_registered(&dir, &session, known.as_deref())
+            Some((view, dir, session, known)) => tokio::task::spawn_blocking(move || {
+                view.find_running(&dir, &session, known.as_deref())
             })
             .await
             .ok()
@@ -1570,10 +1567,14 @@ impl<R: Runtime> Core<R> {
     /// What the agent's interface wrote in its transcript since the last read.
     pub(crate) fn read_transcript(self: &Arc<Self>, id: &str) {
         let Ok(h) = self.agent(id) else { return };
-        let (gen, known, offset, account, sid) = {
+        let (view, gen, known, offset, account, sid) = {
             let rt = h.lock();
             let Some(t) = rt.tui.as_ref() else { return };
+            let Ok((view, _)) = view_of(&rt.meta) else {
+                return;
+            };
             (
+                view,
                 t.gen,
                 t.transcript.clone(),
                 t.offset,
@@ -1587,8 +1588,8 @@ impl<R: Runtime> Core<R> {
             None => {
                 let settings = self.settings.read().clone();
                 let account = accounts::get(&settings, &account);
-                let Some(found) = sid
-                    .and_then(|s| find_transcript(&accounts::config_dir(&account, &settings), &s))
+                let Some(found) =
+                    sid.and_then(|s| view.find_log(&accounts::config_dir(&account, &settings), &s))
                 else {
                     return;
                 };
@@ -1620,7 +1621,7 @@ impl<R: Runtime> Core<R> {
                     continue;
                 }
                 let prompts = rt.meta.prompts;
-                rt.on_transcript(e, &mut fx);
+                view.on_log_entry(&mut rt, e, &mut fx);
                 // A message of the user's names the agent, as one sent from the window does: the
                 // first that gives a text to name it from (not a command with nothing to say, nor
                 // what the app typed by itself).
@@ -1675,7 +1676,10 @@ impl<R: Runtime> Core<R> {
             let Some(gen) = rt.tui.as_ref().map(|t| t.gen) else {
                 return;
             };
-            let out = rt.on_hook(&hook, &mut fx);
+            let Ok((view, _)) = view_of(&rt.meta) else {
+                return;
+            };
+            let out = view.on_hook(&mut rt, &hook, &mut fx);
             if let Some(path) = &out.transcript {
                 let path = match &wsl {
                     Some(wsl) if path.starts_with('/') => wsl.windows_path(path),
@@ -1737,23 +1741,30 @@ impl<R: Runtime> Core<R> {
         if self.quitting.load(std::sync::atomic::Ordering::Acquire) {
             return;
         }
-        log::info!("agent {id}: Claude Code's interface exited (code {code:?})");
         let started = self.agent(id).ok().and_then(|h| {
             let rt = h.lock();
-            rt.tui.as_ref().filter(|t| t.gen == gen).map(|t| t.started)
+            let view = view_of(&rt.meta).ok()?;
+            rt.tui
+                .as_ref()
+                .filter(|t| t.gen == gen)
+                .map(|t| (t.started, view))
         });
-        let Some(started) = started else { return };
+        let Some((started, (view, harness))) = started else {
+            log::info!("agent {id}: an interface that is no longer its own exited (code {code:?})");
+            return;
+        };
+        log::info!("agent {id}: {harness}'s interface exited (code {code:?})");
         self.read_transcript(id);
         let elapsed = Duration::from_millis((now_ms() - started).max(0) as u64);
         // Only what a quick exit may have said is read, and waited for.
         let said = if elapsed < QUICK_EXIT && code != Some(0) {
-            settled_output(output)
+            settled_output(view, output)
         } else {
             Vec::new()
         };
-        let exit = classify_exit(elapsed, code, &said);
+        let exit = classify_exit_of(view, elapsed, code, &said);
         if exit.session_lost {
-            log::info!("agent {id}: Claude Code did not find the session to resume");
+            log::info!("agent {id}: {harness} did not find the session to resume");
         }
         // A session that is gone made it stop, not Remote Control.
         let failed = !exit.session_lost && self.remote_failed_to_start(id, gen);
@@ -1851,6 +1862,7 @@ impl<R: Runtime> Core<R> {
     /// not started yet.
     async fn settle_session(
         self: &Arc<Self>,
+        view: &'static dyn TerminalView,
         id: &str,
         settings: &Settings,
         account: &Account,
@@ -1874,7 +1886,7 @@ impl<R: Runtime> Core<R> {
             meta.clone(),
         );
         let checked = tokio::task::spawn_blocking(move || {
-            check_session(&m, &dir, || {
+            check_session_of(view, &m, &dir, || {
                 let in_wsl =
                     |a: &Account| accounts::program(a, &all).is_some_and(|p| p.wsl().is_some());
                 other_accounts(&all, &own, in_wsl)
@@ -1910,12 +1922,11 @@ impl<R: Runtime> Core<R> {
             SessionCheck::InOtherAccount { account: from, dir } => {
                 log::info!("agent {id}: session {session} found in the folder of account {from}");
                 let (target, sid) = (config_dir.to_path_buf(), session.clone());
-                let copied = tokio::task::spawn_blocking(move || {
-                    accounts::copy_session(&dir, &target, &sid)
-                })
-                .await
-                .map_err(anyhow::Error::from)
-                .and_then(|r| r);
+                let copied =
+                    tokio::task::spawn_blocking(move || view.copy_session(&dir, &target, &sid))
+                        .await
+                        .map_err(anyhow::Error::from)
+                        .and_then(|r| r);
                 match copied {
                     Ok(()) => {
                         let _ = self.with_agent(id, |rt, fx| {
@@ -1949,8 +1960,9 @@ impl<R: Runtime> Core<R> {
     /// then Enter. Refused while it waits for an answer there (the text would go to its dialog).
     pub(crate) fn send_to_tui(&self, id: &str, text: &str) -> Result<()> {
         let h = self.agent(id)?;
-        let (term, typing) = {
+        let (term, typing, view, harness) = {
             let rt = h.lock();
+            let (view, harness) = view_of(&rt.meta)?;
             if rt.meta.status == AgentStatus::Waiting {
                 bail!(tr!(
                     "L’agent attend une réponse dans son terminal : réponds-y d’abord.",
@@ -1961,23 +1973,27 @@ impl<R: Runtime> Core<R> {
             // folder, where a text typed chooses an option.
             if rt.tui.is_some() && !rt.interface_ready() {
                 bail!(tr!(
-                    "L’interface de Claude Code de cet agent n’est pas encore prête (premier lancement ou dossier à approuver) : ouvre l’agent pour la voir.",
-                    "The Claude Code interface of this agent is not ready yet (first launch or a folder to approve): open the agent to see it."
+                    "L’interface de {harness} de cet agent n’est pas encore prête (premier lancement ou dossier à approuver) : ouvre l’agent pour la voir.",
+                    "The {harness} interface of this agent is not ready yet (first launch or a folder to approve): open the agent to see it.",
+                    harness = harness
                 ));
             }
             (
                 rt.tui.as_ref().map(|t| t.term_id.clone()),
                 rt.tui.as_ref().map(|t| t.typing.clone()),
+                view,
+                harness,
             )
         };
         let (Some(term), Some(typing)) = (term, typing) else {
             bail!(tr!(
-                "L’agent est en vue Claude Code : ouvre-le pour démarrer son terminal.",
-                "The agent is in the Claude Code view: open it to start its terminal."
+                "L’agent est en vue {harness} : ouvre-le pour démarrer son terminal.",
+                "The agent is in the {harness} view: open it to start its terminal.",
+                harness = harness
             ));
         };
         // Line breaks pasted stay in the message (Enter alone would send it).
-        let pasted = format!("\x1b[200~{}\x1b[201~", text.replace('\x1b', ""));
+        let pasted = view.paste(text);
         // One message at a time, paste and Enter: another one's paste between them would join the
         // two messages into one. (This runs off the runtime's threads: `Core::send`.)
         let _typing = typing.lock();
@@ -1986,17 +2002,22 @@ impl<R: Runtime> Core<R> {
         // one write, which is what the pause keeps apart. An error on either write is the
         // message's: it did not go, or not whole.
         self.pty
-            .write_and_wait(&term, pasted.as_bytes(), PASTE_WRITTEN_WITHIN)?;
+            .write_and_wait(&term, &pasted, PASTE_WRITTEN_WITHIN)?;
         std::thread::sleep(Duration::from_millis(150));
-        self.pty.write(&term, b"\r").map(|_| ())
+        self.pty.write(&term, view.submit()).map(|_| ())
     }
 
-    /// Interrupts the turn of the agent's interface, as Escape does there.
+    /// Interrupts the turn of the agent's interface, as its key does there (Escape in Claude
+    /// Code's).
     pub(crate) fn interrupt_tui(&self, id: &str) -> Result<bool> {
         let h = self.agent(id)?;
-        let term = h.lock().tui.as_ref().map(|t| t.term_id.clone());
+        let term = {
+            let rt = h.lock();
+            let key = view_of(&rt.meta).ok().map(|(v, _)| v.interrupt_key());
+            rt.tui.as_ref().map(|t| t.term_id.clone()).zip(key)
+        };
         match term {
-            Some(t) => self.pty.write(&t, b"\x1b").map(|_| true),
+            Some((t, key)) => self.pty.write(&t, key).map(|_| true),
             None => Ok(false),
         }
     }

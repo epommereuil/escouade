@@ -138,3 +138,21 @@ test('a session Claude Code cannot find, though its transcript is there, starts 
   await page.getByRole('button', { name: 'Vue Escouade' }).click();
   await expect(page.getByText(/Session Claude introuvable/)).toBeVisible();
 });
+
+test('« Vue des nouveaux agents » set to the harness’s terminal opens a new agent in Claude Code’s interface (ESC-34)', async ({ app }) => {
+  const { page } = app;
+  await page.getByRole('button', { name: 'Réglages (Ctrl+,)' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Réglages' });
+  await dialog.getByRole('tab', { name: 'Harness' }).click();
+  const choice = dialog.getByRole('group', { name: 'Vue des nouveaux agents' });
+  await expect(choice.getByRole('button', { name: 'Escouade' })).toHaveAttribute('aria-pressed', 'true');
+  await choice.getByRole('button', { name: 'Terminal du harness' }).click();
+  await dialog.getByRole('button', { name: 'Enregistrer' }).click();
+  await expect(dialog).toBeHidden();
+
+  // The project's first agent starts in it: its interface, and the way back to Escouade's view in its header.
+  await addProject(page, app.repo);
+  await expect.poll(() => interfaces(app).length, { timeout: 20_000 }).toBe(1);
+  await expect(page.locator('main [data-pastes="images"] .xterm')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole('button', { name: 'Vue Escouade' })).toBeVisible();
+});

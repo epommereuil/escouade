@@ -54,7 +54,7 @@ export default defineZone('nav', {
       // The project's launch commands, to run in its worktree.
       launch: 'Run…',
       openTerminal: 'Open a terminal',
-      toTerminal: 'Claude Code view',
+      toTerminal: '{engine} view',
       toRich: 'Escouade view',
       remoteOff: 'Turn off remote control',
       remoteOn: 'Turn on remote control',

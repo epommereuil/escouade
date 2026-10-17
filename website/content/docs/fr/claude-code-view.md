@@ -71,7 +71,7 @@ Le [remote control](remote-control) suit les mêmes règles que dans la vue Esco
 
 ## Ouvrir les nouveaux agents dans cette vue
 
-Dans Réglages › Harness, groupe « Nouveaux agents », l’interrupteur « Ouvrir les nouveaux agents dans l’interface de Claude Code » (désactivé par défaut) fait démarrer chaque nouvel agent dans cette vue. Chaque agent peut ensuite changer de vue depuis son en-tête. Les agents de ticket restent toujours dans la vue d’Escouade. Voir [les réglages de Claude Code](settings-claude-code).
+Dans Réglages › Harness, groupe « Nouveaux agents », le choix « Vue des nouveaux agents », « Escouade » (par défaut) ou « Terminal du harness », fait démarrer chaque nouvel agent dans la conversation d’Escouade ou dans cette vue. Chaque agent peut ensuite changer de vue depuis son en-tête. Les agents de ticket restent toujours dans la vue d’Escouade, comme ceux d’un harness qui n’a pas de vue terminal. Voir [les réglages de Claude Code](settings-claude-code).
 
 ## La confiance du dossier
 

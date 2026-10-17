@@ -6,6 +6,7 @@ mod bench;
 mod locate;
 mod mcp;
 mod process;
+pub(crate) mod terminal;
 
 #[cfg(test)]
 pub(crate) use mcp::all_tools;
@@ -369,6 +370,10 @@ impl Engine for Claude {
 
     fn caps(&self) -> EngineCaps {
         caps()
+    }
+
+    fn terminal(&self) -> Option<&'static dyn super::TerminalView> {
+        Some(&terminal::CLAUDE_TERMINAL)
     }
 
     fn install(&self) -> Install {

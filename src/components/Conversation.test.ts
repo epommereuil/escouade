@@ -1790,6 +1790,44 @@ describe('« Vue Claude Code »', () => {
   });
 });
 
+describe('« Vue <harness> » (ESC-34)', () => {
+  /** A harness of its own interface in a terminal, under its name. */
+  const WITH_VIEW = { ...BARE_ENGINE, name: 'Codex', caps: { ...BARE_ENGINE.caps, terminalView: true } };
+
+  it('is named after the agent’s harness, in the button and in its terminal', async () => {
+    setLang('fr');
+    const a = agent({ id: 'vh1', status: 'done', engine: 'codex' });
+    resetApp({ projects: [project()], agents: [a] });
+    app.engines = [CLAUDE_ENGINE, WITH_VIEW];
+    const b = fakeBackend({ get_conversation: () => [] });
+    render(Conversation, { agent: a, project: project() });
+    await userEvent.click(screen.getByRole('button', { name: 'Vue Codex' }));
+    expect(b.called('set_agent_view')[0].args).toEqual({ id: 'vh1', terminal: true });
+    expect(screen.queryByRole('button', { name: 'Vue Claude Code' })).toBeNull();
+  });
+
+  it('says so in English', () => {
+    setLang('en');
+    const a = agent({ id: 'vh2', status: 'done', engine: 'codex' });
+    resetApp({ projects: [project()], agents: [a] });
+    app.engines = [CLAUDE_ENGINE, WITH_VIEW];
+    fakeBackend({ get_conversation: () => [] });
+    render(Conversation, { agent: a, project: project() });
+    expect(screen.getByRole('button', { name: 'Codex view' })).toBeInTheDocument();
+    setLang('fr');
+  });
+
+  it('is hidden for a harness with no terminal view', () => {
+    setLang('fr');
+    const a = agent({ id: 'vh3', status: 'done', engine: 'codex' });
+    resetApp({ projects: [project()], agents: [a] });
+    app.engines = [CLAUDE_ENGINE, BARE_ENGINE];
+    fakeBackend({ get_conversation: () => [] });
+    render(Conversation, { agent: a, project: project() });
+    expect(screen.queryByRole('button', { name: /^Vue / })).toBeNull();
+  });
+});
+
 describe('« Outils d’Escouade au prochain démarrage » (ESC-91)', () => {
   const banner = () => screen.queryByRole('region', { name: 'Outils d’Escouade au prochain démarrage' });
 

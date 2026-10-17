@@ -134,9 +134,11 @@ export default {
     idleStop: 'Arrêter les processus des agents inactifs après',
     idleStopHint: 'minutes, 0 = jamais',
     idleStopLabel: 'Arrêter les processus des agents inactifs après (minutes)',
-    terminalView: 'Ouvrir les nouveaux agents dans l’interface de Claude Code',
+    terminalView: 'Vue des nouveaux agents',
     terminalViewDesc:
-      'Un nouvel agent tourne dans un terminal avec l’interface de Claude Code elle-même plutôt que dans la conversation d’Escouade. Chaque agent change de vue depuis son en-tête ; les agents de ticket restent dans la vue d’Escouade.',
+      'Escouade : la conversation d’Escouade. Terminal du harness : l’interface du harness elle-même (celle de Claude Code…), dans un terminal. Chaque agent change de vue depuis son en-tête ; les agents de ticket, et ceux d’un harness sans vue terminal, restent dans la vue d’Escouade.',
+    terminalViewEscouade: 'Escouade',
+    terminalViewHarness: 'Terminal du harness',
     todoTools: 'Les agents tiennent une liste de tâches',
     todoToolsDesc:
       'Donne aux agents l’outil de liste de tâches de Claude Code : s’ils la tiennent, Escouade montre leur avancée dans le bandeau « Plan » (le modèle n’est pas obligé de s’en servir). S’applique aux agents lancés ensuite.',

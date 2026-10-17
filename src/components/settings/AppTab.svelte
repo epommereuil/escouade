@@ -199,7 +199,14 @@
     <!-- Settings of what only some harnesses do: shown while one of them is there. -->
     {#if anyCan('terminalView')}
       <Row label={t('settings.claude.terminalView')} desc={t('settings.claude.terminalViewDesc')}>
-        <Switch label={t('settings.claude.terminalView')} bind:on={s.terminalView} />
+        <Chips
+          label={t('settings.claude.terminalView')}
+          options={[
+            { value: 'escouade', label: t('settings.claude.terminalViewEscouade') },
+            { value: 'harness', label: t('settings.claude.terminalViewHarness') },
+          ]}
+          bind:value={() => (s.terminalView ? 'harness' : 'escouade'), (v) => (s.terminalView = v === 'harness')}
+        />
       </Row>
     {/if}
     {#if anyCan('todoTools')}

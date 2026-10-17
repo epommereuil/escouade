@@ -25,6 +25,8 @@ mod minimal;
 pub mod sidechain;
 mod transcript;
 
+pub use transcript::HookOutcome;
+
 pub type AgentHandle = Arc<parking_lot::Mutex<AgentRt>>;
 
 /// What a notification is about: each kind has its own choice in the settings ("Me prévenir pour").
@@ -267,8 +269,9 @@ pub struct TuiRun {
     pub registered: Option<std::time::Instant>,
     /// The file of the registry that lists it, once found: read again for its link.
     pub registry_file: Option<std::path::PathBuf>,
-    /// The folder of that registry (`<the account's config folder>/sessions`).
-    pub sessions: std::path::PathBuf,
+    /// The folder of that registry (`<the account's config folder>/sessions`), when its harness
+    /// keeps one (`TerminalView::running_dir`).
+    pub sessions: Option<std::path::PathBuf>,
     /// A sign was seen that its session is linked to claude.ai (a `bridge-session` entry, a
     /// `bridge_status` with a link, the `bridgeSessionId` of the registry).
     pub linked: bool,
@@ -310,7 +313,7 @@ impl TuiRun {
             spoke: false,
             registered: None,
             registry_file: None,
-            sessions: std::path::PathBuf::new(),
+            sessions: None,
             linked: false,
             typing: Arc::default(),
             killed: false,

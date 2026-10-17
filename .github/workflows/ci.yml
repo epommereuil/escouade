@@ -193,6 +193,13 @@ jobs:
       - name: Build the packages
         run: npx tauri build --debug --config '{"bundle":{"createUpdaterArtifacts":false}}'
 
+      # escouade-hook, the hook of the harnesses that run theirs as commands, ships beside the app.
+      - name: The packages hold escouade-hook
+        run: |
+          dpkg -c src-tauri/target/debug/bundle/deb/*.deb | grep -E 'usr/bin/escouade-hook$'
+          appimage=$(ls "$PWD"/src-tauri/target/debug/bundle/appimage/*.AppImage)
+          (cd "$RUNNER_TEMP" && "$appimage" --appimage-extract usr/bin/escouade-hook >/dev/null && test -x squashfs-root/usr/bin/escouade-hook)
+
       - name: Upload the packages
         uses: actions/upload-artifact@v7
         with:
@@ -267,6 +274,10 @@ jobs:
       # Without the updater key: only checks that the app and its disk image build.
       - name: Build the app bundle
         run: npx tauri build --debug --bundles app,dmg --config '{"bundle":{"createUpdaterArtifacts":false}}'
+
+      # escouade-hook, the hook of the harnesses that run theirs as commands, ships beside the app.
+      - name: The app holds escouade-hook
+        run: test -x src-tauri/target/debug/bundle/macos/Escouade.app/Contents/MacOS/escouade-hook
 
       - name: Upload the disk image
         uses: actions/upload-artifact@v7

@@ -95,7 +95,7 @@ Permission requests and how to answer them are described in [the conversation](c
 |---|---|---|
 | “Auto-resume after the usage limit” | “continue” is sent to the agent once the quota has reset. | On |
 | “Resume a ticket’s agent stopped by the usage limit on another account” | Otherwise it waits for its account to reset. Absent while there is only one account. | Off |
-| “Open new agents in Claude Code’s interface” | A new agent runs in the Claude Code view rather than in Escouade’s conversation. | Off |
+| “New agents’ view” | “Escouade”: a new agent runs in Escouade’s conversation. “Harness terminal”: it runs in its harness’s own interface, in a terminal (the Claude Code view). Shown while a harness has a terminal view; the agents of a harness with none stay in Escouade’s view. | Escouade |
 | “Agents keep a task list” | Agents get Claude Code’s task list tool. | On |
 | “Stop idle agent processes after” (minutes, 0 = never) | The Claude process of an idle agent is stopped after this delay. | 30 |
 

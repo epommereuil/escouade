@@ -192,6 +192,24 @@ describe('SettingsModal', () => {
     });
   });
 
+  it('opens new agents in Escouade or in their harness’s terminal (ESC-34)', async () => {
+    const backend = backendSaving();
+    render(SettingsModal);
+    const view = group('Processus').getByRole('group', { name: 'Vue des nouveaux agents' });
+    const escouade = within(view).getByRole('button', { name: 'Escouade' });
+    const harness = within(view).getByRole('button', { name: 'Terminal du harness' });
+    expect(escouade).toHaveAttribute('aria-pressed', 'true');
+    expect(harness).toHaveAttribute('aria-pressed', 'false');
+    // Its help says that a ticket's agent, and one whose harness has no such view, stay in Escouade's.
+    expect(screen.getByText(/ceux d’un harness sans vue terminal, restent dans la vue d’Escouade/)).toBeInTheDocument();
+    await userEvent.click(harness);
+    expect(harness).toHaveAttribute('aria-pressed', 'true');
+    expect(escouade).toHaveAttribute('aria-pressed', 'false');
+    await save();
+    expect(backend.called('save_settings')[0].args.settings).toMatchObject({ terminalView: true });
+    expect(app.settings.terminalView).toBe(true);
+  });
+
   it('lets the agents keep a task list, from the group of the processes, on by default', async () => {
     const backend = backendSaving();
     render(SettingsModal);
@@ -1447,19 +1465,18 @@ describe('SettingsModal, the version of Claude Code', () => {
   });
 
   it('hides the settings of what no harness does', () => {
-    const labels = [
-      'Ouvrir les nouveaux agents dans l’interface de Claude Code',
-      'Les agents tiennent une liste de tâches',
-      'Remote control pour tous les agents',
-    ];
+    const labels = ['Les agents tiennent une liste de tâches', 'Remote control pour tous les agents'];
+    const view = 'Vue des nouveaux agents';
     fakeBackend({ claude_locate: () => located });
     render(SettingsModal, { tab: 'claude' });
     for (const name of labels) expect(screen.getByRole('switch', { name })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: view })).toBeInTheDocument();
     cleanup();
     app.engines = [BARE_ENGINE];
     fakeBackend({ claude_locate: () => located });
     render(SettingsModal, { tab: 'claude' });
     for (const name of labels) expect(screen.queryByRole('switch', { name })).toBeNull();
+    expect(screen.queryByRole('group', { name: view })).toBeNull();
   });
 });
 

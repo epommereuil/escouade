@@ -122,7 +122,12 @@
           ]),
       // As the button of its conversation's header.
       ...(canSwitchView(a)
-        ? [{ label: t(a.terminal ? 'nav.sidebar.menu.toRich' : 'nav.sidebar.menu.toTerminal'), onClick: () => switchView(a) }]
+        ? [
+            {
+              label: t(a.terminal ? 'nav.sidebar.menu.toRich' : 'nav.sidebar.menu.toTerminal', { engine: engineName(a.engine) }),
+              onClick: () => switchView(a),
+            },
+          ]
         : []),
       ...remoteItems(a),
       { label: '', separator: true },

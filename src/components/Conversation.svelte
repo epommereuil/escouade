@@ -574,12 +574,12 @@
         class="btn view"
         class:on={agent.terminal}
         aria-pressed={agent.terminal}
-        aria-label={agent.terminal ? t('conv.header.toRich') : t('conv.header.toTerminal')}
-        use:tip={agent.terminal ? t('conv.header.toRichHint') : t('conv.header.toTerminalHint')}
+        aria-label={agent.terminal ? t('conv.header.toRich') : t('conv.header.toTerminal', { engine: engineName(agent.engine) })}
+        use:tip={agent.terminal ? t('conv.header.toRichHint') : t('conv.header.toTerminalHint', { engine: engineName(agent.engine) })}
         onclick={() => switchView(agent)}
       >
         <span class="mono glyph">{agent.terminal ? '◧' : '>_'}</span><span class="lbl"
-          >{agent.terminal ? t('conv.header.toRich') : t('conv.header.toTerminal')}</span
+          >{agent.terminal ? t('conv.header.toRich') : t('conv.header.toTerminal', { engine: engineName(agent.engine) })}</span
         >
       </button>
     {/if}

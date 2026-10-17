@@ -116,9 +116,11 @@ export default defineZone('settings', {
     idleStop: 'Stop idle agent processes after',
     idleStopHint: 'minutes, 0 = never',
     idleStopLabel: 'Stop idle agent processes after (minutes)',
-    terminalView: 'Open new agents in Claude Code’s interface',
+    terminalView: 'New agents’ view',
     terminalViewDesc:
-      'A new agent runs in a terminal with Claude Code’s own interface rather than in Escouade’s conversation. Each agent switches views from its header; ticket agents stay in Escouade’s view.',
+      'Escouade: Escouade’s conversation. Harness terminal: the harness’s own interface (Claude Code’s…), in a terminal. Each agent switches views from its header; ticket agents, and those of a harness with no terminal view, stay in Escouade’s view.',
+    terminalViewEscouade: 'Escouade',
+    terminalViewHarness: 'Harness terminal',
     todoTools: 'Agents keep a task list',
     todoToolsDesc:
       'Gives agents Claude Code’s task list tool: if they keep a list, Escouade shows their progress in the “Plan” banner (the model does not have to use it). Applies to agents started afterwards.',

@@ -34,11 +34,14 @@
   import { mountTerminal, roomOf, typeIntoTerminal } from '../lib/terminals';
   import MicButton from './MicButton.svelte';
   import { app } from '../lib/state.svelte';
+  import { engineName, speakerOf } from '../lib/engines';
   import type { Agent } from '../lib/types';
 
   // « Vue Claude Code »: the agent's conversation in Claude Code's own interface. Escouade still follows it (status,
   // notifications, cost, plan) through its hooks and its transcript.
   let { agent }: { agent: Agent } = $props();
+  /** Its harness, as the texts name it. */
+  const engine = $derived(engineName(agent.engine));
 
   /** How long the note about a session not found stays, once the interface is up on the new one. */
   const LOST_NOTE_MS = 6000;
@@ -177,13 +180,13 @@
 </script>
 
 <div class="tui">
-  <div class="box" bind:this={box} aria-label={t('conv.header.toTerminal')}></div>
+  <div class="box" bind:this={box} aria-label={t('conv.header.toTerminal', { engine })}></div>
   {#if term && !exited}
     <div class="voice"><MicButton target={dictated} below /></div>
   {/if}
   {#if error}
     <div class="note err" role="alert">
-      {t('conv.terminal.failed', { error })}
+      {t('conv.terminal.failed', { error, engine })}
       <button class="btn" onclick={restart}>{t('conv.terminal.restart')}</button>
     </div>
   {:else if exited}
@@ -191,19 +194,19 @@
     {#if !retrying}
       <div class="note">
         {#if !stop?.quick}
-          {t('conv.terminal.exited')}
+          {t('conv.terminal.exited', { engine })}
         {:else if typeof stop.code === 'number'}
-          {t('conv.terminal.exitedAtOnce', { code: stop.code })}
+          {t('conv.terminal.exitedAtOnce', { code: stop.code, engine })}
         {:else}
-          {t('conv.terminal.exitedAtOnceNoCode')}
+          {t('conv.terminal.exitedAtOnceNoCode', { engine })}
         {/if}
         <button class="btn" onclick={restart}>{t('conv.terminal.restart')}</button>
       </div>
     {/if}
   {:else if lost}
-    <div class="note">{t('conv.terminal.sessionLost')}</div>
+    <div class="note">{t('conv.terminal.sessionLost', { speaker: speakerOf(agent.engine) })}</div>
   {:else if !term}
-    <div class="note">{t('conv.terminal.starting')}</div>
+    <div class="note">{t('conv.terminal.starting', { engine })}</div>
   {/if}
 </div>
 

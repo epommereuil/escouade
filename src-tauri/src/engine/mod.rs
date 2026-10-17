@@ -11,15 +11,18 @@ mod claude;
 pub mod mcp;
 mod program;
 pub mod registry;
+pub mod terminal;
 
 #[cfg(test)]
 pub(crate) mod bench;
 #[cfg(test)]
-mod minimal;
+pub(crate) mod minimal;
 
+pub(crate) use claude::terminal as claude_terminal;
 pub use claude::CLAUDE;
 pub use mcp::Escouade;
 pub use program::{Located, Program};
+pub use terminal::TerminalView;
 
 #[cfg(test)]
 pub(crate) use claude::{
@@ -253,6 +256,9 @@ pub trait Engine: Send + Sync {
     fn version_args(&self) -> &'static [&'static str];
     /// What it can do, as the interface reads it (`registry::EngineCaps`).
     fn caps(&self) -> registry::EngineCaps;
+    /// Its own interface in a terminal (« Vue <harness> »); None when it has none
+    /// (`caps().terminal_view` says the same).
+    fn terminal(&self) -> Option<&'static dyn TerminalView>;
     /// The command that installs it (« Aucun harness trouvé »).
     fn install(&self) -> registry::Install;
     /// The models the composer offers, in its menu's order.

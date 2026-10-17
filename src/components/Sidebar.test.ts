@@ -1282,6 +1282,31 @@ describe('Sidebar copies of an agent', () => {
   });
 });
 
+describe('Sidebar « Vue <harness> » (ESC-34)', () => {
+  const menuOf = async (name: RegExp) => {
+    await fireEvent.contextMenu(screen.getByRole('button', { name }));
+    return menu.open!.items.map((i) => i.label);
+  };
+
+  it('names the view after the agent’s harness, and hides it for one that has none', async () => {
+    const withView = { ...BARE_ENGINE, name: 'Codex', caps: { ...BARE_ENGINE.caps, terminalView: true } };
+    resetApp({ agents: [agent({ engine: 'codex' })] });
+    app.engines = [CLAUDE_ENGINE, withView];
+    fakeBackend();
+    const { unmount } = render(Sidebar, { project: project() });
+    let labels = await menuOf(/refacto-auth/);
+    expect(labels).toContain('Vue Codex');
+    expect(labels).not.toContain('Vue Claude Code');
+    unmount();
+    resetApp({ agents: [agent({ engine: 'codex' })] });
+    app.engines = [CLAUDE_ENGINE, BARE_ENGINE];
+    fakeBackend();
+    render(Sidebar, { project: project() });
+    labels = await menuOf(/refacto-auth/);
+    expect(labels.filter((l) => l.startsWith('Vue '))).toEqual([]);
+  });
+});
+
 describe('Sidebar « Vue Claude Code » / « Vue Escouade »', () => {
   const VIEWS = ['Vue Claude Code', 'Vue Escouade'];
   const menuOf = async (name: RegExp) => {
