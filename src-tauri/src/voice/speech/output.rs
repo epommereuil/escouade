@@ -148,7 +148,10 @@ impl Output for Silent {
             std::thread::Builder::new()
                 .name("speech-silent".into())
                 .spawn(move || {
-                    let mut frame = vec![0f32; (rate as usize / 50).max(1)];
+                    let per = (rate as usize / 50).max(1);
+                    let mut frame = vec![0f32; per];
+                    let started = std::time::Instant::now();
+                    let mut played = 0u64;
                     loop {
                         match rx.recv_timeout(Duration::from_millis(20)) {
                             Err(mpsc::RecvTimeoutError::Timeout) => {}
@@ -157,7 +160,13 @@ impl Output for Silent {
                         if stopped.load(Ordering::Acquire) {
                             return;
                         }
-                        queue.pull(&mut frame);
+                        // What the clock says is due, as a sound card would have asked for it by now: a timer that
+                        // wakes late (a busy machine, macOS's coalesced timers) is caught up, never fallen behind.
+                        let due = started.elapsed().as_millis() as u64 * rate as u64 / 1000;
+                        while played + per as u64 <= due {
+                            queue.pull(&mut frame);
+                            played += per as u64;
+                        }
                     }
                 })
                 .map_err(|e| e.to_string())?;

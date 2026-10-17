@@ -159,9 +159,13 @@ fn the_agent_s_voice_heard_by_the_microphone_is_neither_a_barge_in_nor_a_sentenc
     let session = listening(h.voice.conversation_start(conv_choice()).unwrap());
     hear(h, 0.3, 0.0);
     h.voice.conversation_say(session, "Voici un résumé assez long à lire pour durer.").unwrap();
-    // The speakers heard by the microphone, a third as loud as what is played (the fake voice plays at 0.3).
-    hear(h, 2.6, 0.1);
-    wait_for(h, |e| matches!(e, VoiceEvent::ConvSpoken { .. }));
+    // The speakers heard by the microphone, a third as loud as what is played (the fake voice plays at 0.3), for as long
+    // as it plays: once it is over, a sound would be the user's.
+    let end = Instant::now() + Duration::from_secs(10);
+    while !h.events.lock().iter().any(|e| matches!(e, VoiceEvent::ConvSpoken { .. })) {
+        assert!(Instant::now() < end, "never read to its end: {:?}", conv_events(h));
+        hear(h, 0.1, 0.1);
+    }
     let events = conv_events(h);
     assert!(!events.iter().any(|e| matches!(e, VoiceEvent::ConvBargeIn { .. })), "{events:?}");
     hear(h, 0.8, 0.0);
