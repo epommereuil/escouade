@@ -223,6 +223,8 @@ class VoiceConversation {
     const item = this.asking!;
     const agentId = this.agentId!;
     this.asking = null;
+    // Held before the answer goes: the agent may answer back at once, and its passage be read before a hold sent after.
+    void api.conversationHold(session);
     try {
       if (item.kind === 'permission') {
         const r = permissionAnswer(text, this.words(), item.canAlways);
@@ -240,7 +242,6 @@ class VoiceConversation {
         this.phase = 'working';
         await api.answerQuestion(agentId, item.id, { [q.question]: label });
       }
-      void api.conversationHold(session);
     } catch (e) {
       app.toast(String(e), 'error');
       this.pause('pausedQuestion');

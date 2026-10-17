@@ -193,10 +193,14 @@ impl Voice {
         }
     }
 
-    /// Hears nothing until told to listen or to speak: the agent works.
+    /// Hears nothing until told to listen or to speak: the agent works. A reading under way goes on (a hold the
+    /// window sent before it started may arrive after): it ends as it would.
     pub fn conversation_hold(&self, session: u64) {
         if let Some(s) = self.conv_shared(session) {
-            *s.mode.lock() = Mode::Holding;
+            let mut mode = s.mode.lock();
+            if *mode != Mode::Speaking {
+                *mode = Mode::Holding;
+            }
         }
     }
 

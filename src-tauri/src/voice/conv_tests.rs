@@ -135,6 +135,22 @@ fn a_sentence_is_sent_once_its_silence_comes_then_the_passage_is_read_and_it_lis
 }
 
 #[test]
+fn a_hold_that_comes_late_does_not_silence_the_reading_under_way() {
+    let c = conv_harness("conv-late-hold", "");
+    let h = &c.h;
+    put_model(&h.voice.store, "base");
+    put_voice(&h.voice, "fr_FR-siwis-medium");
+    let session = listening(h.voice.conversation_start(conv_choice()).unwrap());
+    let reading = h.voice.conversation_say(session, "Tu as choisi SQLite.").unwrap();
+    // The window's hold after an answer, arriving once the agent's passage is being read.
+    h.voice.conversation_hold(session);
+    hear(h, 1.5, 0.0);
+    let spoken = wait_for(h, |e| matches!(e, VoiceEvent::ConvSpoken { .. }));
+    assert_eq!(spoken, VoiceEvent::ConvSpoken { session, reading, error: None });
+    h.voice.conversation_stop();
+}
+
+#[test]
 fn the_agent_s_voice_heard_by_the_microphone_is_neither_a_barge_in_nor_a_sentence() {
     let c = conv_harness("conv-echo", "jamais");
     let h = &c.h;
