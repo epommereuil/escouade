@@ -17,6 +17,8 @@ pub type Done = Box<dyn FnOnce() + Send>;
 pub trait Playing: Send + Sync {
     /// More to play, at the rate it was opened with.
     fn push(&self, samples: &[f32]);
+    /// `heard` is told when what is pushed next starts to be heard (a sentence's subtitle).
+    fn mark(&self, heard: Done);
     /// Nothing more will be pushed: the end is told once all is played.
     fn finish(&self);
     /// How loud what was played last is (RMS, before the volume).
@@ -42,6 +44,10 @@ struct Inner {
     buf: VecDeque<f32>,
     finished: bool,
     done: Option<Done>,
+    /// Samples pushed and played so far (at the device's rate), and what to tell when the played reach a place.
+    pushed: u64,
+    played: u64,
+    marks: VecDeque<(u64, Done)>,
 }
 
 impl Queue {
@@ -51,6 +57,9 @@ impl Queue {
                 buf: VecDeque::new(),
                 finished: false,
                 done: Some(done),
+                pushed: 0,
+                played: 0,
+                marks: VecDeque::new(),
             }),
             level: AtomicU32::new(0),
             volume: volume.clamp(0.0, 1.0),
@@ -61,6 +70,7 @@ impl Queue {
 
     /// Fills `out` (mono, the device's rate) with what comes next, silence once nothing is left.
     fn pull(&self, out: &mut [f32]) {
+        let mut reached = Vec::new();
         let done = {
             let mut q = self.inner.lock();
             let mut sum = 0f32;
@@ -71,6 +81,7 @@ impl Queue {
                         sum += s * s;
                         n += 1;
                         *o = s * self.volume;
+                        q.played += 1;
                     }
                     None => *o = 0.0,
                 }
@@ -81,12 +92,18 @@ impl Queue {
                 (sum / out.len() as f32).sqrt()
             };
             self.level.store(rms.to_bits(), Ordering::Relaxed);
+            while q.marks.front().is_some_and(|(at, _)| *at <= q.played) {
+                reached.push(q.marks.pop_front().unwrap().1);
+            }
             if q.buf.is_empty() && q.finished {
                 q.done.take()
             } else {
                 None
             }
         };
+        for heard in reached {
+            heard();
+        }
         if let Some(d) = done {
             d();
         }
@@ -96,7 +113,15 @@ impl Queue {
 impl Playing for Queue {
     fn push(&self, samples: &[f32]) {
         let s = audio::resample(samples, self.from, self.to);
-        self.inner.lock().buf.extend(s);
+        let mut q = self.inner.lock();
+        q.pushed += s.len() as u64;
+        q.buf.extend(s);
+    }
+
+    fn mark(&self, heard: Done) {
+        let mut q = self.inner.lock();
+        let at = q.pushed;
+        q.marks.push_back((at, heard));
     }
 
     fn finish(&self) {
@@ -118,6 +143,9 @@ struct Handle {
 impl Playing for Handle {
     fn push(&self, samples: &[f32]) {
         self.queue.push(samples)
+    }
+    fn mark(&self, heard: Done) {
+        self.queue.mark(heard)
     }
     fn finish(&self) {
         self.queue.finish()
@@ -285,6 +313,33 @@ mod tests {
             took >= Duration::from_millis(950) && took < Duration::from_millis(2500),
             "{took:?}"
         );
+    }
+
+    #[test]
+    fn each_mark_is_told_when_what_follows_it_starts_to_be_heard() {
+        let (tx, rx) = mpsc::channel::<(u32, Instant)>();
+        let p = Silent.open(16_000, 1.0, Box::new(|| {})).unwrap();
+        let started = Instant::now();
+        for i in 0..3u32 {
+            let tx = tx.clone();
+            p.mark(Box::new(move || tx.send((i, Instant::now())).unwrap()));
+            p.push(&vec![0.4; 8_000]);
+        }
+        p.finish();
+        let got: Vec<(u32, Duration)> = (0..3)
+            .map(|_| {
+                rx.recv_timeout(Duration::from_secs(5))
+                    .map(|(i, at)| (i, at - started))
+                    .unwrap()
+            })
+            .collect();
+        assert_eq!(got.iter().map(|g| g.0).collect::<Vec<_>>(), vec![0, 1, 2]);
+        // Half a second apart, as their sound: the second one when the first half second has been played.
+        assert!(
+            got[1].1 >= Duration::from_millis(450) && got[1].1 < Duration::from_millis(1200),
+            "{got:?}"
+        );
+        assert!(got[2].1 >= Duration::from_millis(950), "{got:?}");
     }
 
     #[test]

@@ -39,7 +39,8 @@
 </script>
 
 <div class="conv-wrap">
-  {#if phase !== 'idle'}
+  <!-- What to download first; once it listens, the conversation fills the window (ConversationOverlay). -->
+  {#if phase === 'offer' || phase === 'downloading'}
     <div class="panel" role="status" aria-live="polite" data-conversation-phase={phase}>
       {#if phase === 'offer' && conversation.offer}
         <span class="small">
@@ -56,47 +57,10 @@
           >{t('voice.conversation.downloading', { name: progress.id, done: fBytes(progress.done), total: fBytes(progress.total) })}</span
         >
         <div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(pct)}>
-          <div class="fill dl" style:width="{pct}%"></div>
+          <div class="fill" style:width="{pct}%"></div>
         </div>
         <div class="actions">
           <button class="btn ghost" onclick={() => conversation.stop()}>{t('voice.conversation.cancel')}</button>
-        </div>
-      {:else}
-        <div class="row">
-          <span class="dot" class:ears class:speaking={phase === 'speaking'} aria-hidden="true"></span>
-          <span class="strong state"
-            >{t(`voice.conversation.phase.${phase}` as 'voice.conversation.phase.working', { name: agent.name })}</span
-          >
-        </div>
-        {#if ears}
-          <div
-            class="meter"
-            role="meter"
-            aria-label={t('voice.conversation.level')}
-            aria-valuemin="0"
-            aria-valuemax="100"
-            aria-valuenow={Math.round(conversation.level * 100)}
-          >
-            <div class="fill" style:width="{Math.round(conversation.level * 100)}%"></div>
-          </div>
-        {/if}
-        {#if conversation.heard && phase !== 'listening' && phase !== 'hearing'}
-          <p class="small quote"><span class="muted">{t('voice.conversation.youSaid')} :</span> {conversation.heard}</p>
-        {/if}
-        {#if conversation.said && (phase === 'speaking' || phase === 'question' || phase === 'paused')}
-          <p class="small quote said" data-conversation-said>
-            <span class="muted">{t('voice.conversation.read')} :</span>
-            {conversation.said}
-          </p>
-        {/if}
-        <span class="muted small">{t('voice.conversation.hint')}</span>
-        <div class="actions">
-          {#if phase === 'paused'}
-            <button class="btn ghost" onclick={() => conversation.resume()}>{t('voice.conversation.resume')}</button>
-          {/if}
-          <button class="btn primary stop" use:tip={t('voice.conversation.stopTitle')} onclick={() => conversation.stop()}
-            >■ {t('voice.conversation.stop')}</button
-          >
         </div>
       {/if}
     </div>
@@ -151,45 +115,12 @@
     font-size: 12.5px;
     text-align: left;
   }
-  .row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--muted);
-  }
-  .dot.ears {
-    background: var(--del);
-    animation: pulse 1.2s ease-in-out infinite;
-  }
-  .dot.speaking {
-    background: var(--accent);
-    animation: pulse 0.8s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    50% {
-      opacity: 0.35;
-    }
-  }
-  .strong {
-    font-weight: 600;
-    color: var(--fg);
-  }
   .muted {
     color: var(--muted);
   }
   .small {
     font-size: 12px;
     line-height: 1.45;
-  }
-  .quote {
-    margin: 0;
-    max-height: 7.5em;
-    overflow: auto;
   }
   .meter {
     height: 6px;
@@ -199,11 +130,8 @@
   }
   .fill {
     height: 100%;
-    background: var(--del);
-    transition: width 0.06s linear;
-  }
-  .fill.dl {
     background: var(--accent);
+    transition: width 0.06s linear;
   }
   .actions {
     display: flex;
@@ -211,10 +139,6 @@
     gap: 6px;
   }
   @media (prefers-reduced-motion: reduce) {
-    .dot.ears,
-    .dot.speaking {
-      animation: none;
-    }
     .conv.on,
     .fill {
       transition: none;

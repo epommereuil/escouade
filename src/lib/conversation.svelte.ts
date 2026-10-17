@@ -32,6 +32,10 @@ class VoiceConversation {
   /** The agent it talks with. */
   agentId = $state<string | null>(null);
   level = $state(0);
+  /** How loud the agent's voice being played is (0 to 1): what the orb follows while it speaks. */
+  played = $state(0);
+  /** The subtitle: what the user said (once transcribed), or the sentence of the agent being heard. */
+  subtitle = $state<{ who: 'user' | 'agent'; text: string } | null>(null);
   /** What the user said last, and what was read last. */
   heard = $state('');
   said = $state('');
@@ -54,6 +58,11 @@ class VoiceConversation {
 
   get active() {
     return this.phase !== 'idle';
+  }
+
+  /** The full-window panel shows: from the microphone's opening to the end (not while a download is offered). */
+  get overlay() {
+    return this.phase !== 'idle' && this.phase !== 'offer' && this.phase !== 'downloading';
   }
 
   /** « Conversation » in the composer of `agent`. */
@@ -142,6 +151,10 @@ class VoiceConversation {
     switch (e.kind) {
       case 'convLevel':
         this.level = e.level;
+        this.played = e.played;
+        break;
+      case 'convSentence':
+        if (this.ours(e.reading)) this.subtitle = { who: 'agent', text: e.text };
         break;
       case 'convSpeech':
         if (this.phase === 'listening' || this.phase === 'question') this.phase = 'hearing';
@@ -194,6 +207,7 @@ class VoiceConversation {
       return;
     }
     this.heard = text;
+    this.subtitle = { who: 'user', text };
     if (this.asking) return this.answer(text, session);
     this.turns = turnsIn(conversationOf(agentId).items);
     this.phase = 'working';
@@ -335,6 +349,8 @@ class VoiceConversation {
     this.offer = null;
     this.progress = null;
     this.level = 0;
+    this.played = 0;
+    this.subtitle = null;
     this.heard = '';
     this.said = '';
   }

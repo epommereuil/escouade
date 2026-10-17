@@ -127,9 +127,21 @@ pub enum VoiceEvent {
         done: u64,
         total: u64,
     },
-    /// The conversation: how loud the microphone is now (0 to 1).
+    /// The conversation: how loud the microphone is now (0 to 1), and what is played (the agent's voice, 0 to 1).
     #[serde(rename_all = "camelCase")]
-    ConvLevel { session: u64, level: f32 },
+    ConvLevel {
+        session: u64,
+        level: f32,
+        played: f32,
+    },
+    /// The sentence `index` of the reading `reading` starts to be heard: its subtitle.
+    #[serde(rename_all = "camelCase")]
+    ConvSentence {
+        session: u64,
+        reading: u64,
+        index: u32,
+        text: String,
+    },
     /// A sentence started.
     #[serde(rename_all = "camelCase")]
     ConvSpeech { session: u64 },

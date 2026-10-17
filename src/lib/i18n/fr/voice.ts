@@ -75,6 +75,13 @@ export default {
       paused: 'Conversation en pause',
     },
     hint: 'Le message part seul après un silence · parle pendant la réponse pour la couper',
+    /** The full-window panel. */
+    overlay: {
+      label: 'Conversation vocale avec {name}',
+      context: 'conversation vocale',
+      quit: 'pour quitter',
+      you: 'Toi',
+    },
     youSaid: 'Tu as dit',
     read: 'Lu à voix haute',
     level: 'Niveau du micro',

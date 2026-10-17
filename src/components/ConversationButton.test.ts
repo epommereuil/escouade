@@ -16,7 +16,7 @@ describe('the Conversation button of the composer', () => {
 
   const panel = () => document.querySelector('[data-conversation-phase]') as HTMLElement | null;
 
-  it('starts the conversation, its panel says where it is, and « Arrêter » ends it', async () => {
+  it('starts the conversation, and a second click ends it', async () => {
     const backend = fakeBackend({
       conversation_start: () => ({ kind: 'listening', session: 3 }),
       get_conversation: () => [],
@@ -25,15 +25,11 @@ describe('the Conversation button of the composer', () => {
     const button = screen.getByRole('button', { name: 'Conversation' });
     expect(button.getAttribute('aria-pressed')).toBe('false');
     await userEvent.click(button);
-    await waitFor(() => expect(panel()?.dataset.conversationPhase).toBe('listening'));
-    expect(panel()!.textContent).toContain('À l’écoute : parle quand tu veux');
-    expect(screen.getByRole('meter', { name: 'Niveau du micro' })).toBeTruthy();
+    // Listening: the conversation fills the window (ConversationOverlay), the button stays pressed.
+    await waitFor(() => expect(conversation.phase).toBe('listening'));
+    expect(panel()).toBeNull();
     expect(button.getAttribute('aria-pressed')).toBe('true');
-    conversation.take({ kind: 'convHeard', session: 3, text: 'Lance les tests', error: null } as VoiceEvent);
-    await waitFor(() => expect(panel()?.dataset.conversationPhase).toBe('working'));
-    expect(panel()!.textContent).toContain('Alice travaille…');
-    expect(panel()!.textContent).toContain('Tu as dit : Lance les tests');
-    await userEvent.click(screen.getByRole('button', { name: '■ Arrêter' }));
+    await userEvent.click(button);
     expect(backend.called('conversation_stop')).toHaveLength(1);
     expect(panel()).toBeNull();
     unmount();

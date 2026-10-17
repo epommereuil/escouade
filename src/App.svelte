@@ -5,6 +5,7 @@
   import { api } from './lib/ipc';
   import { app } from './lib/state.svelte';
   import { dictation } from './lib/dictation.svelte';
+  import { conversation } from './lib/conversation.svelte';
   import { dictationKey, handleShortcut, holdPrint } from './lib/shortcuts';
   import { setTerminalFontSize } from './lib/terminals';
   import { watchForUpdates } from './lib/updater';
@@ -16,6 +17,7 @@
   import NewBranchModal from './components/branches/NewBranchModal.svelte';
   import ContextMenu from './components/ContextMenu.svelte';
   import Conversation from './components/Conversation.svelte';
+  import ConversationOverlay from './components/ConversationOverlay.svelte';
   import ConvSearch from './components/ConvSearch.svelte';
   import DiffModal from './components/DiffModal.svelte';
   import EditorView from './components/editor/EditorView.svelte';
@@ -228,6 +230,9 @@
   <TicketForm projectId={app.modal.projectId} ticket={app.modal.ticket} onsubmit={app.modal.onSubmit} resume={app.modal.resume} />
 {/if}
 
+{#if conversation.overlay}
+  <ConversationOverlay />
+{/if}
 <ContextMenu />
 <Toasts />
 

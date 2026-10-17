@@ -162,7 +162,8 @@ export type VoiceEvent =
   | { kind: 'ended'; session: number; error: string | null }
   | { kind: 'download'; model: string; done: number; total: number }
   | { kind: 'speechDownload'; voice: string; done: number; total: number }
-  | { kind: 'convLevel'; session: number; level: number }
+  | { kind: 'convLevel'; session: number; level: number; played: number }
+  | { kind: 'convSentence'; session: number; reading: number; index: number; text: string }
   | { kind: 'convSpeech'; session: number }
   | { kind: 'convTranscribing'; session: number }
   | { kind: 'convHeard'; session: number; text: string; error: string | null }

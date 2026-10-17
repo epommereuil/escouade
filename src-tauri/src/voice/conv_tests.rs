@@ -135,6 +135,53 @@ fn a_sentence_is_sent_once_its_silence_comes_then_the_passage_is_read_and_it_lis
 }
 
 #[test]
+fn each_sentence_read_is_told_as_it_starts_to_be_heard_with_the_level_of_what_is_played() {
+    let c = conv_harness("conv-subtitles", "");
+    let h = &c.h;
+    put_model(&h.voice.store, "base");
+    put_voice(&h.voice, "fr_FR-siwis-medium");
+    let session = listening(h.voice.conversation_start(conv_choice()).unwrap());
+    let started = Instant::now();
+    let reading = h
+        .voice
+        .conversation_say(session, "Première phrase lue. Deuxième phrase.")
+        .unwrap();
+    hear(h, 0.3, 0.0);
+    wait_for(h, |e| matches!(e, VoiceEvent::ConvSpoken { .. }));
+    let took = started.elapsed();
+    let events = h.events.lock().clone();
+    let subtitles: Vec<(u32, String)> = events
+        .iter()
+        .filter_map(|e| match e {
+            VoiceEvent::ConvSentence { session: s, reading: r, index, text } if *s == session && *r == reading => {
+                Some((*index, text.clone()))
+            }
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        subtitles,
+        vec![(0, "Première phrase lue.".to_string()), (1, "Deuxième phrase.".to_string())]
+    );
+    // The second one comes once the first was heard (20 characters: 1 s of the fake voice), not at once.
+    let second = events
+        .iter()
+        .position(|e| matches!(e, VoiceEvent::ConvSentence { index: 1, .. }))
+        .unwrap();
+    let levels_before = events[..second]
+        .iter()
+        .filter(|e| matches!(e, VoiceEvent::ConvLevel { .. }))
+        .count();
+    assert!(levels_before >= 10, "{levels_before} levels before the second sentence");
+    assert!(took >= Duration::from_millis(1700), "{took:?}");
+    // What is played is measured: loud while it speaks.
+    assert!(events
+        .iter()
+        .any(|e| matches!(e, VoiceEvent::ConvLevel { played, .. } if *played > 0.5)));
+    h.voice.conversation_stop();
+}
+
+#[test]
 fn a_hold_that_comes_late_does_not_silence_the_reading_under_way() {
     let c = conv_harness("conv-late-hold", "");
     let h = &c.h;

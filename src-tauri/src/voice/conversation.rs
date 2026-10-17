@@ -224,7 +224,7 @@ impl Voice {
             .name("voice-speak".into())
             .spawn(move || {
                 let mut error = None;
-                for sentence in sentences {
+                for (index, sentence) in sentences.into_iter().enumerate() {
                     if stop.load(Ordering::Acquire) {
                         return;
                     }
@@ -271,7 +271,25 @@ impl Voice {
                             }
                         }
                     }
-                    slot.as_ref().unwrap().push(&audio.samples);
+                    // Its subtitle, when it starts to be heard.
+                    let heard = {
+                        let s = s.clone();
+                        let emit = emit.clone();
+                        let stop = stop.clone();
+                        Box::new(move || {
+                            if !stop.load(Ordering::Acquire) {
+                                emit(VoiceEvent::ConvSentence {
+                                    session: s.id,
+                                    reading,
+                                    index: index as u32,
+                                    text: sentence,
+                                });
+                            }
+                        })
+                    };
+                    let playing = slot.as_ref().unwrap();
+                    playing.mark(heard);
+                    playing.push(&audio.samples);
                 }
                 log::info!("speech: reading {reading} made");
                 let playing = s.playing.lock().clone();
@@ -447,9 +465,11 @@ fn listen(
         }
         if told.elapsed() >= Duration::from_millis(50) {
             told = Instant::now();
+            let played = s.playing.lock().as_ref().map(|p| p.level()).unwrap_or(0.0);
             emit(VoiceEvent::ConvLevel {
                 session: s.id,
                 level: audio::level(&[peak]),
+                played: audio::level(&[played]),
             });
             peak = 0.0;
         }

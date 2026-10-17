@@ -72,6 +72,12 @@ export default defineZone('voice', {
       paused: 'Conversation paused',
     },
     hint: 'The message goes by itself after a silence · speak during the answer to cut it',
+    overlay: {
+      label: 'Voice conversation with {name}',
+      context: 'voice conversation',
+      quit: 'to quit',
+      you: 'You',
+    },
     youSaid: 'You said',
     read: 'Read aloud',
     level: 'Microphone level',

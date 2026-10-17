@@ -84,8 +84,20 @@ test.describe('a voice conversation from a WAV file', () => {
   test('the question said is sent after its silence, the passage of the answer is read aloud, then it listens again', async ({ app }) => {
     const { page } = app;
     await addProject(page, app.repo);
+    // Every subtitle shown, in order: the user's lasts until the agent answers, at once with the fake claude.
+    await page.evaluate(() => {
+      const w = window as unknown as { subs: string[] };
+      w.subs = [];
+      new MutationObserver(() => {
+        for (const e of document.querySelectorAll<HTMLElement>('[data-subtitle]')) {
+          const v = `${e.dataset.subtitle}: ${e.querySelector('p')?.textContent ?? ''}`;
+          if (w.subs.at(-1) !== v) w.subs.push(v);
+        }
+      }).observe(document.body, { subtree: true, childList: true, characterData: true });
+    });
     await button(page).click();
-    await expect(button(page)).toHaveAttribute('aria-pressed', 'true');
+    // The conversation fills the window.
+    await expect(page.getByRole('dialog', { name: /^Conversation vocale avec / })).toBeVisible();
     // The WAV is heard: a sentence, then its silence ends it.
     await expect(panel(page)).toHaveAttribute('data-conversation-phase', /listening|hearing/);
     await expect(panel(page)).toHaveAttribute('data-conversation-phase', 'hearing', { timeout: 10_000 });
@@ -100,16 +112,22 @@ test.describe('a voice conversation from a WAV file', () => {
     await expect(page.locator('.bubble').getByText(SAID)).toBeVisible();
     await expect(page.locator('[data-said-aloud]')).toBeVisible();
     await expect(page.getByText('Conversation vocale :')).toHaveCount(0);
+    // Subtitles: what the user said, once transcribed, then the sentence of the voice as it is heard.
+    await expect(page.locator('[data-subtitle="agent"]')).toContainText("C'est noté, je m'en occupe.", { timeout: 15_000 });
+    await expect(page.locator('[data-subtitle]')).toHaveCount(1);
+    expect(await page.evaluate(() => (window as unknown as { subs: string[] }).subs)).toEqual([
+      `user: ${SAID}`,
+      "agent: C'est noté, je m'en occupe.",
+    ]);
     // Read by the voice, then listening again.
     await expect.poll(() => said(SPOKEN_LOG), { timeout: 15_000 }).toEqual(["C'est noté, je m'en occupe."]);
     await expect(panel(page)).toHaveAttribute('data-conversation-phase', 'listening', { timeout: 15_000 });
     const log = fs.readFileSync(path.join(app.data, 'app.log'), 'utf8');
     expect(log).toMatch(/voice: conversation listening at 16000 Hz/);
-    // « Arrêter »: the microphone closes.
-    await panel(page)
-      .getByRole('button', { name: /Arrêter/ })
-      .click();
+    // Escape: the panel goes and the microphone closes.
+    await page.keyboard.press('Escape');
     await expect(panel(page)).toHaveCount(0);
+    await expect(button(page)).toHaveAttribute('aria-pressed', 'false');
     await expect.poll(() => fs.readFileSync(path.join(app.data, 'app.log'), 'utf8')).toMatch(/voice: conversation stopped/);
   });
 });
@@ -142,6 +160,12 @@ test.describe('a question of the agent answered aloud', () => {
     await expect.poll(() => said(SPOKEN_LOG).at(-1), { timeout: 30_000 }).toBe('Tu as choisi SQLite.');
     await expect(page.getByText('Tu as choisi SQLite.').first()).toBeVisible();
     await expect(panel(page)).toHaveAttribute('data-conversation-phase', 'listening', { timeout: 15_000 });
+    // « Arrêter » closes it too.
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /Arrêter/ })
+      .click();
+    await expect(panel(page)).toHaveCount(0);
   });
 });
 
@@ -171,6 +195,9 @@ test.describe('a voice conversation with the real Whisper and the real Piper', (
     await button(page).click();
     await expect.poll(() => sent(app).find((m) => m.includes('<escouade-voice>')) ?? '', { timeout: 60_000 }).toMatch(/r[ée]glages/i);
     await expect(page.locator('[data-spoken]')).toBeVisible({ timeout: 30_000 });
+    // A capture of the panel while Piper speaks (`ESCOUADE_E2E_SHOT`: where to write it).
+    await expect(page.locator('[data-subtitle="agent"]')).toBeVisible({ timeout: 30_000 });
+    if (process.env.ESCOUADE_E2E_SHOT) await page.screenshot({ path: process.env.ESCOUADE_E2E_SHOT });
     await expect
       .poll(() => fs.readFileSync(path.join(app.data, 'app.log'), 'utf8'), { timeout: 60_000 })
       .toMatch(/speech: voice loaded in/);
