@@ -115,6 +115,30 @@ When the microphone is refused or missing, Escouade says so, with what to do:
 
 The dictation stops by itself after ten minutes, when the microphone is unplugged (what was said is transcribed), when the window is closed or reloaded, and when the app quits.
 
+### Talking with the agent (voice conversation)
+
+The **Conversation** button, left of the microphone, holds a spoken conversation with the agent, hands off the keyboard:
+
+1. you speak; when you stop, what you said **goes by itself** to the agent after a short silence (“Delay before sending”, 1.2 s by default);
+2. the agent works and answers as usual, in the conversation;
+3. it ends its answer with **a short passage written to be read**, less wordy and less technical: Escouade shows it apart under the answer (“🔊 Read aloud”) and **reads it aloud**;
+4. then it listens again.
+
+A panel above the button says where the conversation is (“Listening”, “Transcribing on your machine…”, “Alice is working…”, “Alice is answering”), with the microphone level, what you said and what is read; “Stop” closes the microphone.
+
+- **Cutting in**: speak while it reads, the reading stops at once and Escouade listens. The microphone does not take the agent’s voice for a sentence of yours: while it reads, it only tells whether you speak over it, above the echo of the speakers. Headphones remain the most comfortable.
+- **Questions and permissions**: when the agent asks a question or a permission, Escouade reads it, then your spoken answer answers it: “yes”, “okay” or “go ahead” allow, “no” denies, “always” always allows; an option is said by its name or its rank (“the second”). If Escouade does not understand, or if the question takes several choices, the conversation **pauses** and says so: answer in the window, then “Resume”.
+
+Everything happens **on your machine**: the transcription by Whisper, as for dictation, and the voice by **Piper**, linked into Escouade. At the first conversation, Escouade offers to download the voice (about 60 MB, once, from Hugging Face, its checksum checked). The conversation is held in French or English: the spoken language of the settings, else the interface’s. It is not available on Intel Macs.
+
+In **Settings › Voice › Conversation**:
+
+- the **voice** of each language, among those whose licence allows it: free model and dataset, no voice of a character, a known person or a brand (6 voices in French, 29 in English). For each one, its quality, its size, its speaker when it has several, “▶ Listen”, “Download” or “Delete”, its licence and the credit it asks for;
+- the **speed** and **volume** of the reading;
+- the **delay before sending**: the silence after which what you said goes (0.5 to 3 s).
+
+The credits of Piper, eSpeak NG, ONNX Runtime and each voice are in Settings › About › “Credits and licences”.
+
 ### Mentioning a file with @
 
 Type `@` at the start of a message or after a space, then part of the name: Escouade lists up to 12 files from the agent’s folder (its worktree if it has one), with their folder. `↑` and `↓` choose, `Enter` or `Tab` (or a click) insert `@path/to/file`, `Esc` closes the list. The search is approximate: a few letters of the name are enough. It covers the files git knows (tracked, or untracked but not ignored); outside a git repository, the folder is walked without dependency and build folders.

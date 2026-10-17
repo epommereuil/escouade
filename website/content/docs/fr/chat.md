@@ -115,6 +115,30 @@ Si le micro est refusé ou absent, Escouade le dit avec la marche à suivre :
 
 La dictée s’arrête d’elle-même après dix minutes, quand le micro est débranché (ce qui a été dit est transcrit), quand la fenêtre est fermée ou rechargée, et quand l’app quitte.
 
+### Parler avec l’agent (conversation vocale)
+
+Le bouton **Conversation**, à gauche du micro, fait une conversation à voix haute avec l’agent, sans toucher au clavier :
+
+1. tu parles ; quand tu te tais, ce que tu as dit **part seul** à l’agent après un court silence (« Délai avant l’envoi », 1,2 s par défaut) ;
+2. l’agent travaille et répond comme d’habitude, dans la conversation ;
+3. il finit sa réponse par **un court passage écrit pour être lu**, moins verbeux et moins technique : Escouade le montre à part sous la réponse (« 🔊 Lu à voix haute ») et le **lit à voix haute** ;
+4. puis l’écoute reprend.
+
+Un panneau au-dessus du bouton dit où en est la conversation (« À l’écoute », « Transcription sur ta machine… », « Alice travaille… », « Alice te répond »), avec le niveau du micro, ce que tu as dit et ce qui est lu ; « Arrêter » ferme le micro.
+
+- **Couper la parole** : parle pendant la lecture, elle s’arrête aussitôt et Escouade t’écoute. Le micro n’entend pas la voix de l’agent pour une phrase de toi : pendant la lecture, il sert seulement à savoir si tu parles par-dessus, au-dessus de l’écho des haut-parleurs. Un casque reste le plus confortable.
+- **Questions et permissions** : quand l’agent pose une question ou demande une permission, Escouade la lit, puis ta réponse dite y répond : « oui », « d’accord » ou « vas-y » autorisent, « non » refuse, « toujours » autorise toujours ; une option se dit par son nom ou son rang (« la deuxième »). Si Escouade ne comprend pas, ou si la question demande plusieurs choix, la conversation se met **en pause** et le dit : réponds dans la fenêtre, puis « Reprendre ».
+
+Tout se passe **sur ta machine** : la transcription par Whisper, comme la dictée, et la voix par **Piper**, liée à Escouade. À la première conversation, Escouade propose de télécharger la voix (environ 60 Mo, une seule fois, depuis Hugging Face, sa somme de contrôle vérifiée). La conversation se tient en français ou en anglais : la langue parlée des réglages, sinon celle de l’interface. Elle n’est pas disponible sur les Mac à processeur Intel.
+
+Dans **Réglages › Voix › Conversation** :
+
+- la **voix** de chaque langue, parmi celles dont la licence le permet : modèle et jeu de données libres, aucune voix de personnage, de personne connue ni de marque (6 voix en français, 29 en anglais). Pour chacune, sa qualité, sa taille, son locuteur s’il y en a plusieurs, « ▶ Écouter », « Télécharger » ou « Effacer », sa licence et le crédit qu’elle demande ;
+- la **vitesse** et le **volume** de la lecture ;
+- le **délai avant l’envoi** : le silence après lequel ce que tu as dit part (de 0,5 à 3 s).
+
+Les crédits de Piper, eSpeak NG, ONNX Runtime et de chaque voix sont dans Réglages › À propos › « Crédits et licences ».
+
 ### Mentionner un fichier avec @
 
 Tape `@` au début d’un message ou après une espace, puis une partie du nom : Escouade liste jusqu’à 12 fichiers du dossier de l’agent (son worktree s’il en a un), avec leur dossier. `↑` et `↓` choisissent, `Entrée` ou `Tab` (ou un clic) insèrent `@chemin/du/fichier`, `Échap` ferme la liste. La recherche est approximative : quelques lettres du nom suffisent. Elle porte sur les fichiers que git connaît (suivis, ou non suivis mais pas ignorés) ; hors d’un dépôt git, le dossier est parcouru sans les dossiers de dépendances et de build.

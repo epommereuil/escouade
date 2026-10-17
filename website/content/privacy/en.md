@@ -41,6 +41,7 @@ Every event carries its name, its time (UTC, to the millisecond), a session id, 
 | `account_created` | A Claude account is added | — |
 | `remote_control_enabled` | Remote control is turned on, by hand or by a setting | `from`: `agent` (right-click on an agent), `project` (a project’s setting) or `global` (the setting for all agents) |
 | `dictation_used` | A dictation gave text | `target`: `composer` (the message field), `terminal` (the Claude Code view) or `ticket` (a ticket’s description); `model`: the Whisper model (`tiny`, `base`, `small`…) |
+| `voice_conversation` | A voice conversation starts | `lang`: the conversation’s language (`fr`, `en`); `voice`: the Piper voice that reads (`fr_FR-siwis-medium`…); never what is said or read |
 
 An event says that a feature was used, not on what: never the name of the project, the agent or the branch, nor anything that was written.
 

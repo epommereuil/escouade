@@ -41,6 +41,7 @@ Chaque événement porte son nom, son heure (UTC, à la milliseconde), un identi
 | `account_created` | Un compte Claude est ajouté | — |
 | `remote_control_enabled` | Le remote control est activé, à la main ou par un réglage | `from` : `agent` (clic droit sur un agent), `project` (réglage d’un projet) ou `global` (réglage de tous les agents) |
 | `dictation_used` | Une dictée a donné du texte | `target` : `composer` (le champ de message), `terminal` (la vue Claude Code) ou `ticket` (la description d’un ticket) ; `model` : le modèle Whisper (`tiny`, `base`, `small`…) |
+| `voice_conversation` | Une conversation vocale commence | `lang` : la langue de la conversation (`fr`, `en`) ; `voice` : la voix Piper qui lit (`fr_FR-siwis-medium`…) ; jamais ce qui est dit ni lu |
 
 Un événement dit qu’une fonctionnalité a servi, pas sur quoi : jamais le nom du projet, de l’agent ou de la branche, ni ce qui a été écrit.
 

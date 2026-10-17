@@ -235,6 +235,10 @@ impl Voice {
                         return;
                     }
                     let mut slot = s.playing.lock();
+                    // Stopped while the lock was awaited: the next reading may hold the output by now.
+                    if stop.load(Ordering::Acquire) {
+                        return;
+                    }
                     if slot.is_none() {
                         let done = {
                             let s = s.clone();
