@@ -200,6 +200,9 @@ export default {
 
   // The « À propos » tab.
   about: {
+    credits: 'Crédits et licences',
+    creditsDesc: 'Piper, eSpeak NG, ONNX Runtime, whisper.cpp, et la licence et le crédit de chaque voix',
+    creditsOpen: 'Ouvrir',
     claudeFound: 'Claude Code détecté',
     claudeMissing: 'Claude Code introuvable',
     checking: 'Recherche…',

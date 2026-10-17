@@ -176,6 +176,9 @@ export default defineZone('settings', {
   },
 
   about: {
+    credits: 'Credits and licences',
+    creditsDesc: 'Piper, eSpeak NG, ONNX Runtime, whisper.cpp, and the licence and credit of each voice',
+    creditsOpen: 'Open',
     claudeFound: 'Claude Code detected',
     claudeMissing: 'Claude Code not found',
     checking: 'Checking…',

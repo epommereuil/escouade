@@ -291,6 +291,25 @@ mod tests {
         assert!(rx.recv_timeout(Duration::from_millis(1500)).is_err());
     }
 
+    /// The system's speakers, at volume 0 (nothing heard): run by hand (`ESCOUADE_SPEECH_TEST_SPEAKERS`), the CI has
+    /// no sound card.
+    #[test]
+    fn the_speakers_play_and_tell_the_end() {
+        if std::env::var("ESCOUADE_SPEECH_TEST_SPEAKERS").is_err() {
+            return;
+        }
+        let (tx, rx) = mpsc::channel();
+        let p = Speakers
+            .open(22_050, 0.0, Box::new(move || tx.send(()).unwrap()))
+            .unwrap();
+        let started = Instant::now();
+        p.push(&vec![0.3; 22_050]);
+        p.finish();
+        rx.recv_timeout(Duration::from_secs(5)).unwrap();
+        let took = started.elapsed();
+        assert!(took >= Duration::from_millis(900), "{took:?}");
+    }
+
     #[test]
     fn the_volume_scales_what_is_played_and_samples_come_at_the_device_s_rate() {
         let q = Queue::new(16_000, 48_000, 0.5, Box::new(|| {}));

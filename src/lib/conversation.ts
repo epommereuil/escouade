@@ -3,6 +3,9 @@
 
 import type { ConvItem, PermissionItem, QuestionItem, TextItem, TurnItem } from './types';
 
+/** The credits of the voice's software and of each voice, with their licences (Réglages › À propos). */
+export const CREDITS_URL = 'https://github.com/guillaume-gagnaire/escouade/blob/main/CREDITS.md';
+
 /** Lower case, no accents, the typographic apostrophe as the plain one, words separated by single spaces. */
 export function normalize(text: string): string {
   return text

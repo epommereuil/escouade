@@ -1626,6 +1626,22 @@ function startSession() {
     });
   }
 
+  // A sentence said in a voice conversation (ESC-97): the answer ends with its passage to be read aloud, between
+  // <spoken> and </spoken>, as the instruction at the end of the message asks; « base » asks a question first, and
+  // the passage says the option chosen.
+  function voiceTurn(text) {
+    const said = text.slice(0, text.indexOf('<escouade-voice>')).trim();
+    const answer = (choice = '') => {
+      const chose = choice ? ` Tu as choisi ${choice}.` : '';
+      streamText(
+        `J'ai bien noté : « ${said} ».${chose}\n\n- détail technique : \`src/app.rs\`, ligne 42\n\n<spoken>C'est noté, je m'en occupe.${chose}</spoken>`,
+      );
+      result();
+    };
+    if (said.toLowerCase().includes('base')) return askQuestion((answers) => answer(Object.values(answers ?? {}).join(', ')));
+    answer();
+  }
+
   function onUser(text) {
     out({ type: 'system', subtype: 'init', session_id: sessionId, model, cwd: process.cwd(), permissionMode: 'default' });
     const attached = [...text.matchAll(/^(?:Fichier joint : |Attached file: )(.+), (.+)$/gm)].map((m) => ({
@@ -1633,6 +1649,7 @@ function startSession() {
       file: m[2].trim(),
     }));
     if (attached.length) return readAttached(attached);
+    if (text.includes('<escouade-voice>')) return voiceTurn(text);
     if (text.includes('[ferme-lentement]')) slowClose = true;
     if (text.includes('crash')) process.exit(3);
     if (text.includes('grandchild')) {
@@ -1903,7 +1920,7 @@ function startSession() {
     if (p.kind === 'question') {
       const answers = r.updatedInput?.answers ?? {};
       toolResult(p.tuid, `Réponses : ${JSON.stringify(answers)}`, { tool_use_result: { answers } });
-      if (p.then) return p.then();
+      if (p.then) return p.then(answers);
       streamText(`Choix retenu : ${Object.values(answers).join(', ')}`);
     } else if (p.kind === 'file') {
       toolResult(p.tuid, r.behavior === 'allow' ? 'contenu du fichier' : `Refusé : ${r.message}`);

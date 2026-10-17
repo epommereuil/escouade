@@ -219,7 +219,10 @@ impl Transcriber for Fake {
             }
             std::thread::sleep(std::time::Duration::from_millis(5));
         }
-        Ok(self.text.clone())
+        // « a|b|c »: one text after the other, the last one again after them (a conversation's sentences).
+        let parts: Vec<&str> = self.text.split('|').collect();
+        let n = self.calls.lock().len();
+        Ok(parts[(n - 1).min(parts.len() - 1)].to_string())
     }
 }
 

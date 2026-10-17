@@ -11,3 +11,4 @@ website/.nuxt
 website/.output
 .claude
 .superpowers
+scripts/piper-voices/

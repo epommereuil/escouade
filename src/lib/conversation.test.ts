@@ -85,6 +85,26 @@ describe('spoken answers', () => {
   });
 });
 
+describe('the credits', () => {
+  it('name every voice the app offers, with its licences and the credit it asks for', async () => {
+    const fs = await import('node:fs');
+    const voices = JSON.parse(fs.readFileSync('src-tauri/src/voice/speech/voices.json', 'utf8')) as {
+      id: string;
+      license: string;
+      attribution: string | null;
+    }[];
+    const credits = fs.readFileSync('CREDITS.md', 'utf8');
+    expect(voices.length).toBeGreaterThan(10);
+    for (const v of voices) {
+      const line = credits.split('\n').find((l) => l.startsWith(`| \`${v.id}\` |`));
+      expect(line, v.id).toBeTruthy();
+      expect(line).toContain(v.license);
+      if (v.attribution) expect(line).toContain(v.attribution);
+    }
+    for (const engine of ['Piper', 'eSpeak NG', 'ONNX Runtime', 'whisper.cpp']) expect(credits).toContain(engine);
+  });
+});
+
 describe('the conversation', () => {
   let backend: ReturnType<typeof fakeBackend>;
   let reading = 0;

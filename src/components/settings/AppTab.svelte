@@ -7,6 +7,7 @@
   import { settingsForm } from '../../lib/settings.svelte';
   import { app } from '../../lib/state.svelte';
   import { privacyUrl } from '../../lib/telemetry';
+  import { CREDITS_URL } from '../../lib/conversation';
   import type { ClaudeLocated } from '../../lib/types';
   import { checkForUpdate } from '../../lib/updater';
   import Chips from './Chips.svelte';
@@ -242,6 +243,11 @@
       <Switch label={t('settings.about.telemetry')} bind:on={() => s.telemetry === true, (on) => (s.telemetry = on)} />
     </Row>
     <Row label={t('settings.about.localData')} desc="~/.escouade/" />
+    <Row label={t('settings.about.credits')} desc={t('settings.about.creditsDesc')}>
+      <button class="btn ghost" onclick={() => openUrl(CREDITS_URL).catch((e) => app.toast(String(e), 'error'))}
+        >{t('settings.about.creditsOpen')}</button
+      >
+    </Row>
   </Group>
 {/if}
 

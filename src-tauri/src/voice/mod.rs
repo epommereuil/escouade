@@ -306,7 +306,8 @@ impl Voice {
             None => Arc::new(transcribe::Whisper::default()),
         };
         let url = var("ESCOUADE_VOICE_MODELS_URL").unwrap_or_else(|| models::MODELS_URL.into());
-        // `ESCOUADE_SPEECH_FAKE`: a fake voice, which writes what it says to that file, heard nowhere.
+        // `ESCOUADE_SPEECH_FAKE`: a fake voice, which writes what it says to that file, heard nowhere;
+        // `ESCOUADE_SPEECH_SILENT`: Piper, played in silence (the real voices, without speakers).
         let (engine, output): (Arc<dyn speech::Engine>, Arc<dyn speech::output::Output>) =
             match var("ESCOUADE_SPEECH_FAKE") {
                 Some(log) => (
@@ -317,7 +318,11 @@ impl Voice {
                     Arc::new(speech::piper::Piper::new(
                         data.join("voice").join("espeak-ng-data"),
                     )),
-                    Arc::new(speech::output::Speakers),
+                    if var("ESCOUADE_SPEECH_SILENT").is_some() {
+                        Arc::new(speech::output::Silent)
+                    } else {
+                        Arc::new(speech::output::Speakers)
+                    },
                 ),
             };
         let voices_url =

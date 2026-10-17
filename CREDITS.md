@@ -1,0 +1,57 @@
+# Crédits et licences
+
+Escouade est sous licence GPL-3.0 ou ultérieure (voir [LICENSE](LICENSE)). Elle s’appuie sur ces logiciels libres pour la voix, liés dans l’application :
+
+| Logiciel | Rôle | Licence |
+| --- | --- | --- |
+| [Piper](https://github.com/OHF-Voice/piper1-gpl) (Open Home Foundation) | Les voix et leur synthèse : son enchaînement (phonèmes, alphabet de la voix, modèle VITS) est réécrit en Rust dans Escouade | GPL-3.0 |
+| [eSpeak NG](https://github.com/espeak-ng/espeak-ng), par son portage en Rust [espeak-ng-rs](https://github.com/eugenehp/espeak-ng-rs) | Le texte en phonèmes, avec les données du français et de l’anglais | GPL-3.0-or-later |
+| [ONNX Runtime](https://github.com/microsoft/onnxruntime) (Microsoft), par [ort](https://github.com/pykeio/ort) | Fait tourner le modèle de la voix | MIT (ort : MIT ou Apache-2.0) |
+| [whisper.cpp](https://github.com/ggml-org/whisper.cpp), par [whisper-rs](https://codeberg.org/tazz4843/whisper-rs) | La transcription de la dictée et de la conversation | MIT (whisper-rs : Unlicense) |
+| [cpal](https://github.com/RustAudio/cpal) | Le micro et les haut-parleurs | Apache-2.0 |
+
+## Les voix
+
+Les voix de la conversation viennent du catalogue de [PiperHub](https://piperhub.org) (code du site sous MIT ; chaque voix garde la licence de son auteur). Escouade ne propose que celles qui passent sa règle : licence du modèle permissive (MIT, Apache-2.0, BSD, CC0, CC BY et CC BY-SA avec attribution, domaine public), licence du jeu de données aussi quand elle est connue (ni NC, ni ND, ni « recherche seulement »), et aucune voix de personnage, de personne connue ni de marque. La licence lue sur Hugging Face (fiche du modèle, fiche officielle `MODEL_CARD`, fiche du jeu de données) prime sur celle de PiperHub. Une voix de la communauté dont on ne sait pas qui parle n’est proposée qu’après vérification. La liste est livrée avec l’application et mise à jour à ses versions (`scripts/piper-voices.mjs`, puis le test `write_the_voice_catalog`).
+
+Chaque voix est téléchargée depuis Hugging Face à la demande, sa taille et sa somme SHA-256 vérifiées. Réglages › Voix montre la licence et le crédit de la voix choisie.
+
+| Voix | Nom | Langue | Dépôt | Licence du modèle | Jeu de données | Crédit demandé |
+| --- | --- | --- | --- | --- | --- | --- |
+| `colin-english-en-high` | Colin - English (EN) High | en | [nardocolin/nardocolin-pipertts](https://huggingface.co/nardocolin/nardocolin-pipertts) | cc-by-4.0 | non précisée | Colin - English (EN) High — https://huggingface.co/nardocolin/nardocolin-pipertts (cc-by-4.0) |
+| `en_GB-alan-low` | Alan - English (GB) Low | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | See URL ([source](https://github.com/MycroftAI/mimic3-voices/blob/master/voices/en_UK/apope_low)) | — |
+| `en_GB-alan-medium` | Alan - English (GB) Medium | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | See URL ([source](https://github.com/MycroftAI/mimic3-voices/blob/master/voices/en_UK/apope_low)) | — |
+| `en_GB-alba-medium` | Alba - English (GB) Medium | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | https://creativecommons.org/licenses/by/4.0/ ([source](https://datashare.ed.ac.uk/handle/10283/3270)) | https://datashare.ed.ac.uk/handle/10283/3270 (https://creativecommons.org/licenses/by/4.0/) |
+| `en_GB-aru-medium` | Aru - English (GB) Medium | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | https://creativecommons.org/licenses/by/4.0/ ([source](https://www.liverpool.ac.uk/architecture/research/acoustics-research-unit/speech-corpus/)) | https://www.liverpool.ac.uk/architecture/research/acoustics-research-unit/speech-corpus/ (https://creativecommons.org/licenses/by/4.0/) |
+| `en_GB-cori-high` | Cori - English (GB) High | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | public domain ([source](https://librivox.org)) | — |
+| `en_GB-cori-medium` | Cori - English (GB) Medium | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | public domain ([source](https://librivox.org)) | — |
+| `en_GB-jenny_dioco-medium` | Jenny Dioco - English (GB) Medium | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | See URL ([source](https://github.com/dioco-group/jenny-tts-dataset)) | — |
+| `en_GB-southern_english_female-low` | Southern English Female - English (GB) Low | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | CC-BY-SA 4.0 International ([source](http://www.openslr.org/83/)) | http://www.openslr.org/83/ (CC-BY-SA 4.0 International) |
+| `en_GB-vctk-medium` | Vctk - English (GB) Medium | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | https://creativecommons.org/licenses/by/4.0/ ([source](https://datashare.ed.ac.uk/handle/10283/3443)) | https://datashare.ed.ac.uk/handle/10283/3443 (https://creativecommons.org/licenses/by/4.0/) |
+| `en_US-amy-low` | Amy - English (US) Low | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | See URL ([source](https://github.com/MycroftAI/mimic3-voices)) | — |
+| `en_US-amy-medium` | Amy - English (US) Medium | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | See URL ([source](https://github.com/MycroftAI/mimic3-voices)) | — |
+| `en_US-arctic-medium` | Arctic - English (US) Medium | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | See LICENSE file ([source](http://www.festvox.org/cmu_arctic/)) | — |
+| `en_US-bryce-medium` | Bryce - English (US) Medium | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | public domain | — |
+| `en_US-danny-low` | Danny - English (US) Low | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | See URL ([source](https://github.com/MycroftAI/mimic3-voices)) | — |
+| `en_US-joe-medium` | Joe - English (US) Medium | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | CC0 ([source](https://github.com/OHF-Voice/voice-datasets)) | — |
+| `en_US-john-medium` | John - English (US) Medium | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | public domain ([source](https://librivox.org)) | — |
+| `en_US-kathleen-low` | Kathleen - English (US) Low | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | CC0 ([source](https://github.com/rhasspy/dataset-voice-kathleen)) | — |
+| `en_US-kristin-medium` | Kristin - English (US) Medium | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | public domain ([source](https://librivox.org)) | — |
+| `en_US-kusal-medium` | Kusal - English (US) Medium | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | See URL ([source](https://github.com/MycroftAI/mimic2)) | — |
+| `en_US-libritts-high` | Libritts - English (US) High | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | CC BY 4.0 ([source](http://www.openslr.org/60/)) | http://www.openslr.org/60/ (CC BY 4.0) |
+| `en_US-libritts_r-medium` | Libritts R - English (US) Medium | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | CC BY 4.0 ([source](http://www.openslr.org/141/)) | http://www.openslr.org/141/ (CC BY 4.0) |
+| `en_US-ljspeech-high` | Ljspeech - English (US) High | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | public domain ([source](https://keithito.com/LJ-Speech-Dataset/)) | — |
+| `en_US-ljspeech-medium` | Ljspeech - English (US) Medium | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | public domain ([source](https://keithito.com/LJ-Speech-Dataset/)) | — |
+| `en_US-mike-medium` | Mike - English (US) Medium | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | CC0 ([source](https://github.com/OHF-Voice/voice-datasets)) | — |
+| `en_US-norman-medium` | Norman - English (US) Medium | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | public domain ([source](https://librivox.org)) | — |
+| `en_US-reza_ibrahim-medium` | Reza Ibrahim - English (US) Medium | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | CC0 ([source](https://huggingface.co/datasets/mah92/Hedayatfar-Persian-Quran-Audio-Dataset)) | — |
+| `en_US-sam-medium` | Sam - English (US) Medium | en | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | https://www.apache.org/licenses/LICENSE-2.0.txt ([source](https://github.com/Sam-Accenture-Non-Binary-Voice/non-binary-voice-files)) | — |
+| `librivox-au-english-au-medium-10-voice` | Librivox AU - English (AU) Medium 10 Voice | en | [DataCraftsmanAustralia/piper-en_AU-librivox-medium](https://huggingface.co/DataCraftsmanAustralia/piper-en_AU-librivox-medium) | cc-by-4.0 | non précisée | Librivox AU - English (AU) Medium 10 Voice — https://huggingface.co/DataCraftsmanAustralia/piper-en_AU-librivox-medium (cc-by-4.0) |
+| `fr_FR-gilles-low` | Gilles - French (FR) Low | fr | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | CC0 ([source](https://www.kaggle.com/datasets/bryanpark/french-single-speaker-speech-dataset)) | — |
+| `fr_FR-mls-medium` | Mls - French (FR) Medium | fr | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | CC-BY 4.0 ([source](http://openslr.org/94/)) | http://openslr.org/94/ (CC-BY 4.0) |
+| `fr_FR-mls_1840-low` | Mls 1840 - French (FR) Low | fr | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | CC BY 4.0 ([source](http://www.openslr.org/94/)) | http://www.openslr.org/94/ (CC BY 4.0) |
+| `fr_FR-siwis-low` | Siwis - French (FR) Low | fr | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | CC-BY 4.0 ([source](https://datashare.is.ed.ac.uk/handle/10283/2353)) | https://datashare.is.ed.ac.uk/handle/10283/2353 (CC-BY 4.0) |
+| `fr_FR-siwis-medium` | Siwis - French (FR) Medium | fr | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | CC-BY 4.0 ([source](https://datashare.is.ed.ac.uk/handle/10283/2353)) | https://datashare.is.ed.ac.uk/handle/10283/2353 (CC-BY 4.0) |
+| `fr_FR-upmc-medium` | Upmc - French (FR) Medium | fr | [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) | mit | http://creativecommons.org/licenses/by-sa/4.0/ ([source](https://github.com/marytts/upmc-pierre-data)) | https://github.com/marytts/upmc-pierre-data (http://creativecommons.org/licenses/by-sa/4.0/) |
+
+Plusieurs voix officielles sont affinées à partir de la voix anglaise Lessac (jeu de données du Blizzard Challenge 2013, sous une licence propre) ou Ryan : leur fiche donne le jeu de données de l’affinage, que la règle lit.

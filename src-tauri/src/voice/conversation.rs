@@ -265,6 +265,7 @@ impl Voice {
                     }
                     slot.as_ref().unwrap().push(&audio.samples);
                 }
+                log::info!("speech: reading {reading} made");
                 let playing = s.playing.lock().clone();
                 match (playing, error) {
                     (Some(p), None) => p.finish(),
