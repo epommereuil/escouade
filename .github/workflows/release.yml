@@ -86,12 +86,12 @@ jobs:
           # One app for Apple Silicon and Intel Macs.
           - name: macOS
             os: macos-latest
-            args: --target universal-apple-darwin
+            args: --target universal-apple-darwin --config src-tauri/tauri.ort-macos.conf.json
           # The oldest Ubuntu GitHub still runs: the AppImage (which the in-app updater replaces)
           # and the .deb then start on the glibc of most distributions since 2022.
           - name: Linux
             os: ubuntu-22.04
-            args: ''
+            args: --config src-tauri/tauri.ort-linux.conf.json
     runs-on: ${{ matrix.os }}
     timeout-minutes: 75
     steps:
@@ -163,11 +163,12 @@ jobs:
             fi
           done
 
-      # The conversation's voice on Intel Macs: Microsoft's ONNX Runtime, in the bundle's Frameworks
-      # (tauri.macos.conf.json), its checksum checked; pyke builds no static one for Intel.
-      - name: ONNX Runtime for Intel Macs
-        if: runner.os == 'macOS'
-        run: scripts/onnxruntime-macos.sh
+      # The conversation's voice on Intel Macs and Linux: Microsoft's ONNX Runtime, in the bundle (the Frameworks of the
+      # app, the .deb and the AppImage: tauri.ort-<os>.conf.json, in the args of the matrix), its checksum checked.
+      - name: ONNX Runtime for Intel Macs and Linux
+        if: runner.os != 'Windows'
+        shell: bash
+        run: scripts/onnxruntime.sh ${{ runner.os == 'macOS' && 'macos' || 'linux' }}
 
       # The same notes go into latest.json, which the in-app updater reads.
       - name: Release notes

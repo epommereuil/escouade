@@ -28,7 +28,6 @@
       "minimumSystemVersion": "11.0",
       "signingIdentity": "-",
       "entitlements": "./Entitlements.plist",
-      "frameworks": ["./macos/onnxruntime/libonnxruntime.1.23.2.dylib"],
       "files": {
         "Resources/fr.lproj/InfoPlist.strings": "./macos/fr.lproj/InfoPlist.strings",
         "Resources/en.lproj/InfoPlist.strings": "./macos/en.lproj/InfoPlist.strings"

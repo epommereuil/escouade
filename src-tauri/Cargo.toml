@@ -8,7 +8,7 @@ edition = "2021"
 rust-version = "1.88"
 
 [features]
-# ONNX Runtime loaded from a library at run time, as on Intel Macs: to try that path elsewhere
+# ONNX Runtime loaded from a library at run time, as on Intel Macs and Linux: to try that path elsewhere
 # (`ESCOUADE_ORT_DYLIB` names the library).
 ort-dynamic = ["ort/load-dynamic"]
 
@@ -69,12 +69,13 @@ hound = "3.5"
 # ONNX Runtime, turns into sound.
 espeak-ng = { version = "0.2", default-features = false, features = ["bundled-data-fr", "bundled-data-en"] }
 
-# ONNX Runtime, linked in statically (pyke's builds, downloaded by its build script). None is built for Intel Macs:
-# there Microsoft's own library (1.23.2) is shipped in the app's Frameworks and loaded at run time.
-[target.'cfg(not(all(target_os = "macos", target_arch = "x86_64")))'.dependencies]
+# ONNX Runtime, linked in statically on Windows and Apple Silicon (pyke's builds, downloaded by its build script). Pyke
+# builds none for Intel Macs, and its Linux one needs glibc 2.38: there Microsoft's own library (1.23.2, glibc 2.27) is
+# shipped in the bundle (scripts/onnxruntime.sh, tauri.ort-<os>.conf.json) and loaded at run time.
+[target.'cfg(any(windows, all(target_os = "macos", target_arch = "aarch64")))'.dependencies]
 ort = { version = "=2.0.0-rc.13", default-features = false, features = ["std", "download-binaries", "tls-rustls", "api-22"] }
 
-[target.'cfg(all(target_os = "macos", target_arch = "x86_64"))'.dependencies]
+[target.'cfg(any(target_os = "linux", all(target_os = "macos", target_arch = "x86_64")))'.dependencies]
 ort = { version = "=2.0.0-rc.13", default-features = false, features = ["std", "load-dynamic", "api-22"] }
 
 [target.'cfg(windows)'.dependencies]

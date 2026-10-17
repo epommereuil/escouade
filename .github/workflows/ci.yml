@@ -189,9 +189,16 @@ jobs:
           node ../scripts/nextest-annotations.mjs nextest.log target/nextest/ci/junit.xml $status
           exit $status
 
-      # Without the updater key: only checks that the AppImage and the .deb build.
+      # The conversation's voice under Linux: Microsoft's ONNX Runtime (glibc 2.27), in the .deb and the AppImage
+      # (tauri.ort-linux.conf.json), its checksum checked; pyke's needs glibc 2.38.
+      - name: ONNX Runtime for Linux
+        run: scripts/onnxruntime.sh linux
+
+      # Without the updater key: only checks that the AppImage and the .deb build, ONNX Runtime in the .deb.
       - name: Build the packages
-        run: npx tauri build --debug --config '{"bundle":{"createUpdaterArtifacts":false}}'
+        run: |
+          npx tauri build --debug --config src-tauri/tauri.ort-linux.conf.json --config '{"bundle":{"createUpdaterArtifacts":false}}'
+          dpkg -c src-tauri/target/debug/bundle/deb/*.deb | grep -q usr/lib/escouade/libonnxruntime.so.1.23.2
 
       - name: Upload the packages
         uses: actions/upload-artifact@v7
@@ -265,13 +272,15 @@ jobs:
           cargo check --lib --target x86_64-apple-darwin
 
       # The conversation's voice on Intel Macs: Microsoft's ONNX Runtime, in the bundle's Frameworks
-      # (tauri.macos.conf.json), its checksum checked.
+      # (tauri.ort-macos.conf.json), its checksum checked.
       - name: ONNX Runtime for Intel Macs
-        run: scripts/onnxruntime-macos.sh
+        run: scripts/onnxruntime.sh macos
 
-      # Without the updater key: only checks that the app and its disk image build.
+      # Without the updater key: only checks that the app and its disk image build, ONNX Runtime in its Frameworks.
       - name: Build the app bundle
-        run: npx tauri build --debug --bundles app,dmg --config '{"bundle":{"createUpdaterArtifacts":false}}'
+        run: |
+          npx tauri build --debug --bundles app,dmg --config src-tauri/tauri.ort-macos.conf.json --config '{"bundle":{"createUpdaterArtifacts":false}}'
+          test -f src-tauri/target/debug/bundle/macos/Escouade.app/Contents/Frameworks/libonnxruntime.1.23.2.dylib
 
       - name: Upload the disk image
         uses: actions/upload-artifact@v7

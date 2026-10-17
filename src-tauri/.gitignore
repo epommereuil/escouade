@@ -6,5 +6,6 @@
 # will have schema files for capabilities auto-completion
 /gen/schemas
 
-# ONNX Runtime for Intel Macs, fetched by scripts/onnxruntime-macos.sh (ESC-97).
+# Microsoft's ONNX Runtime for Intel Macs and Linux, fetched by scripts/onnxruntime.sh (ESC-97).
 /macos/onnxruntime/
+/linux/onnxruntime/

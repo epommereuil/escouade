@@ -169,14 +169,16 @@ impl Phonemizer {
     }
 }
 
-/// ONNX Runtime is loaded from a library at run time, not linked in: Intel Macs (pyke builds none for them), or the
-/// `ort-dynamic` feature (to try that path on another system).
+/// ONNX Runtime is loaded from a library at run time, not linked in: Intel Macs (pyke builds none for them) and Linux
+/// (pyke's needs glibc 2.38), or the `ort-dynamic` feature (to try that path on another system).
 const DYNAMIC: bool = cfg!(any(
     feature = "ort-dynamic",
+    target_os = "linux",
     all(target_os = "macos", target_arch = "x86_64")
 ));
 
-/// Microsoft's library, in the app: `Contents/Frameworks` of the bundle on a Mac, beside the program elsewhere;
+/// Microsoft's library, in the app: `Contents/Frameworks` of the bundle on a Mac, `/usr/lib/escouade` of the .deb (and
+/// `usr/lib/escouade` of the AppImage) beside `bin/escouade` under Linux, beside the program elsewhere;
 /// `ESCOUADE_ORT_DYLIB` in its place.
 pub fn runtime_path() -> PathBuf {
     if let Some(p) = std::env::var_os("ESCOUADE_ORT_DYLIB").filter(|p| !p.is_empty()) {
@@ -189,7 +191,12 @@ pub fn runtime_path() -> PathBuf {
     } else if cfg!(windows) {
         dir.join("onnxruntime.dll")
     } else {
-        dir.join("libonnxruntime.so")
+        let bundled = dir.join("../lib/escouade/libonnxruntime.so.1.23.2");
+        if bundled.exists() {
+            bundled
+        } else {
+            dir.join("libonnxruntime.so.1.23.2")
+        }
     }
 }
 
@@ -200,6 +207,7 @@ fn runtime() -> Result<()> {
         .get_or_init(|| {
             #[cfg(any(
                 feature = "ort-dynamic",
+                target_os = "linux",
                 all(target_os = "macos", target_arch = "x86_64")
             ))]
             {

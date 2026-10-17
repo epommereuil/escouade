@@ -1,0 +1,16 @@
+{
+  "bundle": {
+    "linux": {
+      "deb": {
+        "files": {
+          "/usr/lib/escouade/libonnxruntime.so.1.23.2": "./linux/onnxruntime/libonnxruntime.so.1.23.2"
+        }
+      },
+      "appimage": {
+        "files": {
+          "usr/lib/escouade/libonnxruntime.so.1.23.2": "./linux/onnxruntime/libonnxruntime.so.1.23.2"
+        }
+      }
+    }
+  }
+}
