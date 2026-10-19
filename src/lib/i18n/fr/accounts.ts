@@ -164,6 +164,8 @@ export default {
     week: { label: '7j' },
     /** `{countdown}`: the time left, as `fCountdown` writes it. */
     reset: 'reset {countdown}',
+    /** After the reset: where the window would end at the pace used so far; `{pct}`: « 112 % ». */
+    projected: '→ {pct}',
     /** The value of a bar: `{pct}`: « 42 % »; `{date}`: « 10/10 »; `{time}`: « 18:00 ». */
     tip: '{pct} · remise à zéro le {date} à {time}',
     unavailable: 'Quota indisponible',

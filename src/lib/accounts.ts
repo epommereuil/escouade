@@ -299,6 +299,37 @@ export function overThreshold(w: RateWindow | null, threshold: number, now: numb
   return !!w && w.pct + 1e-6 >= threshold && w.resetsAt !== null && w.resetsAt > now;
 }
 
+/**
+ * Where a window would end if it went on at the pace used so far: its percentage spread over the time gone, to its whole
+ * length. None for the month's credits, a window whose end is unknown or past, nor in its first 2 % (6 minutes of a 5 h
+ * window, 3 hours of a week's): too early, one turn would project it far past 100 %.
+ */
+export function projectedPct(minutes: number | null, w: RateWindow | null, now: number): number | null {
+  if (minutes === null || !w?.resetsAt) return null;
+  const length = minutes * 60_000;
+  const left = w.resetsAt - now;
+  if (left <= 0) return null;
+  const gone = Math.min(length, length - left);
+  if (gone < length * 0.02) return null;
+  return (w.pct * length) / gone;
+}
+
+/**
+ * The colour of a projection: past 100 % the window runs out before its end, past 80 % it comes close. Rounded as it is
+ * written, so that « 100 % » is never red.
+ */
+export function projectionLevel(pct: number): 'ok' | 'warn' | 'over' {
+  const p = Math.round(pct);
+  if (p > 100) return 'over';
+  if (p > 80) return 'warn';
+  return 'ok';
+}
+
+/** A projection as it is written: « 112 % », « 999+ % » past that (early in a window, a few turns go far). */
+export function fProjection(pct: number): string {
+  return Math.round(pct) > 999 ? t('format.percent', { n: '999+' }) : fPct(pct);
+}
+
 /** One account in the panel of the quotas. */
 export interface QuotaRow {
   account: Account;

@@ -144,6 +144,7 @@ export default defineZone('accounts', {
     credits: { label: 'credits', name: 'Credits of the month' },
     week: { label: 'W' },
     reset: 'reset {countdown}',
+    projected: '→ {pct}',
     tip: '{pct} · resets on {date} at {time}',
     unavailable: 'Quota unavailable',
     line: '{name}: {tip}',

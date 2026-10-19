@@ -127,6 +127,40 @@ describe('QuotaMeter in the status bar', () => {
   });
 });
 
+describe('QuotaMeter projection', () => {
+  /** A 5 h window with 2 h gone (3 h left). */
+  const fiveHour = (pct: number) => ({ minutes: 300, usage: { pct, resetsAt: NOW + 3 * 3600_000 }, now: NOW });
+
+  it('writes after the reset where the window ends at this pace, green up to 80 %', () => {
+    const { container } = render(QuotaMeter, fiveHour(20));
+    expect(container).toHaveTextContent('reset 3h00 → 50 %');
+    expect(screen.getByText('→ 50 %')).toHaveClass('ok');
+  });
+
+  it('turns amber past 80 % and red past 100 %', async () => {
+    const { rerender } = render(QuotaMeter, fiveHour(34));
+    expect(screen.getByText('→ 85 %')).toHaveClass('warn');
+    await rerender(fiveHour(40));
+    expect(screen.getByText('→ 100 %')).toHaveClass('warn');
+    await rerender(fiveHour(48));
+    expect(screen.getByText('→ 120 %')).toHaveClass('over');
+  });
+
+  it('writes none in the first minutes of the window, for the credits, nor without a reset', async () => {
+    const { container, rerender } = render(QuotaMeter, { minutes: 300, usage: { pct: 3, resetsAt: NOW + 298 * 60_000 }, now: NOW });
+    expect(container).not.toHaveTextContent('→');
+    await rerender({ minutes: null, usage: { pct: 40, resetsAt: SOON }, now: NOW });
+    expect(container).not.toHaveTextContent('→');
+    await rerender({ minutes: 300, usage: { pct: 40, resetsAt: null }, now: NOW });
+    expect(container).not.toHaveTextContent('→');
+  });
+
+  it('is in the panel too, after the reset', () => {
+    const { container } = render(QuotaMeter, { ...fiveHour(20), detail: true });
+    expect(spaces(container.textContent)).toMatch(/20 %\s*reset 3h00\s*→ 50 %/);
+  });
+});
+
 describe('QuotaMeter in the panel', () => {
   it('writes the percentage and the reset next to the bar, which is a meter without a tooltip', async () => {
     const { container } = render(QuotaMeter, { minutes: 300, usage: { pct: 42, resetsAt: SOON }, now: NOW, detail: true });

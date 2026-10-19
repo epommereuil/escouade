@@ -1,6 +1,17 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { agent, project, resetApp, usageOf } from '../test/ipc';
-import { newAgentAccount, overThreshold, pausedAccounts, pauseOf, projectsWithoutAccount, quotaOf, quotaRows } from './accounts';
+import {
+  fProjection,
+  newAgentAccount,
+  overThreshold,
+  pausedAccounts,
+  pauseOf,
+  projectedPct,
+  projectionLevel,
+  projectsWithoutAccount,
+  quotaOf,
+  quotaRows,
+} from './accounts';
 import { setLang } from './i18n';
 import { app } from './state.svelte';
 import type { Account, AccountUsage, AutopilotPause, RateWindow } from './types';
@@ -231,5 +242,47 @@ describe('the quota of each account', () => {
     expect(reasons.principal).toEqual(['Not signed in with a claude.ai account (API key?)']);
     expect(reasons.pro).toEqual(['Not signed in']);
     expect(reasons.team).toEqual(['Inactive']);
+  });
+});
+
+describe('the projection of a window at its reset', () => {
+  const H = 3600_000;
+  const NOW = 1_000 * H;
+
+  it('spreads what is used over the time gone, to the whole window', () => {
+    // 2 h of 5 gone, 40 % used: 100 % at the reset.
+    expect(projectedPct(300, { pct: 40, resetsAt: NOW + 3 * H }, NOW)).toBeCloseTo(100);
+    // Half the week gone, 30 % used.
+    expect(projectedPct(10080, { pct: 30, resetsAt: NOW + 84 * H }, NOW)).toBeCloseTo(60);
+    expect(projectedPct(300, { pct: 0, resetsAt: NOW + 3 * H }, NOW)).toBe(0);
+  });
+
+  it('says nothing for the credits, an unknown or past end, nor in the first 2 % of the window', () => {
+    expect(projectedPct(null, { pct: 40, resetsAt: NOW + H }, NOW)).toBeNull();
+    expect(projectedPct(300, null, NOW)).toBeNull();
+    expect(projectedPct(300, { pct: 40, resetsAt: null }, NOW)).toBeNull();
+    expect(projectedPct(300, { pct: 40, resetsAt: NOW }, NOW)).toBeNull();
+    // 5 minutes of 5 h gone: too early; 6 minutes: 2 %.
+    expect(projectedPct(300, { pct: 1, resetsAt: NOW + 295 * 60_000 }, NOW)).toBeNull();
+    expect(projectedPct(300, { pct: 1, resetsAt: NOW + 294 * 60_000 }, NOW)).toBeCloseTo(50);
+  });
+
+  it('takes a reset further than the window as a window just started', () => {
+    expect(projectedPct(300, { pct: 5, resetsAt: NOW + 6 * H }, NOW)).toBeNull();
+  });
+
+  it('is green up to 80 %, amber up to 100 %, red past it, as it is written', () => {
+    expect(projectionLevel(80)).toBe('ok');
+    expect(projectionLevel(80.4)).toBe('ok');
+    expect(projectionLevel(81)).toBe('warn');
+    expect(projectionLevel(100.4)).toBe('warn');
+    expect(projectionLevel(100.6)).toBe('over');
+  });
+
+  it('writes the percentage, « 999+ » past it', () => {
+    setLang('fr');
+    expect(fProjection(112.3)).toBe('112 %');
+    expect(fProjection(999.4)).toBe('999 %');
+    expect(fProjection(4000)).toBe('999+ %');
   });
 });
