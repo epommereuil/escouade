@@ -101,7 +101,7 @@ export function subagentInfo(agent: Agent, items: ConvItem[], call: string): Sub
     if (v !== undefined && v !== null) info[k] = v;
   };
   set('kind', row?.kind ?? word(item?.input?.subagent_type));
-  set('model', row?.model ?? word(item?.input?.model));
+  set('model', row?.model ?? run?.model ?? word(item?.input?.model));
   set('prompt', word(item?.input?.prompt));
   set('tokens', row?.tokens ?? run?.tokens);
   set('tools', row ? row.tools : run?.tools);

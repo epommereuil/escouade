@@ -4388,7 +4388,8 @@ impl<R: Runtime> Core<R> {
     ///
     /// Its files may say how the subagent ended, which the view's frames never do (stopped in the
     /// interface, an API error: `ended`); its row of the plan, if it still runs, ends so, and the
-    /// window is sent the agent. That is what opening its view in the window does, and the window's
+    /// window is sent the agent. The model its messages tell goes on its row too (the view's
+    /// frames carry none of a subagent's). That is what opening its view in the window does, and the window's
     /// alone: whoever only reads it (`subagent_report`) uses `read_sidechain`, which changes
     /// nothing.
     pub fn subagent_transcript(
@@ -4398,8 +4399,27 @@ impl<R: Runtime> Core<R> {
         since: Option<crate::agent::sidechain::Cursor>,
     ) -> Result<Option<crate::agent::sidechain::SidechainRead>> {
         let read = self.read_sidechain(id, call, since)?;
-        if let Some(how) = read.as_ref().and_then(|r| r.ended) {
-            self.end_subagents(id, &[(call.to_string(), how)]);
+        let told = read
+            .as_ref()
+            .filter(|r| r.model.is_some() || r.ended.is_some());
+        if let (Some(r), Ok(h)) = (told, self.agent(id)) {
+            // What its files tell goes on its row at once, for the window to be sent the agent once.
+            let mut fx = Effects::default();
+            let (pid, name, view) = {
+                let mut rt = h.lock();
+                if let Some(model) = r.model.as_deref() {
+                    rt.subagent_model(call, model, &mut fx);
+                }
+                if let Some(how) = r.ended {
+                    rt.end_subagent(call, how, &mut fx);
+                }
+                (
+                    rt.meta.project_id.clone(),
+                    rt.meta.name.clone(),
+                    fx.agent_changed.then(|| rt.view()),
+                )
+            };
+            self.apply(id, &pid, &name, fx, view);
         }
         Ok(read)
     }
@@ -4448,6 +4468,7 @@ impl<R: Runtime> Core<R> {
                 items: Vec::new(),
                 cursor: None,
                 ended: None,
+                model: None,
             }));
         };
         sidechain::read_changed(&file, call, since).context(tr!(

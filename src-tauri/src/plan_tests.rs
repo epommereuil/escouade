@@ -3061,3 +3061,33 @@ fn the_window_is_told_the_background_tasks_and_a_saved_plan_without_them_is_read
     assert!(old.bg_tasks.is_empty());
     assert_eq!(BgKind::default(), BgKind::Command);
 }
+
+#[test]
+fn a_subagents_messages_tell_the_model_it_runs_on() {
+    let mut p = PlanState::default();
+    // Its call names none: its agent's definition chooses, or it inherits the agent's.
+    launch(
+        &mut p,
+        "a1",
+        json!({ "description": "Lire", "prompt": "Lis" }),
+    );
+    assert_eq!(row(&p, "a1").model, None);
+    assert_eq!(p.on_child_model("a1", "claude-haiku-5-5"), Change::Saved);
+    assert_eq!(row(&p, "a1").model.as_deref(), Some("claude-haiku-5-5"));
+    // The same again is not news; Claude Code's own messages and an empty one tell nothing.
+    assert_eq!(p.on_child_model("a1", "claude-haiku-5-5"), Change::None);
+    assert_eq!(p.on_child_model("a1", "<synthetic>"), Change::None);
+    assert_eq!(p.on_child_model("a1", ""), Change::None);
+    assert_eq!(row(&p, "a1").model.as_deref(), Some("claude-haiku-5-5"));
+    // What it runs on wins over what its call asked for.
+    launch(
+        &mut p,
+        "a2",
+        json!({ "description": "Tests", "prompt": "Lance", "model": "haiku" }),
+    );
+    assert_eq!(row(&p, "a2").model.as_deref(), Some("haiku"));
+    p.on_child_model("a2", "claude-sonnet-5-5");
+    assert_eq!(row(&p, "a2").model.as_deref(), Some("claude-sonnet-5-5"));
+    // A thread that is no subagent's has no row to tell.
+    assert_eq!(p.on_child_model("zzz", "claude-haiku-5-5"), Change::None);
+}

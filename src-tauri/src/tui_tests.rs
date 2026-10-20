@@ -2973,18 +2973,16 @@ async fn a_subagent_stopped_in_the_interface_ends_its_row_when_its_transcript_is
         "not that one"
     );
 
-    // A row that ended otherwise (its hand-back came first) stays as it was; the window is told nothing.
+    // A row that ended otherwise (its hand-back came first) stays as it was; the window is told
+    // nothing (its model, which the transcript tells too, it had already).
     let sent = agent_events(&h, &id);
-    h.core
-        .agent(&id)
-        .unwrap()
-        .lock()
-        .meta
-        .plan
-        .as_mut()
-        .unwrap()
-        .agents[0]
-        .status = RunStatus::Done;
+    {
+        let a = h.core.agent(&id).unwrap();
+        let mut rt = a.lock();
+        let row = &mut rt.meta.plan.as_mut().unwrap().agents[0];
+        row.status = RunStatus::Done;
+        row.model = Some("claude-haiku-5-5".into());
+    }
     let read = h
         .core
         .subagent_transcript(&id, SUB_CALL, None)

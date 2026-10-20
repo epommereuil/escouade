@@ -99,7 +99,16 @@ describe('subagentInfo', () => {
       endedAt: 70,
       report: 'Fini.',
     });
+
     expect(info.taskId).toBeUndefined();
+  });
+
+  it('gives the model it ran on, as the conversation kept it, over the one its call asked for', () => {
+    const run = { status: 'done' as const, model: 'claude-haiku-5-5', tools: 1, startedAt: 10, endedAt: 70 };
+    expect(subagentInfo(agent(), [call('c1', { run })], 'c1')!.model).toBe('claude-haiku-5-5');
+    // While the plan has its row, the row tells.
+    const a = agent({ plan: planOf([sub('c1', { model: 'claude-sonnet-5-5' })]) });
+    expect(subagentInfo(a, [call('c1', { run })], 'c1')!.model).toBe('claude-sonnet-5-5');
   });
 
   it('takes the result of a subagent in the foreground as its report, never the words of a launch', () => {

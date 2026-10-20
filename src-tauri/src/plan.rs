@@ -102,7 +102,9 @@ pub struct SubAgent {
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
-    /// The model the call asked for, as it wrote it.
+    /// The model it runs on: the one its messages tell (`claude-haiku-5-5`), once one came,
+    /// else the one its call asked for, as it wrote it (`haiku`). Its call may name none (its
+    /// agent's definition chooses, or it inherits the agent's).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
     pub status: RunStatus,
@@ -933,6 +935,23 @@ impl PlanState {
         }
         row.doing = Some(activity);
         Change::View
+    }
+
+    /// The model a message of the subagent `parent` came from: the one it runs on, whatever its
+    /// call asked for. Claude Code's own messages (`<synthetic>`) tell nothing.
+    pub fn on_child_model(&mut self, parent: &str, model: &str) -> Change {
+        let model = clean(model);
+        if model.is_empty() || model.starts_with('<') {
+            return Change::None;
+        }
+        let Some(row) = self.agents.iter_mut().find(|a| a.id == parent) else {
+            return Change::None;
+        };
+        if row.model.as_deref() == Some(model.as_str()) {
+            return Change::None;
+        }
+        row.model = Some(model);
+        Change::Saved
     }
 
     /// The result of a tool call: `text` its text, `tool_use_result` the frame's structured one.

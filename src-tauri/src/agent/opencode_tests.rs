@@ -144,7 +144,8 @@ fn the_words_of_the_user_are_not_shown_again_and_a_subagent_goes_under_its_task(
             ),
             ev(
                 "message.updated",
-                json!({ "sessionID": "ses_child", "info": { "id": "msg_c", "role": "assistant", "sessionID": "ses_child" } }),
+                json!({ "sessionID": "ses_child", "info": { "id": "msg_c", "role": "assistant", "sessionID": "ses_child",
+                    "modelID": "qwen3-coder:30b-32k", "providerID": "ollama" } }),
             ),
             ev(
                 "message.part.updated",
@@ -191,6 +192,8 @@ fn the_words_of_the_user_are_not_shown_again_and_a_subagent_goes_under_its_task(
     assert_eq!(row.status, crate::plan::RunStatus::Done);
     assert_eq!(row.tokens, Some(42));
     assert_eq!(row.tools, 1);
+    // The model its messages came from, written as the agent's is.
+    assert_eq!(row.model.as_deref(), Some("ollama/qwen3-coder:30b-32k"));
 }
 
 #[test]

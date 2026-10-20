@@ -1046,7 +1046,10 @@ export interface SubAgent {
   title: string;
   /** Its type ("Explore"…). */
   kind?: string;
-  /** The model the call asked for, as it wrote it ("haiku", "sonnet"…). */
+  /**
+   * The model it runs on: the one its messages tell ("claude-haiku-5-5"), once one came, else the one its call asked for,
+   * as it wrote it ("haiku"). Its call may name none (its agent's definition chooses, or it inherits the agent's).
+   */
   model?: string;
   status: RunStatus;
   background: boolean;
@@ -1068,6 +1071,8 @@ export interface SubAgent {
 /** What the conversation keeps of a subagent once it ended, on the item of its call: the plan forgets its row (30 at most, none after a reset). */
 export interface SubagentRun {
   status: RunStatus;
+  /** The model it ran on, as its row last had it. */
+  model?: string;
   tokens?: number;
   tools: number;
   startedAt: number;
@@ -1088,6 +1093,8 @@ export interface SubagentRead {
   cursor: TranscriptCursor | null;
   /** How its files say it ended, which the view's frames never do (stopped in Claude Code's interface, an API error): the backend has ended its row of the plan then, if it still ran, and sent the agent. */
   ended: 'stopped' | 'failed' | null;
+  /** The model its messages tell (the backend has put it on its row of the plan then). */
+  model?: string | null;
 }
 
 /** A workflow of Claude Code the agent runs. */

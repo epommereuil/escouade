@@ -184,6 +184,20 @@ fn a_full_session_asks_writes_for_the_session_plans_and_runs_a_subagent() {
     assert!(items
         .iter()
         .any(|i| i["kind"] == "tool" && i["parent"] == call && i["name"] == "Read"));
+    // The model its messages came from, not the one its start named (its definition's).
+    let row = rt
+        .meta
+        .plan
+        .as_ref()
+        .unwrap()
+        .agents
+        .iter()
+        .find(|a| a.id == call)
+        .cloned();
+    assert_eq!(
+        row.and_then(|r| r.model).as_deref(),
+        Some("mai-code-1.1-flash")
+    );
     // The plan to approve, twice sent back.
     let plans: Vec<&&Value> = cards
         .iter()

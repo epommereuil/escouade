@@ -324,6 +324,17 @@ pub fn how_it_ended(meta: Option<&Value>, text: &str) -> Option<Ended> {
     }
 }
 
+/// The model the subagent runs on, as the last of its messages that tells one says
+/// (`claude-haiku-5-5`): Claude Code's own (`<synthetic>`) tell nothing.
+pub fn model_of(text: &str) -> Option<String> {
+    text.lines()
+        .rev()
+        .filter_map(|line| serde_json::from_str::<Value>(line).ok())
+        .filter(|e| e["isSidechain"] == true && e["type"] == "assistant")
+        .filter_map(|e| e["message"]["model"].as_str().map(str::to_string))
+        .find(|m| !m.is_empty() && !m.starts_with('<'))
+}
+
 /// How a subagent's files stood when they were last read: the size of its transcript, in bytes,
 /// and when it last changed, in ms since the epoch. That is the later of the dates of the
 /// transcript and of its meta file, which Claude Code writes on its own (`stoppedByUser`).
@@ -342,6 +353,8 @@ pub struct SidechainRead {
     pub cursor: Option<Cursor>,
     /// How it ended, if its files say (`how_it_ended`).
     pub ended: Option<Ended>,
+    /// The model it runs on, once one of its messages told it (`model_of`).
+    pub model: Option<String>,
 }
 
 /// The cursor of a subagent's files as they stand.
@@ -378,6 +391,7 @@ pub fn read_changed(
         items: sidechain_items(&text, call),
         cursor: Some(cursor),
         ended: how_it_ended(meta.as_ref(), &text),
+        model: model_of(&text),
     }))
 }
 
@@ -391,6 +405,11 @@ impl AgentRt {
             "tool_use_id": call, "status": how.status(),
         });
         self.plan_apply(fx, |plan| plan.on_system(&frame, now_ms()));
+    }
+
+    /// The subagent that `call` launched runs on `model`, as its transcript shows (`model_of`).
+    pub fn subagent_model(&mut self, call: &str, model: &str, fx: &mut Effects) {
+        self.plan_apply(fx, |plan| plan.on_child_model(call, model));
     }
 }
 
@@ -859,6 +878,25 @@ mod tests {
     }
 
     #[test]
+    fn the_model_of_a_subagent_is_the_one_its_last_message_tells() {
+        // The real one ran on Haiku, which its call asked for by its alias.
+        assert_eq!(model_of(SIDECHAIN).as_deref(), Some("claude-haiku-5-5"));
+        let line = |model: &str| {
+            json!({"type":"assistant","isSidechain":true,"message":{"model":model,"content":[]}})
+                .to_string()
+        };
+        // Claude Code's own messages tell nothing; an entry of no sidechain is not its.
+        let text = [line("claude-sonnet-5-5"), line("<synthetic>")].join(
+            "
+",
+        );
+        assert_eq!(model_of(&text).as_deref(), Some("claude-sonnet-5-5"));
+        let main = json!({"type":"assistant","message":{"model":"claude-opus-5-5"}}).to_string();
+        assert_eq!(model_of(&main), None);
+        assert_eq!(model_of(""), None);
+    }
+
+    #[test]
     fn a_subagent_stopped_by_the_user_is_told_by_its_meta_file_and_by_the_end_of_its_transcript() {
         let meta: Value = serde_json::from_str(META).unwrap();
         // The real one, which `stop_task` stopped: both say so, and either is enough.
@@ -1018,6 +1056,7 @@ mod tests {
         assert_eq!(first.items[0]["name"], "Write");
         assert_eq!(first.items[0]["status"], "ok");
         assert_eq!(first.ended, None);
+        assert_eq!(first.model.as_deref(), Some("claude-haiku-5-5"));
         let cursor = first.cursor.unwrap();
         assert_eq!(cursor.len, std::fs::metadata(&file).unwrap().len());
         // The same size, the same date: nothing.

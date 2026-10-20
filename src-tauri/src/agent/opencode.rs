@@ -153,6 +153,16 @@ impl AgentRt {
                 };
                 let role = info["role"].as_str().unwrap_or("assistant");
                 self.opencode.roles.insert(id.to_string(), role.to_string());
+                // A subagent's message tells the model it runs on, as the agent's is written.
+                if let (Some(call), "assistant", Some(model)) =
+                    (parent.as_deref(), role, info["modelID"].as_str())
+                {
+                    let model = match info["providerID"].as_str() {
+                        Some(provider) => format!("{provider}/{model}"),
+                        None => model.to_string(),
+                    };
+                    self.plan_apply(fx, |plan| plan.on_child_model(call, &model));
+                }
                 if own && role == "user" && p["typedElsewhere"] == true {
                     self.opencode.elsewhere.insert(id.to_string());
                 }
