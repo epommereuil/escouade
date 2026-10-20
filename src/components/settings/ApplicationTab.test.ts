@@ -59,6 +59,17 @@ describe('the « Application » tab', () => {
     expect(choices('Interface language')[0]).toBe('System (French)');
   });
 
+  it('turns « Projection des quotas » off with the other settings', async () => {
+    const backend = fakeBackend({ save_settings: () => [] });
+    render(SettingsModal, { tab: 'app' });
+    const projection = screen.getByRole('switch', { name: 'Projection des quotas' });
+    expect(projection).toHaveAttribute('aria-checked', 'true');
+    await userEvent.click(projection);
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(backend.called('save_settings')[0].args.settings).toMatchObject({ quotaProjection: false });
+    expect(app.settings.quotaProjection).toBe(false);
+  });
+
   it('saves the languages chosen with the other settings', async () => {
     const backend = fakeBackend({ save_settings: () => [] });
     render(SettingsModal, { tab: 'app' });

@@ -77,6 +77,8 @@ export interface Settings {
   uiZoom: number;
   /** « Taille du texte des terminaux », in CSS pixels before the zoom. */
   terminalFontSize: number;
+  /** « Projection des quotas »: after each quota, where it would end at the pace used so far (« → 64 % »). */
+  quotaProjection: boolean;
   /** « Taille du texte de l’éditeur », in CSS pixels before the zoom. */
   editorFontSize: number;
   /** « Voix »: the dictation. */

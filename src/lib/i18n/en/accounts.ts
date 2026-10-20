@@ -145,6 +145,7 @@ export default defineZone('accounts', {
     week: { label: 'W' },
     reset: 'reset {countdown}',
     projected: '→ {pct}',
+    projectedCost: '→ {amount}',
     tip: '{pct} · resets on {date} at {time}',
     unavailable: 'Quota unavailable',
     line: '{name}: {tip}',

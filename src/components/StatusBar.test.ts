@@ -833,6 +833,22 @@ describe('StatusBar quotas of the harness shown (ESC-30)', () => {
     );
   });
 
+  it('projects the cost of the day to midnight against its budget, unless « Projection des quotas » is off', () => {
+    setUp('codex');
+    app.settings.accounts = [{ ...WORK, dailyBudget: 2 }];
+    app.usage = { ...app.usage, accounts: [usageOf('work', { engine: 'codex', todayCost: 0.75, dailyBudget: 2 })] };
+    // 18:00 on the machine's clock: three quarters of the day gone.
+    app.now = new Date(2026, 8, 27, 18).getTime();
+    render(StatusBar);
+    expect(screen.getByText('→ 1,00 $')).toHaveClass('ok');
+    app.usage = { ...app.usage, accounts: [usageOf('work', { engine: 'codex', todayCost: 1.8, dailyBudget: 2 })] };
+    flushSync();
+    expect(screen.getByText('→ 2,40 $')).toHaveClass('over');
+    app.settings.quotaProjection = false;
+    flushSync();
+    expect(screen.queryByText(/→/)).not.toBeInTheDocument();
+  });
+
   it('names the harness beside its cost of the day with a single account, and no budget', () => {
     setUp('codex');
     app.settings.accounts = [WORK];

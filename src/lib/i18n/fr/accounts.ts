@@ -166,6 +166,8 @@ export default {
     reset: 'reset {countdown}',
     /** After the reset: where the window would end at the pace used so far; `{pct}`: « 112 % ». */
     projected: '→ {pct}',
+    /** After the day's cost of a harness without a quota: where it would end at midnight; `{amount}`: « 3,40 $ ». */
+    projectedCost: '→ {amount}',
     /** The value of a bar: `{pct}`: « 42 % »; `{date}`: « 10/10 »; `{time}`: « 18:00 ». */
     tip: '{pct} · remise à zéro le {date} à {time}',
     unavailable: 'Quota indisponible',

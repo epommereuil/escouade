@@ -66,6 +66,9 @@ export default defineZone('settings', {
     editorFontSize: 'Editor text size',
     fontSizeHint: 'in pixels, {n} by default',
     fontSizeDesc: 'From 9 to 24, before the interface zoom, which adds to it.',
+    quotaProjection: 'Quota projection',
+    quotaProjectionDesc:
+      'In the status bar, after each quota, where it will stand at its reset at the current pace (“→ 64%”): green, amber past 80%, red past 100%. For a harness without a quota, the day’s cost projected to midnight, against its budget.',
     language: 'Language',
     uiLanguage: 'Interface language',
     system: 'System ({lang})',

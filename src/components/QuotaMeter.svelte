@@ -2,6 +2,7 @@
   import { fProjection, meterLabel, meterName, projectedPct, projectionLevel, quotaTip } from '../lib/accounts';
   import { fCountdown, fPct } from '../lib/format';
   import { t } from '../lib/i18n';
+  import { app } from '../lib/state.svelte';
   import { tip } from '../lib/tip';
   import type { RateWindow } from '../lib/types';
 
@@ -31,8 +32,8 @@
   const label = $derived(meterLabel(minutes));
   const name = $derived(meterName(minutes));
   const pct = $derived(usage ? Math.min(100, Math.max(0, usage.pct)) : 0);
-  /** Where the window would end at the pace used so far (`projectedPct`), written after the reset; null when too early. */
-  const projected = $derived(projectedPct(minutes, usage, now));
+  /** Where the window would end at the pace used so far (`projectedPct`), written after the reset; null when too early, or « Projection des quotas » off. */
+  const projected = $derived(app.settings.quotaProjection === false ? null : projectedPct(minutes, usage, now));
   /** « 42 % · remise à zéro le 10/10 à 18:00 »: the tooltip and the bar's value as the screen reader reads it. */
   const text = $derived(quotaTip(usage));
 </script>

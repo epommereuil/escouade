@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { setLang } from '../lib/i18n';
+import { app } from '../lib/state.svelte';
 import QuotaMeter from './QuotaMeter.svelte';
 
 /** A time of day on October 10th, in the time zone of the machine (the tooltip writes it there). */
@@ -146,13 +147,25 @@ describe('QuotaMeter projection', () => {
     expect(screen.getByText('→ 120 %')).toHaveClass('over');
   });
 
-  it('writes none in the first minutes of the window, for the credits, nor without a reset', async () => {
+  it('writes none in the first minutes of the window, nor without a reset', async () => {
     const { container, rerender } = render(QuotaMeter, { minutes: 300, usage: { pct: 3, resetsAt: NOW + 298 * 60_000 }, now: NOW });
-    expect(container).not.toHaveTextContent('→');
-    await rerender({ minutes: null, usage: { pct: 40, resetsAt: SOON }, now: NOW });
     expect(container).not.toHaveTextContent('→');
     await rerender({ minutes: 300, usage: { pct: 40, resetsAt: null }, now: NOW });
     expect(container).not.toHaveTextContent('→');
+  });
+
+  it('projects the month’s credits to their reset', () => {
+    const now = Date.UTC(2026, 9, 11);
+    render(QuotaMeter, { minutes: null, usage: { pct: 20, resetsAt: Date.UTC(2026, 10, 1) }, now });
+    expect(screen.getByText('→ 62 %')).toHaveClass('ok');
+  });
+
+  it('writes none when « Projection des quotas » is off', () => {
+    app.settings.quotaProjection = false;
+    const { container } = render(QuotaMeter, fiveHour(20));
+    expect(container).toHaveTextContent('reset 3h00');
+    expect(container).not.toHaveTextContent('→');
+    app.settings.quotaProjection = true;
   });
 
   it('is in the panel too, after the reset', () => {

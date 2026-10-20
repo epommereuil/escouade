@@ -134,6 +134,9 @@ pub struct Settings {
     pub terminal_font_size: f64,
     /// « Taille du texte de l’éditeur », in CSS pixels, before the zoom (`FONT_SIZE_RANGE`).
     pub editor_font_size: f64,
+    /// « Projection des quotas »: the status bar writes, after each quota, where it would end at
+    /// the pace used so far (« → 64 % »), and the day's cost where it would end the day.
+    pub quota_projection: bool,
     /// « Voix »: the dictation (`voice`).
     pub voice: VoiceSettings,
 }
@@ -508,6 +511,7 @@ impl Default for Settings {
             ui_zoom: 100,
             terminal_font_size: DEFAULT_FONT_SIZE,
             editor_font_size: DEFAULT_FONT_SIZE,
+            quota_projection: true,
             voice: VoiceSettings::default(),
         }
     }
@@ -2248,6 +2252,20 @@ mod tests {
         })
         .unwrap();
         assert_eq!(v["quotaPause"], json!(90));
+    }
+
+    #[test]
+    fn the_quota_projection_is_on_unless_turned_off() {
+        let old: Settings = serde_json::from_value(json!({ "sound": false })).unwrap();
+        assert!(old.quota_projection && Settings::default().quota_projection);
+        let off = serde_json::to_value(Settings {
+            quota_projection: false,
+            ..Default::default()
+        })
+        .unwrap();
+        assert_eq!(off["quotaProjection"], json!(false));
+        let read: Settings = serde_json::from_value(off).unwrap();
+        assert!(!read.quota_projection);
     }
 
     #[test]

@@ -61,7 +61,7 @@ export const SETTINGS_TABS: TabInfo[] = [
 
 /** The app's settings each tab sets. */
 const SETTINGS_OF: Partial<Record<SettingsTab, (keyof Settings)[]>> = {
-  app: ['language', 'claudeLanguage', 'writerEngine', 'writerModel'],
+  app: ['language', 'claudeLanguage', 'writerEngine', 'writerModel', 'quotaProjection'],
   claude: [
     'claudePath',
     'autoResume',

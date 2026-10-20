@@ -1,6 +1,16 @@
 <script lang="ts">
   import { keyLabel } from '../lib/platform';
-  import { accountName, metersShown, meterName, newAgentAccount, principalId, quotaTip, statusEngine } from '../lib/accounts';
+  import {
+    accountName,
+    metersShown,
+    meterName,
+    newAgentAccount,
+    principalId,
+    projectedDayCost,
+    projectionLevel,
+    quotaTip,
+    statusEngine,
+  } from '../lib/accounts';
   import { capsOf, engineName } from '../lib/engines';
   import { fAgo, fBytes, fPct, fUsd } from '../lib/format';
   import { t } from '../lib/i18n';
@@ -54,7 +64,10 @@
     const tip = budget
       ? t('shell.status.dayBudgetTip', { harness, cost: fUsd(cost), budget: fUsd(budget) })
       : t('shell.status.dayCostTip', { harness, cost: fUsd(cost) });
-    return { cost, budget, over: !!budget && cost >= budget, tip, harness };
+    // Where the day's cost would end at midnight, against the budget: none without one, which it would be measured by.
+    const end = budget && app.settings.quotaProjection !== false ? projectedDayCost(cost, app.now) : null;
+    const projection = end === null ? null : { text: fUsd(end), level: projectionLevel((end / budget!) * 100) };
+    return { cost, budget, over: !!budget && cost >= budget, tip, harness, projection };
   });
   let panelOpen = $state(false);
   // Down to one account: nothing left to compare.
@@ -142,7 +155,8 @@
     <span class="day" class:over={day.over} use:tip={several ? undefined : day.tip}
       >{#if !several}<span>{day.harness}</span>{/if}<span class="v"
         >{fUsd(day.cost)}{#if day.budget}<span class="d">{` / ${fUsd(day.budget)}`}</span>{/if}</span
-      ></span
+      >{#if day.projection}<span class="p {day.projection.level}">{t('accounts.quota.projectedCost', { amount: day.projection.text })}</span
+        >{/if}</span
     >
   {/if}
 {/snippet}
@@ -327,6 +341,16 @@
   /* The day's budget reached: the autopilot waits for midnight. */
   .day.over .v {
     color: var(--wait);
+  }
+  /* The day's cost at midnight, against the budget: as the quotas' projection (`QuotaMeter`). */
+  .p.ok {
+    color: var(--ok);
+  }
+  .p.warn {
+    color: var(--wait);
+  }
+  .p.over {
+    color: var(--del);
   }
   .link {
     border: none;

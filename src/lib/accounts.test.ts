@@ -6,6 +6,7 @@ import {
   overThreshold,
   pausedAccounts,
   pauseOf,
+  projectedDayCost,
   projectedPct,
   projectionLevel,
   projectsWithoutAccount,
@@ -257,8 +258,15 @@ describe('the projection of a window at its reset', () => {
     expect(projectedPct(300, { pct: 0, resetsAt: NOW + 3 * H }, NOW)).toBe(0);
   });
 
-  it('says nothing for the credits, an unknown or past end, nor in the first 2 % of the window', () => {
-    expect(projectedPct(null, { pct: 40, resetsAt: NOW + H }, NOW)).toBeNull();
+  it('takes the month’s credits as a window of the month that ends at their reset', () => {
+    // Back on November 1st, 00:00 UTC: October has 31 days; 10 days gone, 20 % used.
+    const reset = Date.UTC(2026, 10, 1);
+    expect(projectedPct(null, { pct: 20, resetsAt: reset }, Date.UTC(2026, 9, 11))).toBeCloseTo(62);
+    // Half a day in: too early.
+    expect(projectedPct(null, { pct: 1, resetsAt: reset }, Date.UTC(2026, 9, 1, 12))).toBeNull();
+  });
+
+  it('says nothing for an unknown or past end, nor in the first 2 % of the window', () => {
     expect(projectedPct(300, null, NOW)).toBeNull();
     expect(projectedPct(300, { pct: 40, resetsAt: null }, NOW)).toBeNull();
     expect(projectedPct(300, { pct: 40, resetsAt: NOW }, NOW)).toBeNull();
@@ -284,5 +292,20 @@ describe('the projection of a window at its reset', () => {
     expect(fProjection(112.3)).toBe('112 %');
     expect(fProjection(999.4)).toBe('999 %');
     expect(fProjection(4000)).toBe('999+ %');
+  });
+});
+
+describe('the projection of the day’s cost at midnight', () => {
+  /** A time of day today, in the time zone of the machine. */
+  const at = (h: number, m = 0) => new Date(2026, 9, 20, h, m).getTime();
+
+  it('spreads the cost since midnight over the whole day', () => {
+    expect(projectedDayCost(1, at(12))).toBeCloseTo(2);
+    expect(projectedDayCost(3, at(18))).toBeCloseTo(4);
+  });
+
+  it('says nothing in the first half hour', () => {
+    expect(projectedDayCost(0.2, at(0, 20))).toBeNull();
+    expect(projectedDayCost(0.2, at(0, 30))).not.toBeNull();
   });
 });
