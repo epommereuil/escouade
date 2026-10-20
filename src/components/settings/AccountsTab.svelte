@@ -93,13 +93,13 @@
     return a.id === PRINCIPAL ? t('accounts.tab.state.principalNotConnected') : t('accounts.tab.state.notConnected');
   }
 
-  /** The harness moved by `by` places in « Ordre des harness ». */
   /** « Projection des quotas »: shown at once, saved with the rest of the app's settings as they are, like the accounts. */
   function setProjection(on: boolean) {
     app.settings.quotaProjection = on;
     app.run(api.saveSettings($state.snapshot(app.settings)));
   }
 
+  /** The harness moved by `by` places in « Ordre des harness ». */
   async function moveEngine(i: number, by: number) {
     const next = [...order];
     [next[i], next[i + by]] = [next[i + by], next[i]];

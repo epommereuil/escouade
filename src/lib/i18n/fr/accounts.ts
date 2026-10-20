@@ -166,6 +166,8 @@ export default {
     reset: 'reset {countdown}',
     /** After the reset: where the window would end at the pace used so far; `{pct}`: « 112 % ». */
     projected: '→ {pct}',
+    /** Before it, for screen readers only (the arrow and the colour say it to the eye). */
+    projectedSr: 'projection à la remise à zéro : ',
     /** After the day's cost of a harness without a quota: where it would end at midnight; `{amount}`: « 3,40 $ ». */
     projectedCost: '→ {amount}',
     /** The value of a bar: `{pct}`: « 42 % »; `{date}`: « 10/10 »; `{time}`: « 18:00 ». */

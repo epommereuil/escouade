@@ -134,7 +134,9 @@ describe('QuotaMeter projection', () => {
 
   it('writes after the reset where the window ends at this pace, green up to 80 %', () => {
     const { container } = render(QuotaMeter, fiveHour(20));
-    expect(container).toHaveTextContent('reset 3h00 → 50 %');
+    // Read « projection à la remise à zéro : → 50 % » (the words for screen readers only).
+    expect(container).toHaveTextContent('reset 3h00 projection à la remise à zéro : → 50 %');
+    expect(container.querySelector('.p .sr')).toHaveTextContent('projection à la remise à zéro :');
     expect(screen.getByText('→ 50 %')).toHaveClass('ok');
   });
 
@@ -162,15 +164,18 @@ describe('QuotaMeter projection', () => {
 
   it('writes none when « Projection des quotas » is off', () => {
     app.settings.quotaProjection = false;
-    const { container } = render(QuotaMeter, fiveHour(20));
-    expect(container).toHaveTextContent('reset 3h00');
-    expect(container).not.toHaveTextContent('→');
-    app.settings.quotaProjection = true;
+    try {
+      const { container } = render(QuotaMeter, fiveHour(20));
+      expect(container).toHaveTextContent('reset 3h00');
+      expect(container).not.toHaveTextContent('→');
+    } finally {
+      app.settings.quotaProjection = true;
+    }
   });
 
   it('is in the panel too, after the reset', () => {
     const { container } = render(QuotaMeter, { ...fiveHour(20), detail: true });
-    expect(spaces(container.textContent)).toMatch(/20 %\s*reset 3h00\s*→ 50 %/);
+    expect(spaces(container.textContent)).toMatch(/20 %\s*reset 3h00\s*projection à la remise à zéro : → 50 %/);
   });
 });
 

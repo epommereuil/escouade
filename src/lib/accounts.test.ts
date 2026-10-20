@@ -264,6 +264,11 @@ describe('the projection of a window at its reset', () => {
     expect(projectedPct(null, { pct: 20, resetsAt: reset }, Date.UTC(2026, 9, 11))).toBeCloseTo(62);
     // Half a day in: too early.
     expect(projectedPct(null, { pct: 1, resetsAt: reset }, Date.UTC(2026, 9, 1, 12))).toBeNull();
+    // A reset on the 31st: the month before ends on the 30th (or the 28th), not on the 1st or 3rd of the next one.
+    // From April 30th to May 31st: 31 days, 15 and a half gone, 25 % used.
+    expect(projectedPct(null, { pct: 25, resetsAt: Date.UTC(2026, 4, 31) }, Date.UTC(2026, 4, 15, 12))).toBeCloseTo(50);
+    // From February 28th to March 31st: 31 days.
+    expect(projectedPct(null, { pct: 25, resetsAt: Date.UTC(2026, 2, 31) }, Date.UTC(2026, 2, 15, 12))).toBeCloseTo(50);
   });
 
   it('says nothing for an unknown or past end, nor in the first 2 % of the window', () => {

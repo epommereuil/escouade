@@ -60,7 +60,9 @@
   {#if usage?.resetsAt}
     <span class="d">{t('accounts.quota.reset', { countdown: fCountdown(usage.resetsAt, now) })}</span>
     {#if projected !== null}
-      <span class="p {projectionLevel(projected)}">{t('accounts.quota.projected', { pct: fProjection(projected) })}</span>
+      <span class="p {projectionLevel(projected)}"
+        ><span class="sr">{t('accounts.quota.projectedSr')}</span>{t('accounts.quota.projected', { pct: fProjection(projected) })}</span
+      >
     {/if}
   {:else if !usage && !detail}
     <span class="d">—</span>
@@ -128,5 +130,13 @@
   }
   .p.over {
     color: var(--del);
+  }
+  /* Read by screen readers only. */
+  .sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
   }
 </style>

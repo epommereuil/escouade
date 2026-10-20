@@ -315,10 +315,17 @@ export function projectedPct(minutes: number | null, w: RateWindow | null, now: 
   return (w.pct * length) / gone;
 }
 
-/** The same day and time a month before `ts`, in UTC (the credits come back on the 1st, 00:00 UTC). */
+/**
+ * The same day and time a month before `ts`, in UTC (the credits come back on the 1st, 00:00 UTC); the last day of that
+ * month when it is shorter (March 31st → February 28th, not March 3rd).
+ */
 function monthBefore(ts: number): number {
   const d = new Date(ts);
+  const day = d.getUTCDate();
+  d.setUTCDate(1);
   d.setUTCMonth(d.getUTCMonth() - 1);
+  const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  d.setUTCDate(Math.min(day, last));
   return d.getTime();
 }
 

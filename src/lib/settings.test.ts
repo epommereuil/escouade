@@ -514,7 +514,7 @@ describe('settingsForm', () => {
     expect(names()).toEqual([
       'Application / Zoom, text size, and languages',
       'Harness / Executables, versions and the MCP server',
-      'Accounts / Each harness’s accounts that agents start on, saved as you change them',
+      'Accounts / Each harness’s accounts that agents start on, and their quotas, saved as you change them',
       'Notifications / Visual and sound alerts',
       'Voice / Dictating messages: microphone, transcription model, language and shortcut',
       'Projects / Settings specific to each project',

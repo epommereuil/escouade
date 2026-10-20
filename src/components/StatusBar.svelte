@@ -155,7 +155,10 @@
     <span class="day" class:over={day.over} use:tip={several ? undefined : day.tip}
       >{#if !several}<span>{day.harness}</span>{/if}<span class="v"
         >{fUsd(day.cost)}{#if day.budget}<span class="d">{` / ${fUsd(day.budget)}`}</span>{/if}</span
-      >{#if day.projection}<span class="p {day.projection.level}">{t('accounts.quota.projectedCost', { amount: day.projection.text })}</span
+      >{#if day.projection}<span class="p {day.projection.level}"
+          ><span class="sr">{t('accounts.quota.projectedSr')}</span>{t('accounts.quota.projectedCost', {
+            amount: day.projection.text,
+          })}</span
         >{/if}</span
     >
   {/if}
@@ -351,6 +354,14 @@
   }
   .p.over {
     color: var(--del);
+  }
+  /* Read by screen readers only. */
+  .sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
   }
   .link {
     border: none;
