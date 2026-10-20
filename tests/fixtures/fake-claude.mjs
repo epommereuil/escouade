@@ -28,6 +28,8 @@
 // A user message with [ferme-lentement] makes the process take 800 ms to end once its input is
 // closed, and write {"type":"closed"} to its session just before it does (a resume that copies
 // the session before the process is gone misses that line). Without CLAUDE_CONFIG_DIR, none of this.
+// [quota-rythme] in a message makes the quota windows it tells from then on end a little later than now, as a window
+// half way through does: 5 h at 40 % with 3 h left (→ 100 % at its reset), 7 days at 34 % with 3 days and a half left.
 // `claude mcp add|remove|get|list` keep the user scope's MCP servers in <folder>/.claude.json (see mcpCommand).
 // What Escouade tells it is read in French or in English (« Langue des textes rédigés par Claude »):
 // each scenario below is recognized in both, its answers stay the same.
@@ -53,8 +55,6 @@
 // own thread asks a permission (`can_use_tool` with its `agent_id`, request "req_subperm"); "sous-agent long" then runs
 // until a `stop_task` of its task ("fakelong-agent", logged to <log>.control.jsonl), "sous-agent fini" hands back its
 // report (`handback_report`) once the permission is answered.
-// [quota-rythme] in a message makes the quota windows it tells from then on end a little later than now, as a window
-// half way through does: 5 h at 40 % with 3 h left (→ 100 % at its reset), 7 days at 34 % with 3 days and a half left.
 // "lire-fichier <path>" in the message makes it ask the permission to `Read` that file, "modifier-fichier <path>" to `Edit` it
 // (the rest of the first line is the path); answered, it says « Read : allow » (or deny, Edit…) and ends the turn.
 // "commande de fond 20s", "surveillance de fond 20s" and "commande premier plan 20s" run a command, a `Monitor` and a
