@@ -53,6 +53,8 @@
 // own thread asks a permission (`can_use_tool` with its `agent_id`, request "req_subperm"); "sous-agent long" then runs
 // until a `stop_task` of its task ("fakelong-agent", logged to <log>.control.jsonl), "sous-agent fini" hands back its
 // report (`handback_report`) once the permission is answered.
+// "sous-agent sans modèle" launches a subagent in the foreground whose call names no model (its definition chooses) and
+// whose message comes from claude-haiku-5-5, then hands back its result.
 // "lire-fichier <path>" in the message makes it ask the permission to `Read` that file, "modifier-fichier <path>" to `Edit` it
 // (the rest of the first line is the path); answered, it says « Read : allow » (or deny, Edit…) and ends the turn.
 // "commande de fond 20s", "surveillance de fond 20s" and "commande premier plan 20s" run a command, a `Monitor` and a
@@ -1977,6 +1979,37 @@ function startSession() {
       return;
     }
     if (text.includes('sous-agent long') || text.includes('sous-agent fini')) return subagentRun(text.includes('sous-agent long'));
+    if (text.includes('sous-agent sans modèle')) {
+      // In the foreground, its call naming no model: its message tells the one it runs on.
+      const tuid = `toolu_m${msg}`;
+      assistant({
+        type: 'tool_use',
+        id: tuid,
+        name: 'Agent',
+        input: { description: 'Lister les fichiers', subagent_type: 'Explore', prompt: 'Liste src' },
+      });
+      out({
+        type: 'assistant',
+        message: { id: `msg_m${msg}`, role: 'assistant', model: 'claude-haiku-5-5', content: [{ type: 'text', text: 'Deux fichiers.' }] },
+        parent_tool_use_id: tuid,
+        session_id: sessionId,
+        uuid: `entry-m${msg}`,
+      });
+      const content = [{ type: 'text', text: 'Deux fichiers.' }];
+      toolResult(tuid, content, {
+        tool_use_result: {
+          status: 'completed',
+          agentId: 'fakemodel',
+          content,
+          totalToolUseCount: 0,
+          totalDurationMs: 300,
+          totalTokens: 900,
+        },
+      });
+      streamText('Rapport reçu.');
+      result();
+      return;
+    }
     if (text.includes('sous-agent')) {
       // A background subagent: launched, then its report and the end of its task are passed on
       // to Claude by Claude Code itself (replayed with their origin), as mid-turn.

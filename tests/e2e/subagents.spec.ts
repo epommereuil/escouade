@@ -260,3 +260,22 @@ test('a message written in the view of a subagent goes to its agent, who passes 
   await expect(conv.getByText('Message transmis au sous-agent.')).toBeVisible();
   await expect(conv.locator('.tool .badge', { hasText: 'SendMessage' })).toBeVisible();
 });
+
+test('a subagent whose call names no model shows the one its messages come from', async ({ app }) => {
+  const { page } = app;
+  await addProject(page, app.repo);
+  await send(page, 'sous-agent sans modèle');
+  const name = await agentName(page);
+  await expect(page.getByText('Rapport reçu.')).toBeVisible();
+  // Finished: under its agent's card, in the finished ones, with the model it ran on.
+  const subs = sidebar(page, name);
+  await expect(subs.group).toBeVisible();
+  if ((await subs.toggle.getAttribute('aria-expanded')) !== 'true') await subs.toggle.click();
+  await subs.finished.click();
+  const row = subs.row('Lister les fichiers');
+  await expect(row).toContainText('Haiku 5.5');
+  // Its view says it too.
+  await row.click();
+  const { sub } = views(page);
+  await expect(brief(sub, 'Lister les fichiers').fact('Modèle')).toHaveText('Haiku 5.5');
+});
