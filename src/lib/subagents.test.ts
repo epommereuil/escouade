@@ -99,7 +99,6 @@ describe('subagentInfo', () => {
       endedAt: 70,
       report: 'Fini.',
     });
-
     expect(info.taskId).toBeUndefined();
   });
 

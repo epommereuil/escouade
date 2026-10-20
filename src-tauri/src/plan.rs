@@ -940,18 +940,25 @@ impl PlanState {
     /// The model a message of the subagent `parent` came from: the one it runs on, whatever its
     /// call asked for. Claude Code's own messages (`<synthetic>`) tell nothing.
     pub fn on_child_model(&mut self, parent: &str, model: &str) -> Change {
-        let model = clean(model);
-        if model.is_empty() || model.starts_with('<') {
+        if !self.tells_model(parent, model) {
             return Change::None;
         }
-        let Some(row) = self.agents.iter_mut().find(|a| a.id == parent) else {
-            return Change::None;
-        };
-        if row.model.as_deref() == Some(model.as_str()) {
-            return Change::None;
+        if let Some(row) = self.agents.iter_mut().find(|a| a.id == parent) {
+            row.model = Some(clean(model));
         }
-        row.model = Some(model);
         Change::Saved
+    }
+
+    /// `model` is news for the row of the subagent `parent` (`on_child_model`): the stream asks
+    /// before each message, for those that tell nothing new to leave the plan as it is.
+    pub fn tells_model(&self, parent: &str, model: &str) -> bool {
+        let model = clean(model);
+        !model.is_empty()
+            && !model.starts_with('<')
+            && self
+                .agents
+                .iter()
+                .any(|a| a.id == parent && a.model.as_deref() != Some(model.as_str()))
     }
 
     /// The result of a tool call: `text` its text, `tool_use_result` the frame's structured one.

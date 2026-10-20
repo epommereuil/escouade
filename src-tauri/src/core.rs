@@ -4389,9 +4389,9 @@ impl<R: Runtime> Core<R> {
     /// Its files may say how the subagent ended, which the view's frames never do (stopped in the
     /// interface, an API error: `ended`); its row of the plan, if it still runs, ends so, and the
     /// window is sent the agent. The model its messages tell goes on its row too (the view's
-    /// frames carry none of a subagent's). That is what opening its view in the window does, and the window's
-    /// alone: whoever only reads it (`subagent_report`) uses `read_sidechain`, which changes
-    /// nothing.
+    /// frames carry none of a subagent's). That is what opening its view in the window does, and
+    /// the window's alone: whoever only reads it (`subagent_report`) uses `read_sidechain`, which
+    /// changes nothing.
     pub fn subagent_transcript(
         self: &Arc<Self>,
         id: &str,

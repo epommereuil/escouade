@@ -278,7 +278,7 @@ impl AgentRt {
         }
         // A subagent's message tells the model it runs on, which its call may not name.
         if let (Some(p), Some(model)) = (parent.as_deref(), msg["model"].as_str()) {
-            self.plan_apply(fx, |plan| plan.on_child_model(p, model));
+            self.child_model(p, model, fx);
         }
         // An entry of its session's main chain (not a subagent's, nor one Claude Code makes up):
         // where a copy made afterwards forks the session.

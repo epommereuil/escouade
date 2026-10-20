@@ -242,7 +242,7 @@ impl AgentRt {
         if let (Some(call), "assistant.message" | "assistant.usage", Some(model)) =
             (parent.as_deref(), kind, d["model"].as_str())
         {
-            self.plan_apply(fx, |plan| plan.on_child_model(call, model));
+            self.child_model(call, model, fx);
         }
         match kind {
             "user.message" | "assistant.turn_start" if own => {

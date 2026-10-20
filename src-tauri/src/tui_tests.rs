@@ -2878,6 +2878,51 @@ async fn the_path_kept_of_a_subagent_goes_with_its_project() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn the_view_of_a_subagent_puts_the_model_of_its_transcript_on_its_row_once() {
+    use crate::plan::RunStatus;
+    let h = harness("tui-sidechain-model");
+    let (id, subs) = agent_with_subagents(&h, "model").await;
+    run_subagents(&h, &id, &[(SUB_CALL, Some(SUB_TASK), true)]);
+    let file = subs.join(format!("agent-{SUB_TASK}.jsonl"));
+    std::fs::write(
+        &file,
+        SIDECHAIN.lines().take(10).collect::<Vec<_>>().join("\n") + "\n",
+    )
+    .unwrap();
+    std::fs::write(
+        subs.join(format!("agent-{SUB_TASK}.meta.json")),
+        format!(r#"{{"toolUseId":"{SUB_CALL}"}}"#),
+    )
+    .unwrap();
+    let model = || h.agent(&id).plan.unwrap().agents[0].model.clone();
+    // Its call named none: the row has none until its view is opened.
+    assert_eq!(model(), None);
+    let sent = agent_events(&h, &id);
+    let first = h
+        .core
+        .subagent_transcript(&id, SUB_CALL, None)
+        .unwrap()
+        .unwrap();
+    assert_eq!(first.model.as_deref(), Some("claude-haiku-5-5"));
+    assert_eq!(model().as_deref(), Some("claude-haiku-5-5"));
+    assert_eq!(row_status(&h, &id, SUB_CALL), RunStatus::Running);
+    // The window is sent the agent once.
+    assert_eq!(agent_events(&h, &id), sent + 1);
+    // Read again (the window asks every 2 s), its model the same: nothing more is sent.
+    h.core.subagent_transcript(&id, SUB_CALL, None).unwrap();
+    assert_eq!(agent_events(&h, &id), sent + 1);
+    // Once it ends (stopped in the interface), its call keeps the model the plan may forget.
+    std::fs::write(&file, SIDECHAIN).unwrap();
+    h.core.subagent_transcript(&id, SUB_CALL, None).unwrap();
+    let call = h
+        .items(&id)
+        .into_iter()
+        .find(|i| i["id"] == SUB_CALL)
+        .unwrap();
+    assert_eq!(call["run"]["model"], "claude-haiku-5-5");
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn a_subagent_stopped_in_the_interface_ends_its_row_when_its_transcript_is_read() {
     use crate::agent::sidechain::Ended;
     use crate::plan::RunStatus;

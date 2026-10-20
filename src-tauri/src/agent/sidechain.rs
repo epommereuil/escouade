@@ -409,7 +409,7 @@ impl AgentRt {
 
     /// The subagent that `call` launched runs on `model`, as its transcript shows (`model_of`).
     pub fn subagent_model(&mut self, call: &str, model: &str, fx: &mut Effects) {
-        self.plan_apply(fx, |plan| plan.on_child_model(call, model));
+        self.child_model(call, model, fx);
     }
 }
 

@@ -646,6 +646,19 @@ impl AgentRt {
         }
     }
 
+    /// A message of the subagent `call` came from `model` (`PlanState::on_child_model`): the plan
+    /// is only taken up when that is news, not at every message of the subagent.
+    pub(crate) fn child_model(&mut self, call: &str, model: &str, fx: &mut Effects) {
+        if self
+            .meta
+            .plan
+            .as_ref()
+            .is_some_and(|plan| plan.tells_model(call, model))
+        {
+            self.plan_apply(fx, |plan| plan.on_child_model(call, model));
+        }
+    }
+
     /// The process is gone: what the plan has running is interrupted (the caller sends the view).
     fn interrupt_plan(&mut self) -> Change {
         let now = now_ms();

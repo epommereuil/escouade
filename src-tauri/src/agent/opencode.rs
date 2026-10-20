@@ -161,7 +161,7 @@ impl AgentRt {
                         Some(provider) => format!("{provider}/{model}"),
                         None => model.to_string(),
                     };
-                    self.plan_apply(fx, |plan| plan.on_child_model(call, &model));
+                    self.child_model(call, &model, fx);
                 }
                 if own && role == "user" && p["typedElsewhere"] == true {
                     self.opencode.elsewhere.insert(id.to_string());
