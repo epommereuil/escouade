@@ -323,3 +323,25 @@ test.describe('two accounts whose claude does not list the same models (ESC-124)
     expect(last[last.indexOf('--model') + 1]).toBe('sonnet');
   });
 });
+
+test('the status bar projects each window to its reset, unless « Projection des quotas » is off', async ({ app }) => {
+  const { page } = app;
+  await addProject(page, app.repo);
+  // From this turn on, the 5 h window is at 40 % with 3 h left, the week's at 34 % half way through.
+  await send(page, 'bonjour [quota-rythme]');
+  const bar = page.locator('footer.bar');
+  const fiveHour = bar.locator('.q', { hasText: '5h' });
+  await expect(fiveHour.locator('.p')).toHaveText('→ 100 %');
+  await expect(fiveHour.locator('.p')).toHaveClass(/warn/);
+  await expect(bar.locator('.q', { hasText: '7j' }).locator('.p')).toHaveText('→ 68 %');
+  await expect(bar.locator('.q', { hasText: '7j' }).locator('.p')).toHaveClass(/ok/);
+
+  // Off in Réglages › Comptes › « Quotas »: gone at once, and kept.
+  await page.getByRole('button', { name: 'Réglages (Ctrl+,)' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Réglages' });
+  await dialog.getByRole('tab', { name: 'Comptes' }).click();
+  await dialog.getByRole('switch', { name: 'Projection des quotas' }).click();
+  await expect(bar.locator('.p')).toHaveCount(0);
+  const settings = () => JSON.parse(fs.readFileSync(path.join(app.root, 'data', 'settings.json'), 'utf8'));
+  await expect.poll(() => settings().quotaProjection).toBe(false);
+});
