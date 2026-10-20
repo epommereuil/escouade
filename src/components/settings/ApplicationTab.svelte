@@ -8,7 +8,6 @@
   import Chips from './Chips.svelte';
   import Group from './Group.svelte';
   import Row from './Row.svelte';
-  import Switch from './Switch.svelte';
 
   // The « Application » tab: the language of the interface and that of the texts Claude writes, saved with the other
   // settings and applied at once (the backend tells the window, the menus and its own texts); and the display (the zoom,
@@ -87,9 +86,6 @@
       />
     </Row>
   {/each}
-  <Row label={t('settings.app.quotaProjection')} desc={t('settings.app.quotaProjectionDesc')}>
-    <Switch label={t('settings.app.quotaProjection')} bind:on={s.quotaProjection} />
-  </Row>
 </Group>
 
 <Group title={t('settings.app.language')}>

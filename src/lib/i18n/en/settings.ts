@@ -5,7 +5,7 @@ export default defineZone('settings', {
   tabs: {
     app: { label: 'Application', desc: 'Zoom, text size, and languages' },
     claude: { label: 'Harness', desc: 'Executables, versions and the MCP server' },
-    accounts: { label: 'Accounts', desc: 'Each harness’s accounts that agents start on, saved as you change them' },
+    accounts: { label: 'Accounts', desc: 'Each harness’s accounts that agents start on, and their quotas, saved as you change them' },
     notifications: { label: 'Notifications', desc: 'Visual and sound alerts' },
     projects: { label: 'Projects', desc: 'Settings specific to each project' },
     board: { label: 'Kanban', desc: 'Autopilot and approved tickets' },
@@ -66,9 +66,6 @@ export default defineZone('settings', {
     editorFontSize: 'Editor text size',
     fontSizeHint: 'in pixels, {n} by default',
     fontSizeDesc: 'From 9 to 24, before the interface zoom, which adds to it.',
-    quotaProjection: 'Quota projection',
-    quotaProjectionDesc:
-      'In the status bar, after each quota, where it will stand at its reset at the current pace (“→ 64%”): green, amber past 80%, red past 100%. For a harness without a quota, the day’s cost projected to midnight, against its budget.',
     language: 'Language',
     uiLanguage: 'Interface language',
     system: 'System ({lang})',

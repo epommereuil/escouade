@@ -36,6 +36,20 @@ describe('AccountsTab', () => {
     app.modal = { kind: 'settings', tab: 'accounts' };
   });
 
+  it('turns « Projection des quotas » off at once, with the app’s other settings as they are, the draft left as it is', async () => {
+    const b = backend();
+    render(SettingsModal, { tab: 'accounts' });
+    expect(screen.getByRole('heading', { name: 'Quotas' })).toBeInTheDocument();
+    const projection = screen.getByRole('switch', { name: 'Projection des quotas' });
+    expect(projection).toHaveAttribute('aria-checked', 'true');
+    await userEvent.click(projection);
+    expect(projection).toHaveAttribute('aria-checked', 'false');
+    expect(app.settings.quotaProjection).toBe(false);
+    expect(b.called('save_settings')).toHaveLength(1);
+    expect(b.called('save_settings')[0].args.settings).toMatchObject({ quotaProjection: false, accounts: [PRINCIPAL, PRO] });
+    expect(screen.getByRole('tab', { name: 'Comptes' })).not.toHaveClass('changed');
+  });
+
   it('comes after « Claude Code » and shows each account, its folder and whether it is signed in', async () => {
     const b = backend();
     render(SettingsModal, { tab: 'accounts' });

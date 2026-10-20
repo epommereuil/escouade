@@ -167,6 +167,13 @@ export default defineZone('accounts', {
     back: 'Go back to {account}',
   },
 
+  quotas: {
+    title: 'Quotas',
+    projection: 'Quota projection',
+    projectionDesc:
+      'In the status bar, after each quota, where it will stand at its reset at the current pace (“→ 64%”): green, amber past 80%, red past 100%. For a harness without a quota, the day’s cost projected to midnight, against its budget.',
+  },
+
   engineOrder: {
     label: 'Harness order',
     desc: 'After its default harness, a project goes on to the next ones in this order when its own quota is spent, if they have an active account that serves it.',

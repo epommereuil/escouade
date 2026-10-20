@@ -200,6 +200,14 @@ export default {
     back: 'Revenir sur {account}',
   },
 
+  // The « Quotas » group, at the end of the « Comptes » tab: how the status bar shows them, for every account.
+  quotas: {
+    title: 'Quotas',
+    projection: 'Projection des quotas',
+    projectionDesc:
+      'Dans la barre d’état, après chaque quota, où il en sera à sa remise à zéro au rythme actuel (« → 64 % ») : vert, orange au-delà de 80 %, rouge au-delà de 100 %. Pour un harness sans quota, le coût du jour projeté à minuit, rapporté au budget.',
+  },
+
   // « Ordre des harness », in the « Comptes » tab once there are two harnesses.
   engineOrder: {
     label: 'Ordre des harness',

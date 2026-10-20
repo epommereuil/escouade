@@ -6,7 +6,10 @@ export default {
   tabs: {
     app: { label: 'Application', desc: 'Zoom, taille du texte et langues' },
     claude: { label: 'Harness', desc: 'Exécutables, versions et serveur MCP' },
-    accounts: { label: 'Comptes', desc: 'Les comptes de chaque harness sur lesquels partent les agents, enregistrés à chaque changement' },
+    accounts: {
+      label: 'Comptes',
+      desc: 'Les comptes de chaque harness sur lesquels partent les agents, et leurs quotas, enregistrés à chaque changement',
+    },
     notifications: { label: 'Notifications', desc: 'Alertes visuelles et sonores' },
     projects: { label: 'Projets', desc: 'Réglages propres à chaque projet' },
     board: { label: 'Kanban', desc: 'Pilote auto et tickets validés' },
@@ -79,9 +82,6 @@ export default {
     editorFontSize: 'Taille du texte de l’éditeur',
     fontSizeHint: 'en pixels, {n} par défaut',
     fontSizeDesc: 'De 9 à 24, avant le zoom de l’interface, qui s’y ajoute.',
-    quotaProjection: 'Projection des quotas',
-    quotaProjectionDesc:
-      'Dans la barre d’état, après chaque quota, où il en sera à sa remise à zéro au rythme actuel (« → 64 % ») : vert, orange au-delà de 80 %, rouge au-delà de 100 %. Pour un harness sans quota, le coût du jour projeté à minuit, rapporté au budget.',
     language: 'Langue',
     uiLanguage: 'Langue de l’interface',
     /** The system's language, named in the interface's: « Système (Français) ». */
