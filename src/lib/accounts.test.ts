@@ -271,13 +271,17 @@ describe('the projection of a window at its reset', () => {
     expect(projectedPct(null, { pct: 25, resetsAt: Date.UTC(2026, 2, 31) }, Date.UTC(2026, 2, 15, 12))).toBeCloseTo(50);
   });
 
-  it('says nothing for an unknown or past end, nor in the first 2 % of the window', () => {
+  it('says nothing for an unknown or past end, nor too early: a tenth of a 5 h window, a whole day of a week', () => {
     expect(projectedPct(300, null, NOW)).toBeNull();
     expect(projectedPct(300, { pct: 40, resetsAt: null }, NOW)).toBeNull();
     expect(projectedPct(300, { pct: 40, resetsAt: NOW }, NOW)).toBeNull();
-    // 5 minutes of 5 h gone: too early; 6 minutes: 2 %.
-    expect(projectedPct(300, { pct: 1, resetsAt: NOW + 295 * 60_000 }, NOW)).toBeNull();
-    expect(projectedPct(300, { pct: 1, resetsAt: NOW + 294 * 60_000 }, NOW)).toBeCloseTo(50);
+    // 29 minutes of 5 h gone: too early, a turn or two would take it far past 100 %; 30 minutes: a tenth.
+    expect(projectedPct(300, { pct: 5, resetsAt: NOW + 271 * 60_000 }, NOW)).toBeNull();
+    expect(projectedPct(300, { pct: 5, resetsAt: NOW + 270 * 60_000 }, NOW)).toBeCloseTo(50);
+    // A week's: a morning's work (15 % in 8 h) would say « → 315 % » as if it went on day and night; nothing before a
+    // whole day, then the pace of that day (20 % in 24 h: 140 %).
+    expect(projectedPct(10080, { pct: 15, resetsAt: NOW + 160 * H }, NOW)).toBeNull();
+    expect(projectedPct(10080, { pct: 20, resetsAt: NOW + 144 * H }, NOW)).toBeCloseTo(140);
   });
 
   it('takes a reset further than the window as a window just started', () => {
@@ -309,8 +313,8 @@ describe('the projection of the day’s cost at midnight', () => {
     expect(projectedDayCost(3, at(18))).toBeCloseTo(4);
   });
 
-  it('says nothing in the first half hour', () => {
-    expect(projectedDayCost(0.2, at(0, 20))).toBeNull();
-    expect(projectedDayCost(0.2, at(0, 30))).not.toBeNull();
+  it('says nothing in the first tenth of the day (2 h 24)', () => {
+    expect(projectedDayCost(0.2, at(2, 20))).toBeNull();
+    expect(projectedDayCost(0.2, at(2, 30))).not.toBeNull();
   });
 });

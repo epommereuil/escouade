@@ -302,8 +302,7 @@ export function overThreshold(w: RateWindow | null, threshold: number, now: numb
 /**
  * Where a window would end if it went on at the pace used so far: its percentage spread over the time gone, to its whole
  * length. The month's credits (`minutes` null, Copilot CLI) are a window of the month that ends at their reset. None for a
- * window whose end is unknown or past, nor in its first 2 % (6 minutes of a 5 h window, 3 hours of a week's, half a day
- * of a month's): too early, one turn would project it far past 100 %.
+ * window whose end is unknown or past, nor while it is too early (`tooEarly`).
  */
 export function projectedPct(minutes: number | null, w: RateWindow | null, now: number): number | null {
   if (!w?.resetsAt) return null;
@@ -311,8 +310,20 @@ export function projectedPct(minutes: number | null, w: RateWindow | null, now: 
   const left = w.resetsAt - now;
   if (left <= 0) return null;
   const gone = Math.min(length, length - left);
-  if (gone < length * 0.02) return null;
+  if (tooEarly(gone, length)) return null;
   return (w.pct * length) / gone;
+}
+
+const DAY_MS = 24 * 3_600_000;
+
+/**
+ * Too early to project, `gone` into a window of `length`. One of a day or so waits for a tenth of itself (30 minutes of a
+ * 5 h window, a turn or two would take it far past 100 %; 2 h 24 of a day); a longer one (a week's, a month's) for a whole
+ * day, for the nights to count: a morning's work spread over a week as if it went on day and night would make the start
+ * of every week red.
+ */
+function tooEarly(gone: number, length: number): boolean {
+  return gone < (length < 2 * DAY_MS ? length * 0.1 : DAY_MS);
 }
 
 /**
@@ -331,7 +342,7 @@ function monthBefore(ts: number): number {
 
 /**
  * Where the day's cost would end at midnight at the pace since midnight, for a harness without a quota (OpenCode): null
- * in its first 2 % (half an hour), as for a window.
+ * while it is too early (`tooEarly`: until 2 h 24), as for a window.
  */
 export function projectedDayCost(cost: number, now: number): number | null {
   const midnight = new Date(now);
@@ -340,7 +351,7 @@ export function projectedDayCost(cost: number, now: number): number | null {
   next.setDate(next.getDate() + 1);
   const length = next.getTime() - midnight.getTime();
   const gone = now - midnight.getTime();
-  if (gone < length * 0.02) return null;
+  if (tooEarly(gone, length)) return null;
   return (cost * length) / gone;
 }
 
